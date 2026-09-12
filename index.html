@@ -415,10 +415,28 @@
   /* ---------------- ちずクイズ ---------------- */
   #s-geo.on{display:flex}
   #s-geo{gap:8px}
+  .geowrap{position:relative;flex:1 1 auto;min-height:0;display:flex}
+  .geotools{
+    position:absolute;right:8px;bottom:8px;z-index:5;
+    display:flex;flex-direction:column;align-items:stretch;gap:5px;
+  }
+  .geotools button{
+    font:inherit;font-weight:900;font-size:20px;line-height:1;
+    width:44px;height:44px;border-radius:12px;
+    border:1.5px solid var(--line);background:rgba(255,255,255,.94);color:var(--ink);
+    cursor:pointer;box-shadow:0 2px 6px rgba(27,73,101,.14);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .geotools button:active{background:var(--sea);color:#fff}
+  .geotools button.reset{font-size:10px;line-height:1.15;height:auto;padding:6px 2px;font-weight:800}
+  .geotools .zlabel{
+    text-align:center;font-size:11px;font-weight:800;color:var(--sub);
+    background:rgba(255,255,255,.9);border-radius:8px;padding:2px 0;
+  }
   .geoq{background:var(--paper);border-radius:14px;padding:8px 12px 10px;text-align:center;border:1px solid var(--line);flex:none}
   .geoq-sub{margin:0;font-size:12px;color:var(--sub);font-weight:700;letter-spacing:.04em}
   .geoq-name{margin:2px 0 0;font-size:clamp(22px,4.4vh,30px);line-height:1.1}
-  .geomap{position:relative;flex:1 1 auto;min-height:0;background:#EAF2F5;border-radius:14px;border:1px solid var(--line);overflow:hidden}
+  .geomap{position:relative;flex:1 1 auto;min-width:0;min-height:0;background:#EAF2F5;border-radius:14px;border:1px solid var(--line);overflow:hidden}
   #geo-map .mapsvg{position:absolute;left:6px;top:6px;right:6px;bottom:6px;width:auto;height:auto}
   .geobar{
     flex:none;background:var(--paper);border:1px solid var(--line);border-radius:12px;
@@ -867,7 +885,16 @@
       <p class="geoq-name display" id="geo-name"></p>
     </div>
 
-    <div class="geomap" id="geo-map"></div>
+    <div class="geowrap">
+      <div class="geomap" id="geo-map"></div>
+      <div class="geotools">
+        <button type="button" id="btn-gzin" aria-label="大きくする">＋</button>
+        <span class="zlabel" id="geo-zoom">×1.0</span>
+        <button type="button" id="btn-gzout" aria-label="小さくする">−</button>
+        <button type="button" id="btn-gturn" aria-label="90度まわす">↻</button>
+        <button type="button" id="btn-greset" class="reset" hidden>もとに<br>もどす</button>
+      </div>
+    </div>
 
     <div class="geobar" id="geo-bar"><span id="geo-bartext">地図を ゆびで さわってね</span></div>
 
@@ -2281,7 +2308,8 @@ const GEO_TIPS=[
 ];
 const STEPS_GEO=[
   'おとなが 上の <b>名前を 読みあげます</b>。ヒントを出してもOK。',
-  'こどもが <b>地図を ゆびで さわって</b> さがします。はなすと けってい。',
+  'こどもが <b>1本ゆびで 地図を さわって</b> さがします。はなすと けってい。',
+  '小さくて 押しにくいときは <b>だいたいの場所を さわってから ＋</b>。さわった所が 大きくなります。<b>2本ゆびでも 拡大・回転</b>できます。',
   'ピタリで<b>3てん</b>、となり（世界はおなじ大陸）なら<b>1てん</b>。'
 ];
 const STEPS_NUM=[
@@ -2979,7 +3007,8 @@ function jpSVG(marks,vb,opt){
   const box=vb||jpFullVB();
   const I=JPINSET;
   let s='<svg class="mapsvg" viewBox="'+box.join(' ')+'" preserveAspectRatio="xMidYMid meet">';
-  s+='<rect class="sea" x="'+box[0]+'" y="'+box[1]+'" width="'+box[2]+'" height="'+box[3]+'"/>';
+  s+='<rect class="sea" x="'+(box[0]-box[2]*3)+'" y="'+(box[1]-box[3]*3)+'" width="'+(box[2]*7)+'" height="'+(box[3]*7)+'"/>';
+  s+='<g class="mapg">';
   for(const k in JPMAP){
     if(k==='47') continue;
     s+='<path class="pf '+(marks[k]||'')+'" data-k="'+k+'" d="'+JPMAP[k]+'"/>';
@@ -2987,20 +3016,21 @@ function jpSVG(marks,vb,opt){
   if(opt.inset!==false){
     s+='<rect class="insetbox" x="'+I[0]+'" y="'+I[1]+'" width="'+I[2]+'" height="'+I[3]+'"/>';
     s+='<path class="pf '+(marks['47']||'')+'" data-k="47" d="'+JPMAP['47']+'"/>';
-    const fs=box[2]/42;   /* 拡大しても 画面上の大きさが変わらないように */
+    const fs=(box[2]/42)/(opt.zoom||1);   /* 拡大しても 画面上の大きさが変わらないように */
     s+='<text class="inslabel" font-size="'+fs.toFixed(2)+'" x="'+(I[0]+fs*0.5)+'" y="'+(I[1]+fs*1.3)+'">沖縄県</text>';
   }
   s+=capsSVG(box,opt);
-  return s+'</svg>';
+  return s+'</g></svg>';
 }
-function wSVG(marks,vb){
-  marks=marks||{};
+function wSVG(marks,vb,opt){
+  marks=marks||{}; opt=opt||{};
   const box=vb||[0,0,WBOX[0],WBOX[1]];
   let s='<svg class="mapsvg" viewBox="'+box.join(' ')+'" preserveAspectRatio="xMidYMid meet">';
-  s+='<rect class="sea" x="'+box[0]+'" y="'+box[1]+'" width="'+box[2]+'" height="'+box[3]+'"/>';
+  s+='<rect class="sea" x="'+(box[0]-box[2]*3)+'" y="'+(box[1]-box[3]*3)+'" width="'+(box[2]*7)+'" height="'+(box[3]*7)+'"/>';
+  s+='<g class="mapg">';
   s+='<path class="land" d="'+WLAND+'"/>';
   for(const k in WMAP) s+='<path class="cty '+(marks[k]||'')+'" data-k="'+k+'" d="'+WMAP[k]+'"/>';
-  return s+'</svg>';
+  return s+'</g></svg>';
 }
 /* 県庁所在地の点と名前。
    opt.caps  : 点を出す県（配列） / 'all' / なし＝出さない
@@ -3012,7 +3042,7 @@ function capsSVG(box,opt){
   const lab=opt.capLab||[];
   const scale=box[2]/JPBOX[0];     /* 拡大率 */
   const r=Math.max(1.1,2.1*scale);
-  const fs=box[2]/26;
+  const fs=(box[2]/26)/(opt.zoom||1);
   /* 全国表示のまま市の名前を出すと つぶれて読めない。拡大しているときだけ文字を出す */
   const showText=(box[2]<260);
   let s='';
@@ -3100,6 +3130,61 @@ function resultMap(){
    ちずクイズ（名前を見て、地図でさがす）
    ============================================================ */
 
+/* ============================================================
+   地図を 指で 動かす（拡大・回転・移動）
+   1本指＝えらぶ ／ 2本指＝うごかす。ボタンでも 操作できる
+   ============================================================ */
+const VIEW={k:1,deg:0,tx:0,ty:0};
+function viewReset(){ VIEW.k=1; VIEW.deg=0; VIEW.tx=0; VIEW.ty=0; viewApply(); }
+function viewBoxNow(){
+  const g=state.g;
+  return (g&&g.vb) ? g.vb : (geoIsWorld()? [0,0,WBOX[0],WBOX[1]] : jpFullVB());
+}
+function viewApply(){
+  const g=state.g; if(!g||!g.svg) return;
+  const grp=g.svg.querySelector('.mapg'); if(!grp) return;
+  const b=viewBoxNow();
+  const cx=b[0]+b[2]/2, cy=b[1]+b[3]/2;
+  /* 中心を軸に 回して 拡大し、そのあと ずらす */
+  grp.setAttribute('transform',
+    'translate('+VIEW.tx.toFixed(2)+' '+VIEW.ty.toFixed(2)+') '+
+    'translate('+cx.toFixed(2)+' '+cy.toFixed(2)+') '+
+    'rotate('+VIEW.deg.toFixed(2)+') scale('+VIEW.k.toFixed(3)+') '+
+    'translate('+(-cx).toFixed(2)+' '+(-cy).toFixed(2)+')');
+  const z=$('geo-zoom'); if(z) z.textContent='×'+VIEW.k.toFixed(1);
+  const rb=$('btn-greset'); if(rb) rb.hidden=(VIEW.k===1&&VIEW.deg===0&&VIEW.tx===0&&VIEW.ty===0);
+}
+function viewClamp(){
+  VIEW.k=Math.min(6,Math.max(1,VIEW.k));
+  const b=viewBoxNow(), lim=Math.max(b[2],b[3])*0.9;
+  VIEW.tx=Math.min(lim,Math.max(-lim,VIEW.tx));
+  VIEW.ty=Math.min(lim,Math.max(-lim,VIEW.ty));
+  /* まっすぐに近いときは きっちり合わせる */
+  let d=((VIEW.deg%360)+360)%360;
+  for(const t of [0,90,180,270,360]) if(Math.abs(d-t)<8) d=(t===360?0:t);
+  VIEW.deg=d;
+}
+/* fx,fy（地図の座標）を 画面上で動かさずに 倍率だけ変える。
+   さわった場所を中心に大きくできるので、指で地図を動かさなくても 目的地に寄れる */
+function viewZoomAt(mul,fx,fy){
+  const b=viewBoxNow();
+  const cx=b[0]+b[2]/2, cy=b[1]+b[3]/2;
+  const k0=VIEW.k;
+  VIEW.k*=mul; viewClamp();
+  const dk=k0-VIEW.k;
+  if(fx!==undefined && fy!==undefined){
+    const rad=VIEW.deg*Math.PI/180, cs=Math.cos(rad), sn=Math.sin(rad);
+    const ux=fx-cx, uy=fy-cy;
+    VIEW.tx+=dk*(ux*cs-uy*sn);
+    VIEW.ty+=dk*(ux*sn+uy*cs);
+  }
+  viewClamp(); viewApply();
+}
+function viewZoom(mul){
+  const g=state.g;
+  const f=(g&&g.lastPt)?g.lastPt:null;   /* さいごに さわった場所 */
+  viewZoomAt(mul, f?f.x:undefined, f?f.y:undefined);
+}
 function geoIsWorld(){ return state.mode==='geoflag'; }
 function geoSrc(){ return geoIsWorld()?WMAP:JPMAP; }
 function geoAllKeys(){ return Object.keys(geoSrc()); }
@@ -3126,14 +3211,15 @@ function geoDraw(marks,capLab){
   const el=$('geo-map');
   /* 出題中に県庁所在地の名前を出すと「秋田県→秋田市」で答えが見えてしまう。
      名前は こたえ合わせのときだけ 出す */
-  el.innerHTML=geoIsWorld()?wSVG(marks,g.vb)
-    :jpSVG(marks,g.vb,{caps:g.scope,capLab:capLab||[]});   /* さがす範囲の県だけ 点を出す */
+  el.innerHTML=geoIsWorld()?wSVG(marks,g.vb,{zoom:VIEW.k})
+    :jpSVG(marks,g.vb,{caps:g.scope,capLab:capLab||[],zoom:VIEW.k});   /* さがす範囲の県だけ 点を出す */
   const svg=el.querySelector('svg');
   /* 範囲外は うすくする */
   svg.querySelectorAll('[data-k]').forEach(function(p){
     if(g.scope.indexOf(p.dataset.k)<0) p.classList.add('off');
   });
   g.svg=svg;
+  viewApply();
 }
 function geoSetBar(cls,text){
   const b=$('geo-bar');
@@ -3151,12 +3237,31 @@ function geoRender(){
   $('geo-sub').textContent=(state.level===1)
     ? geoGroupOf(k)+(geoIsWorld()?'':'地方')+'の 中から さがそう'
     : (geoIsWorld()?'世界地図から さがそう':'日本地図から さがそう');
+  VIEW.k=1; VIEW.deg=0; VIEW.tx=0; VIEW.ty=0; g.lastPt=null;
   geoDraw({});
-  geoSetBar('', 'ゆびで さわって、はなすと けってい');
+  geoSetBar('', '1本ゆびで えらぶ ／ 2本ゆびで 拡大・回転');
+}
+/* --- 指の操作。1本＝えらぶ、2本＝拡大・回転・移動 --- */
+const PTR=new Map();
+let gesture=null;
+function ptrCenter(){
+  const a=[...PTR.values()];
+  return {x:(a[0].x+a[1].x)/2, y:(a[0].y+a[1].y)/2,
+          d:Math.hypot(a[1].x-a[0].x,a[1].y-a[0].y),
+          r:Math.atan2(a[1].y-a[0].y,a[1].x-a[0].x)};
+}
+/* 画面上の動き量を 地図の座標の動き量に直す（回転・拡大を打ち消す） */
+function screenToMapDelta(dx,dy){
+  const g=state.g; if(!g||!g.svg) return {x:0,y:0};
+  const b=viewBoxNow();
+  const rect=g.svg.getBoundingClientRect();
+  const s=Math.min(rect.width/b[2], rect.height/b[3]);   /* meet なので 小さいほう */
+  return {x:dx/s, y:dy/s};
 }
 function geoPointToSvg(ev){
   const svg=state.g.svg; if(!svg) return null;
-  const ctm=svg.getScreenCTM(); if(!ctm) return null;
+  const grp=svg.querySelector('.mapg')||svg;   /* 拡大・回転を打ち消した座標がほしい */
+  const ctm=grp.getScreenCTM(); if(!ctm) return null;
   const pt=svg.createSVGPoint(); pt.x=ev.clientX; pt.y=ev.clientY;
   return pt.matrixTransform(ctm.inverse());
 }
@@ -3164,12 +3269,13 @@ function geoHover(ev){
   const g=state.g;
   if(!g||g.locked) return;
   const p=geoPointToSvg(ev); if(!p) return;
+  g.lastPt={x:p.x,y:p.y};
   const k=pickAt(geoSrc(),g.scope,p.x,p.y);
   if(!k) return;
   g.sel=k;
   const marks={}; marks[k]='sel';
   geoDraw(marks);
-  geoSetBar('sel','いま えらんでいるのは　'+geoNameOf(k));
+  geoSetBar('sel','いま えらんでいるのは　'+geoNameOf(k)+(VIEW.k<1.5?'　／　＋で 大きく':''));
 }
 function geoCommit(){
   const g=state.g;
@@ -3224,11 +3330,59 @@ function geoTick(){
 /* 指を置いている間は 選びなおせる。はなしたときに はじめて決まる */
 (function(){
   const el=$('geo-map');
-  el.addEventListener('pointerdown',function(e){ e.preventDefault(); el.setPointerCapture(e.pointerId); geoHover(e); });
-  el.addEventListener('pointermove',function(e){ if(e.buttons) geoHover(e); });
-  el.addEventListener('pointerup',function(e){ geoCommit(); });
-  el.addEventListener('pointercancel',function(){ const g=state.g; if(g&&!g.locked){ g.sel=null; geoDraw({}); geoSetBar('','ゆびで さわって、はなすと けってい'); } });
+  function clearSel(){
+    const g=state.g; if(!g||g.locked) return;
+    if(g.sel){ g.sel=null; geoDraw({}); }
+    geoSetBar('','1本ゆびで えらぶ ／ 2本ゆびで 拡大・回転');
+  }
+  el.addEventListener('pointerdown',function(e){
+    e.preventDefault();
+    el.setPointerCapture(e.pointerId);
+    PTR.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(PTR.size===2){
+      /* 2本目が着いた時点で 選ぶのをやめて 動かすモードへ */
+      clearSel();
+      const c=ptrCenter();
+      const fp=geoPointToSvg({clientX:c.x,clientY:c.y});
+      gesture={d0:c.d,r0:c.r,cx:c.x,cy:c.y,k0:VIEW.k,deg0:VIEW.deg,tx0:VIEW.tx,ty0:VIEW.ty,
+               fx:fp?fp.x:undefined, fy:fp?fp.y:undefined};
+    }else if(PTR.size===1){
+      gesture=null;
+      geoHover(e);
+    }
+    return false;
+  });
+  el.addEventListener('pointermove',function(e){
+    if(!PTR.has(e.pointerId)) return;
+    PTR.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(PTR.size>=2 && gesture){
+      const c=ptrCenter();
+      const kWant=gesture.k0*(c.d/Math.max(1,gesture.d0));
+      VIEW.k=gesture.k0; VIEW.deg=gesture.deg0; VIEW.tx=gesture.tx0; VIEW.ty=gesture.ty0;
+      viewZoomAt(kWant/VIEW.k, gesture.fx, gesture.fy);
+      VIEW.deg=gesture.deg0+(c.r-gesture.r0)*180/Math.PI;
+      const d=screenToMapDelta(c.x-gesture.cx, c.y-gesture.cy);
+      VIEW.tx+=d.x; VIEW.ty+=d.y;
+      viewClamp(); viewApply();
+      return;
+    }
+    if(PTR.size===1) geoHover(e);
+  });
+  function up(e){
+    PTR.delete(e.pointerId);
+    if(gesture){
+      if(PTR.size<2){ gesture=null; PTR.clear(); }   /* 指が1本になったら 選ぶモードには戻さない */
+      return;
+    }
+    if(PTR.size===0) geoCommit();
+  }
+  el.addEventListener('pointerup',up);
+  el.addEventListener('pointercancel',function(e){ PTR.delete(e.pointerId); gesture=null; clearSel(); });
 })();
+$('btn-gzin').addEventListener('click',function(){ viewZoom(1.6); });
+$('btn-gzout').addEventListener('click',function(){ viewZoom(1/1.6); });
+$('btn-gturn').addEventListener('click',function(){ VIEW.deg+=90; viewClamp(); viewApply(); });
+$('btn-greset').addEventListener('click',function(){ viewReset(); });
 $('btn-gpause').addEventListener('click',function(){ pauseGame(); });
 $('btn-gpass').addEventListener('click',function(){
   const g=state.g; if(!g||g.locked) return;
