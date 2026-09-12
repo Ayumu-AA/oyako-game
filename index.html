@@ -415,27 +415,26 @@
   /* ---------------- ちずクイズ ---------------- */
   #s-geo.on{display:flex}
   #s-geo{gap:8px}
-  .geowrap{position:relative;flex:1 1 auto;min-height:0;display:flex}
-  .geotools{
-    position:absolute;right:8px;bottom:8px;z-index:5;
-    display:flex;flex-direction:column;align-items:stretch;gap:5px;
+  /* 4たくのボタン。指で押しやすい大きさを最優先 */
+  .gchoices{
+    flex:none;display:grid;grid-template-columns:1fr 1fr;gap:8px;
   }
-  .geotools button{
-    font:inherit;font-weight:900;font-size:20px;line-height:1;
-    width:44px;height:44px;border-radius:12px;
-    border:1.5px solid var(--line);background:rgba(255,255,255,.94);color:var(--ink);
-    cursor:pointer;box-shadow:0 2px 6px rgba(27,73,101,.14);
-    display:flex;align-items:center;justify-content:center;
+  .gchoice{
+    font:inherit;font-weight:800;font-size:clamp(15px,2.4vh,19px);
+    min-height:clamp(52px,7.4vh,68px);padding:8px 6px;
+    border:2px solid var(--line);border-radius:14px;
+    background:var(--paper);color:var(--ink);cursor:pointer;
+    box-shadow:0 2px 0 rgba(27,73,101,.10);
   }
-  .geotools button:active{background:var(--sea);color:#fff}
-  .geotools button.reset{font-size:10px;line-height:1.15;height:auto;padding:6px 2px;font-weight:800}
-  .geotools .zlabel{
-    text-align:center;font-size:11px;font-weight:800;color:var(--sub);
-    background:rgba(255,255,255,.9);border-radius:8px;padding:2px 0;
-  }
+  .gchoice:active{background:var(--sky);color:#fff;border-color:var(--sky)}
+  .gchoice:disabled{cursor:default}
+  .gchoice.right{background:var(--leaf);color:#fff;border-color:var(--leaf)}
+  .gchoice.wrong{background:#E0452F;color:#fff;border-color:#E0452F}
   .geoq{background:var(--paper);border-radius:14px;padding:8px 12px 10px;text-align:center;border:1px solid var(--line);flex:none}
   .geoq-sub{margin:0;font-size:12px;color:var(--sub);font-weight:700;letter-spacing:.04em}
-  .geoq-name{margin:2px 0 0;font-size:clamp(22px,4.4vh,30px);line-height:1.1}
+  .geoq-name{margin:0;font-size:0;line-height:0}
+  .geoq{padding:10px 12px}
+  .geoq-sub{font-size:clamp(14px,2.5vh,18px);color:var(--ink)}
   .geomap{position:relative;flex:1 1 auto;min-width:0;min-height:0;background:#EAF2F5;border-radius:14px;border:1px solid var(--line);overflow:hidden}
   #geo-map .mapsvg{position:absolute;left:6px;top:6px;right:6px;bottom:6px;width:auto;height:auto}
   .geobar{
@@ -464,6 +463,7 @@
   .mapsvg .capdot{fill:#fff;stroke:#33596F;stroke-width:1.1;vector-effect:non-scaling-stroke}
   .mapsvg .capdot.on{fill:#fff;stroke:#1B4965;stroke-width:1.6}
   .mapsvg .capcore{fill:#1B4965}
+  .mapsvg .findring{fill:none;stroke:#E0452F;stroke-width:2.2;stroke-dasharray:5 4;opacity:.85;vector-effect:non-scaling-stroke}
   .mapsvg .caplab{font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round;fill:#3C4C55}
   .mapsvg .caplab.diff{fill:#C0392B}   /* 県名と ちがう 県庁所在地 */
   /* 正解した瞬間に0.9秒だけ出る地図 */
@@ -874,7 +874,7 @@
         <div class="timerbar"><div class="timerfill" id="geo-fill"></div></div>
         <span class="timertext" id="geo-time">90</span>
       </div>
-      <div class="scorechip"><span id="geo-score">0</span><span style="font-size:13px"> てん</span></div>
+      <div class="scorechip"><span id="geo-score">0</span><span style="font-size:13px"> もん</span></div>
       <button class="iconbtn" id="btn-gpause" type="button" aria-label="一時停止">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1.5"/><rect x="14" y="4" width="5" height="16" rx="1.5"/></svg>
       </button>
@@ -885,18 +885,11 @@
       <p class="geoq-name display" id="geo-name"></p>
     </div>
 
-    <div class="geowrap">
-      <div class="geomap" id="geo-map"></div>
-      <div class="geotools">
-        <button type="button" id="btn-gzin" aria-label="大きくする">＋</button>
-        <span class="zlabel" id="geo-zoom">×1.0</span>
-        <button type="button" id="btn-gzout" aria-label="小さくする">−</button>
-        <button type="button" id="btn-gturn" aria-label="90度まわす">↻</button>
-        <button type="button" id="btn-greset" class="reset" hidden>もとに<br>もどす</button>
-      </div>
-    </div>
+    <div class="geomap" id="geo-map"></div>
 
-    <div class="geobar" id="geo-bar"><span id="geo-bartext">地図を ゆびで さわってね</span></div>
+    <div class="geobar" id="geo-bar"><span id="geo-bartext">下の 4つから えらんでね</span></div>
+
+    <div class="gchoices" id="geo-choices"></div>
 
     <div class="playbtns">
       <button class="btn btn-ghost" id="btn-gpass">わからない（パス）</button>
@@ -2302,15 +2295,15 @@ const STEPS_HINT=[
 ];
 const GEO_TIPS_NAME='ちずクイズのコツ';
 const GEO_TIPS=[
-  'ぴったり当てなくても、となりなら1てん。まず「だいたいこのへん」でさわってみよう',
   '日本は 北から 北海道・東北・関東・中部・近畿・中国四国・九州 の順にならんでいる',
-  '海に かこまれた県と 海のない県（内陸県）を 見くらべると おぼえやすい'
+  '海に かこまれた県と 海のない県（内陸県）を 見くらべると おぼえやすい',
+  '形でおぼえると 強い。北海道・四国・九州は 形だけで すぐ分かる'
 ];
 const STEPS_GEO=[
-  'おとなが 上の <b>名前を 読みあげます</b>。ヒントを出してもOK。',
-  'こどもが <b>1本ゆびで 地図を さわって</b> さがします。はなすと けってい。',
-  '小さくて 押しにくいときは <b>だいたいの場所を さわってから ＋</b>。さわった所が 大きくなります。<b>2本ゆびでも 拡大・回転</b>できます。',
-  'ピタリで<b>3てん</b>、となり（世界はおなじ大陸）なら<b>1てん</b>。'
+  '地図の <b>赤くなっている ところ</b>が どこかを あてます。',
+  '下の <b>4つのボタン</b>から えらんでタップ。地図は 押さなくてOK。',
+  'おとなは ヒントを出す係。「四国だよ」「うどんの県」など 声かけ自由。',
+  'こたえ合わせでは <b>県庁所在地</b>も 出ます。地図は 2本ゆびで 大きくできます。'
 ];
 const STEPS_NUM=[
   '<b>たて</b>も<b>よこ</b>も、すべての 列で 計算が 合うように します。',
@@ -2369,8 +2362,8 @@ const MODE_SUB={
  kokugo:'ことわざ・四字熟語 ／ 国語',
  rika:'生きもの・もののしくみ ／ 理科',
  rekishi:'偉人・できごと・むかしのくらし ／ 社会',
- geopref:'47都道府県を 地図でさがす',
- geoflag:'24の国を 世界地図でさがす',
+ geopref:'赤いところは どの県？ ／ 4たく',
+ geoflag:'赤いところは どの国？ ／ 4たく',
  eigo:'絵を見て英語で答える ／ 英語',
  math:'数字をならべて10を作る ／ 算数',
  numcross:'たて・よこの 計算を そろえる ／ 算数'
@@ -2388,7 +2381,7 @@ const GROUPS={
  geo:{
    eyebrow:'2人であそぶ（1人でもOK）',
    title:'ちずクイズ',
-   lede:'<b>おとなが 名前を 読んで、こどもが 地図から さがします。</b>ヒントを出してもOK（「みかんのところ」など）。<br>ピタリで<b>3てん</b>、となり／おなじ大陸なら<b>1てん</b>。ぴったり当てなくても だいじょうぶ。',
+   lede:'<b>地図の 赤いところが どこかを、4つのボタンから えらびます。</b>地図は 押さなくてOK。<br>おとなは ヒントを出す係（「四国だよ」「うどんの県」など）。<br>低学年は 全体図から、高学年は 地方ごとに 拡大して 出ます。',
    note:'どちらを やる？',
    modes:['geopref','geoflag']
  },
@@ -2510,9 +2503,8 @@ document.querySelectorAll('[data-back]').forEach(function(b){
 function bestKey(){ return 'oyako-'+state.mode+'-'+state.level+'-'+state.seconds; }
 function refreshBest(){
   const v=store(bestKey());
-  const unit=(state.mode==='geopref'||state.mode==='geoflag')?'てん':'もん';
   $('best-line').textContent=(state.mode==='battle'||state.mode==='cross'||state.mode==='numcross')?''
-    :(v? 'この端末のベスト　'+state.seconds+'秒で '+v+unit : 'この端末にはまだ記録がありません');
+    :(v? 'この端末のベスト　'+state.seconds+'秒で '+v+'もん' : 'この端末にはまだ記録がありません');
 }
 refreshBest();
 
@@ -2775,7 +2767,7 @@ function pauseGame(){
   const isGeoP=(state.mode==='geopref'||state.mode==='geoflag');
   $('pause-info').textContent='のこり '+Math.ceil(state.remain/1000)+'秒'
     +((state.mode==='battle' && state.b)?(' ／ おとな '+state.b.score.adult+' − こども '+state.b.score.child)
-      :isGeoP?(' ／ いま '+state.score+'てん'):(' ／ いま '+state.score+'もん'));
+      :(' ／ いま '+state.score+'もん'));
   if(state.mode!=='battle' && !isGeoP) $('card').classList.add('hidden-answer');
   $('overlay').hidden=false;
   $('btn-resume').focus();
@@ -2864,8 +2856,8 @@ function finish(){
   const isMath=(state.mode==='math');
   const n=state.score;
   $('final').textContent=n;
-  $('final-unit').textContent=isGeo?'てん':'もん';
-  const gold=isGeo?24:isMath?4:9, silver=isGeo?12:isMath?2:5;
+  $('final-unit').textContent='もん';
+  const gold=isMath?4:9, silver=isMath?2:5;
   let rank,color,msg;
   if(n>=gold){ rank='ゴールド'; color='#C9961F'; msg=isMath?'すごい！式を見つけるのが速い。':'すごい！ヒントの出し方がプロきゅうです。'; }
   else if(n>=silver){ rank='シルバー'; color='#7E93A0'; msg=isMath?'いいペース。かけ算とわり算も使ってみよう。':'いいコンビ！つぎは役わりを交代してみよう。'; }
@@ -2877,7 +2869,7 @@ function finish(){
     const g=state.g;
     $('hee-name').textContent=GEO_TIPS_NAME;
     $('hee-text').textContent=(g&&g.got.length)
-      ? '見つけられたのは '+g.got.map(geoNameOf).join('・')+'。'
+      ? 'あてられたのは '+g.got.map(geoNameOf).join('・')+'。'
       : GEO_TIPS[Math.floor(Math.random()*GEO_TIPS.length)]+'。';
     $('recap').hidden=true;
   }else if(isMath){
@@ -3020,6 +3012,7 @@ function jpSVG(marks,vb,opt){
     s+='<text class="inslabel" font-size="'+fs.toFixed(2)+'" x="'+(I[0]+fs*0.5)+'" y="'+(I[1]+fs*1.3)+'">沖縄県</text>';
   }
   s+=capsSVG(box,opt);
+  if(opt.ring) s+=ringSVG(JPMAP,opt.ring,box);
   return s+'</g></svg>';
 }
 function wSVG(marks,vb,opt){
@@ -3030,6 +3023,7 @@ function wSVG(marks,vb,opt){
   s+='<g class="mapg">';
   s+='<path class="land" d="'+WLAND+'"/>';
   for(const k in WMAP) s+='<path class="cty '+(marks[k]||'')+'" data-k="'+k+'" d="'+WMAP[k]+'"/>';
+  if(opt.ring) s+=ringSVG(WMAP,opt.ring,box);
   return s+'</g></svg>';
 }
 /* 県庁所在地の点と名前。
@@ -3074,6 +3068,21 @@ function capListHTML(codes){
     return capSameName(k)? c[2] : '<b>'+c[2]+'</b>';
   }).filter(Boolean).join('・');
   return html+(diff.length?'<br><span class="rm-hint">赤い字は 県名と ちがう 県庁所在地</span>':'');
+}
+/* 小さすぎて 見つけにくい県・国には 目じるしの輪をつける */
+function ringSVG(src,key,box){
+  if(!key||!src[key]) return '';
+  const rings=ringsFor(src,key);
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  for(const r of rings) for(let i=0;i<r.length;i+=2){
+    if(r[i]<x0)x0=r[i]; if(r[i]>x1)x1=r[i];
+    if(r[i+1]<y0)y0=r[i+1]; if(r[i+1]>y1)y1=r[i+1];
+  }
+  const w=x1-x0, h=y1-y0;
+  if(Math.max(w,h) > box[2]/9) return '';        /* じゅうぶん大きければ 輪はいらない */
+  const cx=(x0+x1)/2, cy=(y0+y1)/2;
+  const r=Math.max(Math.hypot(w,h)/2*1.9, box[2]/26);
+  return '<circle class="findring" cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="'+r.toFixed(1)+'"/>';
 }
 let JPFULLVB=null;
 function jpFullVB(){
@@ -3127,15 +3136,11 @@ function resultMap(){
 }
 
 /* ============================================================
-   ちずクイズ（名前を見て、地図でさがす）
+   ちずクイズ（地図で 色のついた所を 4たくで 答える）
+   ── 地図を指で押して選ぶ形は 誤タップが多かったので やめた。
+      地図は「問題の絵」に徹し、答えは 大きな4つのボタンで えらぶ。
    ============================================================ */
-
-/* ============================================================
-   地図を 指で 動かす（拡大・回転・移動）
-   1本指＝えらぶ ／ 2本指＝うごかす。ボタンでも 操作できる
-   ============================================================ */
-const VIEW={k:1,deg:0,tx:0,ty:0};
-function viewReset(){ VIEW.k=1; VIEW.deg=0; VIEW.tx=0; VIEW.ty=0; viewApply(); }
+const VIEW={k:1,deg:0,tx:0,ty:0};      /* 2本指で 拡大・回転できる（見たいときだけ） */
 function viewBoxNow(){
   const g=state.g;
   return (g&&g.vb) ? g.vb : (geoIsWorld()? [0,0,WBOX[0],WBOX[1]] : jpFullVB());
@@ -3145,46 +3150,21 @@ function viewApply(){
   const grp=g.svg.querySelector('.mapg'); if(!grp) return;
   const b=viewBoxNow();
   const cx=b[0]+b[2]/2, cy=b[1]+b[3]/2;
-  /* 中心を軸に 回して 拡大し、そのあと ずらす */
   grp.setAttribute('transform',
     'translate('+VIEW.tx.toFixed(2)+' '+VIEW.ty.toFixed(2)+') '+
     'translate('+cx.toFixed(2)+' '+cy.toFixed(2)+') '+
     'rotate('+VIEW.deg.toFixed(2)+') scale('+VIEW.k.toFixed(3)+') '+
     'translate('+(-cx).toFixed(2)+' '+(-cy).toFixed(2)+')');
-  const z=$('geo-zoom'); if(z) z.textContent='×'+VIEW.k.toFixed(1);
-  const rb=$('btn-greset'); if(rb) rb.hidden=(VIEW.k===1&&VIEW.deg===0&&VIEW.tx===0&&VIEW.ty===0);
 }
 function viewClamp(){
   VIEW.k=Math.min(6,Math.max(1,VIEW.k));
   const b=viewBoxNow(), lim=Math.max(b[2],b[3])*0.9;
   VIEW.tx=Math.min(lim,Math.max(-lim,VIEW.tx));
   VIEW.ty=Math.min(lim,Math.max(-lim,VIEW.ty));
-  /* まっすぐに近いときは きっちり合わせる */
-  let d=((VIEW.deg%360)+360)%360;
-  for(const t of [0,90,180,270,360]) if(Math.abs(d-t)<8) d=(t===360?0:t);
-  VIEW.deg=d;
 }
-/* fx,fy（地図の座標）を 画面上で動かさずに 倍率だけ変える。
-   さわった場所を中心に大きくできるので、指で地図を動かさなくても 目的地に寄れる */
-function viewZoomAt(mul,fx,fy){
-  const b=viewBoxNow();
-  const cx=b[0]+b[2]/2, cy=b[1]+b[3]/2;
-  const k0=VIEW.k;
-  VIEW.k*=mul; viewClamp();
-  const dk=k0-VIEW.k;
-  if(fx!==undefined && fy!==undefined){
-    const rad=VIEW.deg*Math.PI/180, cs=Math.cos(rad), sn=Math.sin(rad);
-    const ux=fx-cx, uy=fy-cy;
-    VIEW.tx+=dk*(ux*cs-uy*sn);
-    VIEW.ty+=dk*(ux*sn+uy*cs);
-  }
-  viewClamp(); viewApply();
-}
-function viewZoom(mul){
-  const g=state.g;
-  const f=(g&&g.lastPt)?g.lastPt:null;   /* さいごに さわった場所 */
-  viewZoomAt(mul, f?f.x:undefined, f?f.y:undefined);
-}
+function viewResetNow(){ VIEW.k=1; VIEW.deg=0; VIEW.tx=0; VIEW.ty=0; }
+
+
 function geoIsWorld(){ return state.mode==='geoflag'; }
 function geoSrc(){ return geoIsWorld()?WMAP:JPMAP; }
 function geoAllKeys(){ return Object.keys(geoSrc()); }
@@ -3199,118 +3179,127 @@ function geoDeck(){
   const all=PREF.map(function(q,i){return PCODE(i);});
   return shuffle(lv===1?all.filter(function(c){return LV1_PREF.has(jpName(c));}):all);
 }
-/* その問題で さがす範囲。低学年は 地方／大陸に しぼって拡大する */
-function geoScope(k){
-  if(state.level!==1) return geoAllKeys();
-  const g=geoGroupOf(k);
-  return geoAllKeys().filter(function(x){ return geoGroupOf(x)===g; });
+
+/* 4つの選たく肢。
+   低学年 … 日本全体（世界全体）を見せて、ほかの地方・大陸から選たく肢を作る
+            → 「だいたいどのへんか」が分かれば答えられる
+   高学年 … その地方（大陸）に拡大して、同じ地方の中から選たく肢を作る
+            → 形と位置を正確に知らないと答えられない */
+function geoChoices(ans){
+  const all=geoAllKeys();
+  const g=geoGroupOf(ans);
+  const same=all.filter(function(k){ return k!==ans && geoGroupOf(k)===g; });
+  const pool=(state.level===1 || same.length<3)
+    ? all.filter(function(k){ return k!==ans && geoGroupOf(k)!==g; })
+    : same;
+  let pick=shuffle(pool).slice(0,3);
+  if(pick.length<3){   /* 同じ地方に3つないときは まわりから足す */
+    const more=shuffle(all.filter(function(k){ return k!==ans && pick.indexOf(k)<0; }));
+    pick=pick.concat(more.slice(0,3-pick.length));
+  }
+  return shuffle(pick.concat([ans]));
 }
 
 function geoDraw(marks,capLab){
   const g=state.g;
   const el=$('geo-map');
-  /* 出題中に県庁所在地の名前を出すと「秋田県→秋田市」で答えが見えてしまう。
-     名前は こたえ合わせのときだけ 出す */
-  el.innerHTML=geoIsWorld()?wSVG(marks,g.vb,{zoom:VIEW.k})
-    :jpSVG(marks,g.vb,{caps:g.scope,capLab:capLab||[],zoom:VIEW.k});   /* さがす範囲の県だけ 点を出す */
+  const ring=g.locked?null:g.ans;      /* こたえ合わせの前だけ 目じるしを出す */
+  el.innerHTML=geoIsWorld()?wSVG(marks,g.vb,{zoom:VIEW.k,ring:ring})
+    :jpSVG(marks,g.vb,{caps:g.capsOn?'all':null,capLab:capLab||[],zoom:VIEW.k,ring:ring});
   const svg=el.querySelector('svg');
-  /* 範囲外は うすくする */
-  svg.querySelectorAll('[data-k]').forEach(function(p){
-    if(g.scope.indexOf(p.dataset.k)<0) p.classList.add('off');
-  });
+  if(g.scope && g.scope.length){
+    svg.querySelectorAll('[data-k]').forEach(function(p){
+      if(g.scope.indexOf(p.dataset.k)<0) p.classList.add('off');
+    });
+  }
   g.svg=svg;
   viewApply();
+}
+function geoRender(){
+  const g=state.g;
+  const k=g.deck[g.idx % g.deck.length];
+  g.ans=k;
+  g.locked=false;
+  g.capsOn=false;
+  viewResetNow();
+  if(state.level===1){
+    g.scope=null;                       /* 全体を ふつうに見せる */
+    g.vb=null;
+  }else{
+    const sc=geoAllKeys().filter(function(x){ return geoGroupOf(x)===geoGroupOf(k); });
+    if(sc.length>=4){    /* その地方・大陸だけで4たくが作れるときだけ 拡大する */
+      g.scope=sc; g.vb=bboxOf(geoSrc(),sc,geoIsWorld()?18:16);
+    }else{
+      g.scope=null; g.vb=null;
+    }
+  }
+  $('geo-sub').textContent=(state.level===1||!g.vb)
+    ? (geoIsWorld()?'世界地図の 赤いところは どこ？':'日本地図の 赤いところは どこ？')
+    : geoGroupOf(k)+(geoIsWorld()?'':'地方')+'の 赤いところは どこ？';
+  $('geo-name').textContent='';
+  const marks={}; marks[k]='hit';
+  geoDraw(marks);
+  g.opts=geoChoices(k);
+  $('geo-choices').innerHTML=g.opts.map(function(o){
+    return '<button type="button" class="gchoice" data-k="'+o+'">'+geoNameOf(o)+'</button>';
+  }).join('');
+  geoSetBar('', '下の 4つから えらんでね');
 }
 function geoSetBar(cls,text){
   const b=$('geo-bar');
   b.className='geobar'+(cls?' '+cls:'');
   $('geo-bartext').textContent=text;
 }
-function geoRender(){
-  const g=state.g;
-  const k=g.deck[g.idx % g.deck.length];
-  g.ans=k;
-  g.scope=geoScope(k);
-  g.locked=false;
-  g.vb=(state.level===1)?bboxOf(geoSrc(),g.scope,geoIsWorld()?18:16):null;
-  $('geo-name').textContent=geoNameOf(k);
-  $('geo-sub').textContent=(state.level===1)
-    ? geoGroupOf(k)+(geoIsWorld()?'':'地方')+'の 中から さがそう'
-    : (geoIsWorld()?'世界地図から さがそう':'日本地図から さがそう');
-  VIEW.k=1; VIEW.deg=0; VIEW.tx=0; VIEW.ty=0; g.lastPt=null;
-  geoDraw({});
-  geoSetBar('', '1本ゆびで えらぶ ／ 2本ゆびで 拡大・回転');
-}
-/* --- 指の操作。1本＝えらぶ、2本＝拡大・回転・移動 --- */
-const PTR=new Map();
-let gesture=null;
-function ptrCenter(){
-  const a=[...PTR.values()];
-  return {x:(a[0].x+a[1].x)/2, y:(a[0].y+a[1].y)/2,
-          d:Math.hypot(a[1].x-a[0].x,a[1].y-a[0].y),
-          r:Math.atan2(a[1].y-a[0].y,a[1].x-a[0].x)};
-}
-/* 画面上の動き量を 地図の座標の動き量に直す（回転・拡大を打ち消す） */
-function screenToMapDelta(dx,dy){
-  const g=state.g; if(!g||!g.svg) return {x:0,y:0};
-  const b=viewBoxNow();
-  const rect=g.svg.getBoundingClientRect();
-  const s=Math.min(rect.width/b[2], rect.height/b[3]);   /* meet なので 小さいほう */
-  return {x:dx/s, y:dy/s};
-}
-function geoPointToSvg(ev){
-  const svg=state.g.svg; if(!svg) return null;
-  const grp=svg.querySelector('.mapg')||svg;   /* 拡大・回転を打ち消した座標がほしい */
-  const ctm=grp.getScreenCTM(); if(!ctm) return null;
-  const pt=svg.createSVGPoint(); pt.x=ev.clientX; pt.y=ev.clientY;
-  return pt.matrixTransform(ctm.inverse());
-}
-function geoHover(ev){
+function geoAnswer(pick){
   const g=state.g;
   if(!g||g.locked) return;
-  const p=geoPointToSvg(ev); if(!p) return;
-  g.lastPt={x:p.x,y:p.y};
-  const k=pickAt(geoSrc(),g.scope,p.x,p.y);
-  if(!k) return;
-  g.sel=k;
-  const marks={}; marks[k]='sel';
-  geoDraw(marks);
-  geoSetBar('sel','いま えらんでいるのは　'+geoNameOf(k)+(VIEW.k<1.5?'　／　＋で 大きく':''));
-}
-function geoCommit(){
-  const g=state.g;
-  if(!g||g.locked||!g.sel) return;
   g.locked=true;
-  const sel=g.sel, ans=g.ans;
-  const marks={}; marks[ans]='hit';
-  let pt=0, cls='ng', msg;
-  if(sel===ans){
-    pt=3; cls='ok'; msg='ピタリ！　＋3てん';
-  }else{
-    marks[sel]='near';
-    const near=geoIsWorld()
-      ? (flagCont(sel)===flagCont(ans))
-      : (JPADJ[ans]||[]).indexOf(sel)>=0;
-    if(near){ pt=1; cls='near'; msg='おしい！　'+(geoIsWorld()?'おなじ大陸':'となり')+'だよ。こたえは '+geoNameOf(ans); }
-    else{ pt=0; cls='ng'; msg='ちがうよ。こたえは '+geoNameOf(ans); }
-  }
-  g.score+=pt;
-  if(pt>0) g.got.push(ans);
+  const ans=g.ans, ok=(pick===ans);
+  $('geo-choices').querySelectorAll('.gchoice').forEach(function(b){
+    b.disabled=true;
+    if(b.dataset.k===ans) b.classList.add('right');
+    else if(b.dataset.k===pick) b.classList.add('wrong');
+  });
+  if(ok){ g.score++; g.got.push(ans); }
   state.score=g.score;
   $('geo-score').textContent=g.score;
-  geoDraw(marks,geoIsWorld()?null:[ans]);
-  if(!geoIsWorld()){
-    const c=capOf(ans);
-    if(c && state.level!==1) msg+='（県庁所在地は '+c[2]+'）';
-  }
-  geoSetBar(cls,msg);
+  /* こたえ合わせでは 県庁所在地も見せる */
+  g.capsOn=!geoIsWorld();
+  const marks={}; marks[ans]='hit';
+  geoDraw(marks, geoIsWorld()?null:[ans]);
+  const cap=geoIsWorld()?null:capOf(ans);
+  geoSetBar(ok?'ok':'ng',
+    (ok?'せいかい！　':'ざんねん。こたえは ')+geoNameOf(ans)
+    +(cap?'（県庁所在地は '+cap[2]+'）':''));
   setTimeout(function(){
     if(!$('s-geo').classList.contains('on')||state.paused) return;
-    g.idx++; g.sel=null; geoRender();
-  },1500);
+    g.idx++; geoRender();
+  },1600);
 }
+$('geo-choices').addEventListener('click',function(e){
+  const b=e.target.closest('.gchoice'); if(!b||b.disabled) return;
+  geoAnswer(b.dataset.k);
+});
+$('btn-gpass').addEventListener('click',function(){
+  const g=state.g; if(!g||g.locked) return;
+  g.locked=true;
+  $('geo-choices').querySelectorAll('.gchoice').forEach(function(b){
+    b.disabled=true; if(b.dataset.k===g.ans) b.classList.add('right');
+  });
+  g.capsOn=!geoIsWorld();
+  const marks={}; marks[g.ans]='hit';
+  geoDraw(marks, geoIsWorld()?null:[g.ans]);
+  const cc=geoIsWorld()?null:capOf(g.ans);
+  geoSetBar('ng','こたえは '+geoNameOf(g.ans)+(cc?'（県庁所在地は '+cc[2]+'）':''));
+  setTimeout(function(){
+    if(!$('s-geo').classList.contains('on')||state.paused) return;
+    g.idx++; geoRender();
+  },1600);
+});
+$('btn-gpause').addEventListener('click',function(){ pauseGame(); });
+
 function beginGeo(){
-  state.g={deck:geoDeck(),idx:0,score:0,got:[],sel:null,ans:null,scope:[],locked:false,svg:null,vb:null};
+  state.g={deck:geoDeck(),idx:0,score:0,got:[],ans:null,opts:[],scope:null,vb:null,locked:false,svg:null,capsOn:false};
   state.score=0; state.got=[];
   $('geo-score').textContent='0';
   geoRender();
@@ -3327,76 +3316,42 @@ function geoTick(){
   $('geo-time').textContent=Math.ceil(left/1000);
   if(left<=0){ stopTimer(); finish(); }
 }
-/* 指を置いている間は 選びなおせる。はなしたときに はじめて決まる */
+
+/* 地図は 2本指でだけ 拡大・回転できる（1本指では 何も起きない＝誤タップしない） */
 (function(){
   const el=$('geo-map');
-  function clearSel(){
-    const g=state.g; if(!g||g.locked) return;
-    if(g.sel){ g.sel=null; geoDraw({}); }
-    geoSetBar('','1本ゆびで えらぶ ／ 2本ゆびで 拡大・回転');
+  const PTR=new Map(); let gz=null;
+  function two(){
+    const a=[...PTR.values()];
+    return {x:(a[0].x+a[1].x)/2,y:(a[0].y+a[1].y)/2,
+            d:Math.hypot(a[1].x-a[0].x,a[1].y-a[0].y),
+            r:Math.atan2(a[1].y-a[0].y,a[1].x-a[0].x)};
   }
   el.addEventListener('pointerdown',function(e){
-    e.preventDefault();
-    el.setPointerCapture(e.pointerId);
     PTR.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(PTR.size===2){
-      /* 2本目が着いた時点で 選ぶのをやめて 動かすモードへ */
-      clearSel();
-      const c=ptrCenter();
-      const fp=geoPointToSvg({clientX:c.x,clientY:c.y});
-      gesture={d0:c.d,r0:c.r,cx:c.x,cy:c.y,k0:VIEW.k,deg0:VIEW.deg,tx0:VIEW.tx,ty0:VIEW.ty,
-               fx:fp?fp.x:undefined, fy:fp?fp.y:undefined};
-    }else if(PTR.size===1){
-      gesture=null;
-      geoHover(e);
-    }
-    return false;
+    if(PTR.size===2){ e.preventDefault(); const c=two();
+      gz={d0:c.d,r0:c.r,cx:c.x,cy:c.y,k0:VIEW.k,deg0:VIEW.deg,tx0:VIEW.tx,ty0:VIEW.ty}; }
   });
   el.addEventListener('pointermove',function(e){
     if(!PTR.has(e.pointerId)) return;
     PTR.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(PTR.size>=2 && gesture){
-      const c=ptrCenter();
-      const kWant=gesture.k0*(c.d/Math.max(1,gesture.d0));
-      VIEW.k=gesture.k0; VIEW.deg=gesture.deg0; VIEW.tx=gesture.tx0; VIEW.ty=gesture.ty0;
-      viewZoomAt(kWant/VIEW.k, gesture.fx, gesture.fy);
-      VIEW.deg=gesture.deg0+(c.r-gesture.r0)*180/Math.PI;
-      const d=screenToMapDelta(c.x-gesture.cx, c.y-gesture.cy);
-      VIEW.tx+=d.x; VIEW.ty+=d.y;
-      viewClamp(); viewApply();
-      return;
-    }
-    if(PTR.size===1) geoHover(e);
+    if(PTR.size<2||!gz) return;
+    e.preventDefault();
+    const c=two(), g=state.g; if(!g||!g.svg) return;
+    const b=viewBoxNow(), rect=g.svg.getBoundingClientRect();
+    const s=Math.min(rect.width/b[2], rect.height/b[3]);
+    VIEW.k=gz.k0*(c.d/Math.max(1,gz.d0));
+    VIEW.deg=gz.deg0+(c.r-gz.r0)*180/Math.PI;
+    VIEW.tx=gz.tx0+(c.x-gz.cx)/s;
+    VIEW.ty=gz.ty0+(c.y-gz.cy)/s;
+    viewClamp(); viewApply();
   });
-  function up(e){
-    PTR.delete(e.pointerId);
-    if(gesture){
-      if(PTR.size<2){ gesture=null; PTR.clear(); }   /* 指が1本になったら 選ぶモードには戻さない */
-      return;
-    }
-    if(PTR.size===0) geoCommit();
-  }
+  function up(e){ PTR.delete(e.pointerId); if(PTR.size<2) gz=null; }
   el.addEventListener('pointerup',up);
-  el.addEventListener('pointercancel',function(e){ PTR.delete(e.pointerId); gesture=null; clearSel(); });
+  el.addEventListener('pointercancel',up);
 })();
-$('btn-gzin').addEventListener('click',function(){ viewZoom(1.6); });
-$('btn-gzout').addEventListener('click',function(){ viewZoom(1/1.6); });
-$('btn-gturn').addEventListener('click',function(){ VIEW.deg+=90; viewClamp(); viewApply(); });
-$('btn-greset').addEventListener('click',function(){ viewReset(); });
-$('btn-gpause').addEventListener('click',function(){ pauseGame(); });
-$('btn-gpass').addEventListener('click',function(){
-  const g=state.g; if(!g||g.locked) return;
-  g.locked=true;
-  const marks={}; marks[g.ans]='hit';
-  geoDraw(marks,geoIsWorld()?null:[g.ans]);
-  const cc=geoIsWorld()?null:capOf(g.ans);
-  geoSetBar('ng','こたえは '+geoNameOf(g.ans)+((cc&&state.level!==1)?'（県庁所在地は '+cc[2]+'）':''));
-  setTimeout(function(){
-    if(!$('s-geo').classList.contains('on')||state.paused) return;
-    g.idx++; g.sel=null; geoRender();
-  },1500);
-});
-/* 結果画面：ちずクイズで まわった場所を塗る */
+
+/* 結果画面：ちずクイズで あてられた場所を塗る */
 function geoResultMap(){
   const g=state.g, box=$('resmap');
   if(!g||!g.got.length){ box.hidden=true; return; }
@@ -3404,7 +3359,7 @@ function geoResultMap(){
   const n=Object.keys(marks).length;
   box.hidden=false;
   box.classList.toggle('world',geoIsWorld());
-  $('rm-title').textContent=geoIsWorld()?'見つけられた国':'見つけられた都道府県';
+  $('rm-title').textContent=geoIsWorld()?'あてられた国':'あてられた都道府県';
   $('rm-count').textContent=n+(geoIsWorld()?'か国':'県');
   const ks=Object.keys(marks);
   $('rm-box').innerHTML=geoIsWorld()?wSVG(marks)
