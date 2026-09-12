@@ -415,6 +415,14 @@
   /* ---------------- ちずクイズ ---------------- */
   #s-geo.on{display:flex}
   #s-geo{gap:8px}
+  .geowrap{position:relative;flex:1 1 auto;min-height:0;display:flex}
+  .greset{
+    position:absolute;right:8px;bottom:8px;z-index:5;
+    font:inherit;font-weight:800;font-size:12px;padding:9px 12px;border-radius:12px;
+    border:1.5px solid var(--line);background:rgba(255,255,255,.94);color:var(--ink);
+    cursor:pointer;box-shadow:0 2px 6px rgba(27,73,101,.14);
+  }
+  .greset:active{background:var(--sea);color:#fff}
   /* 4たくのボタン。指で押しやすい大きさを最優先 */
   .gchoices{
     flex:none;display:grid;grid-template-columns:1fr 1fr;gap:8px;
@@ -885,7 +893,10 @@
       <p class="geoq-name display" id="geo-name"></p>
     </div>
 
-    <div class="geomap" id="geo-map"></div>
+    <div class="geowrap">
+      <div class="geomap" id="geo-map"></div>
+      <button type="button" class="greset" id="btn-greset" hidden>もとに もどす</button>
+    </div>
 
     <div class="geobar" id="geo-bar"><span id="geo-bartext">下の 4つから えらんでね</span></div>
 
@@ -2301,9 +2312,9 @@ const GEO_TIPS=[
 ];
 const STEPS_GEO=[
   '地図の <b>赤くなっている ところ</b>が どこかを あてます。',
-  '下の <b>4つのボタン</b>から えらんでタップ。地図は 押さなくてOK。',
-  'おとなは ヒントを出す係。「四国だよ」「うどんの県」など 声かけ自由。',
-  'こたえ合わせでは <b>県庁所在地</b>も 出ます。地図は 2本ゆびで 大きくできます。'
+  '下の <b>4つのボタン</b>から えらんでタップ。地図は 押しても 回答になりません。',
+  '地図は <b>1本ゆびで 動かす ／ 2本ゆびで 大きく・回す</b>。よく見たいときに どうぞ。',
+  'おとなは ヒントを出す係。「四国だよ」「うどんの県」など 声かけ自由。'
 ];
 const STEPS_NUM=[
   '<b>たて</b>も<b>よこ</b>も、すべての 列で 計算が 合うように します。',
@@ -3155,13 +3166,20 @@ function viewApply(){
     'translate('+cx.toFixed(2)+' '+cy.toFixed(2)+') '+
     'rotate('+VIEW.deg.toFixed(2)+') scale('+VIEW.k.toFixed(3)+') '+
     'translate('+(-cx).toFixed(2)+' '+(-cy).toFixed(2)+')');
+  const rb=$('btn-greset'); if(rb) rb.hidden=!viewChanged();
 }
 function viewClamp(){
   VIEW.k=Math.min(6,Math.max(1,VIEW.k));
-  const b=viewBoxNow(), lim=Math.max(b[2],b[3])*0.9;
+  /* 拡大するほど 動かせる範囲を広げる。×1でも 少しだけ動く（動かない＝こわれた と思われないため） */
+  const b=viewBoxNow();
+  const lim=Math.max(b[2],b[3])*(0.18+(VIEW.k-1)*0.6);
   VIEW.tx=Math.min(lim,Math.max(-lim,VIEW.tx));
   VIEW.ty=Math.min(lim,Math.max(-lim,VIEW.ty));
+  let d=((VIEW.deg%360)+360)%360;
+  for(const t of [0,90,180,270,360]) if(Math.abs(d-t)<8) d=(t===360?0:t);
+  VIEW.deg=d;
 }
+function viewChanged(){ return VIEW.k!==1||VIEW.deg!==0||VIEW.tx!==0||VIEW.ty!==0; }
 function viewResetNow(){ VIEW.k=1; VIEW.deg=0; VIEW.tx=0; VIEW.ty=0; }
 
 
@@ -3317,39 +3335,62 @@ function geoTick(){
   if(left<=0){ stopTimer(); finish(); }
 }
 
-/* 地図は 2本指でだけ 拡大・回転できる（1本指では 何も起きない＝誤タップしない） */
+/* 地図の 指の操作
+   1本指 … 動かす（移動）
+   2本指 … 拡大・縮小・回転（ついでに移動）
+   ※ 答えは 下の4たくボタンなので、地図を さわっても 回答は確定しない */
 (function(){
   const el=$('geo-map');
-  const PTR=new Map(); let gz=null;
+  const PTR=new Map(); let gest=null;
   function two(){
     const a=[...PTR.values()];
     return {x:(a[0].x+a[1].x)/2,y:(a[0].y+a[1].y)/2,
             d:Math.hypot(a[1].x-a[0].x,a[1].y-a[0].y),
             r:Math.atan2(a[1].y-a[0].y,a[1].x-a[0].x)};
   }
+  function one(){ const a=[...PTR.values()][0]; return {x:a.x,y:a.y,d:1,r:0}; }
+  function px2map(){                      /* 画面の1pxが 地図の何単位か */
+    const g=state.g; if(!g||!g.svg) return 1;
+    const b=viewBoxNow(), rect=g.svg.getBoundingClientRect();
+    return 1/Math.min(rect.width/b[2], rect.height/b[3]);
+  }
+  function start(){
+    const c=(PTR.size>=2)?two():one();
+    gest={n:PTR.size,d0:c.d,r0:c.r,cx:c.x,cy:c.y,k0:VIEW.k,deg0:VIEW.deg,tx0:VIEW.tx,ty0:VIEW.ty};
+  }
   el.addEventListener('pointerdown',function(e){
+    e.preventDefault();
+    try{ el.setPointerCapture(e.pointerId); }catch(x){}
     PTR.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(PTR.size===2){ e.preventDefault(); const c=two();
-      gz={d0:c.d,r0:c.r,cx:c.x,cy:c.y,k0:VIEW.k,deg0:VIEW.deg,tx0:VIEW.tx,ty0:VIEW.ty}; }
+    start();
   });
   el.addEventListener('pointermove',function(e){
-    if(!PTR.has(e.pointerId)) return;
+    if(!PTR.has(e.pointerId)||!gest) return;
     PTR.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(PTR.size<2||!gz) return;
     e.preventDefault();
-    const c=two(), g=state.g; if(!g||!g.svg) return;
-    const b=viewBoxNow(), rect=g.svg.getBoundingClientRect();
-    const s=Math.min(rect.width/b[2], rect.height/b[3]);
-    VIEW.k=gz.k0*(c.d/Math.max(1,gz.d0));
-    VIEW.deg=gz.deg0+(c.r-gz.r0)*180/Math.PI;
-    VIEW.tx=gz.tx0+(c.x-gz.cx)/s;
-    VIEW.ty=gz.ty0+(c.y-gz.cy)/s;
+    const u=px2map();
+    if(PTR.size>=2 && gest.n>=2){
+      const c=two();
+      VIEW.k=gest.k0*(c.d/Math.max(1,gest.d0));
+      VIEW.deg=gest.deg0+(c.r-gest.r0)*180/Math.PI;
+      VIEW.tx=gest.tx0+(c.x-gest.cx)*u;
+      VIEW.ty=gest.ty0+(c.y-gest.cy)*u;
+    }else if(PTR.size===1 && gest.n===1){
+      const c=one();
+      VIEW.tx=gest.tx0+(c.x-gest.cx)*u;
+      VIEW.ty=gest.ty0+(c.y-gest.cy)*u;
+    }else return;
     viewClamp(); viewApply();
   });
-  function up(e){ PTR.delete(e.pointerId); if(PTR.size<2) gz=null; }
+  function up(e){
+    PTR.delete(e.pointerId);
+    if(PTR.size===0) gest=null;
+    else start();            /* 指の数が変わったら 基準を取り直す（画面が飛ばないように） */
+  }
   el.addEventListener('pointerup',up);
   el.addEventListener('pointercancel',up);
 })();
+$('btn-greset').addEventListener('click',function(){ viewResetNow(); viewApply(); });
 
 /* 結果画面：ちずクイズで あてられた場所を塗る */
 function geoResultMap(){
