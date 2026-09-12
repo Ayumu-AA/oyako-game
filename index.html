@@ -282,6 +282,26 @@
   .playbtns{display:grid;gap:9px}
 
   /* ---- countdown ---- */
+  .orient{flex:1;display:flex;flex-direction:column;gap:8px;min-height:0}
+  .orient .o{
+    flex:1;border-radius:18px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:4px;color:#fff;
+  }
+  .orient .o.adult{background:var(--sea);transform:rotate(180deg)}
+  .orient .o.child{background:var(--vermilion)}
+  .orient .o b{
+    font-family:"Yusei Magic",system-ui,sans-serif;font-weight:400;
+    font-size:clamp(28px,9vw,40px);line-height:1;
+  }
+  .orient .o small{font-size:12.5px;font-weight:700;opacity:.9}
+  .orient .mid{
+    flex:none;text-align:center;font-size:13px;font-weight:700;color:var(--sea);
+    display:flex;align-items:center;justify-content:center;gap:12px;
+  }
+  .orient .mid .n{
+    font-family:"Yusei Magic",system-ui,sans-serif;font-weight:400;
+    font-size:40px;color:var(--vermilion);line-height:1;
+  }
   .count{
     flex:1;display:grid;place-items:center;
     font-size:clamp(90px,34vw,150px);color:var(--sea);line-height:1;
@@ -685,6 +705,11 @@
 
   <!-- ============ カウントダウン ============ -->
   <section class="screen" id="s-count">
+    <div class="orient" id="count-orient" hidden>
+      <div class="o adult"><b>おとな</b><small>こちら側に すわる</small></div>
+      <div class="mid"><span>スマホを 机に置いて 向かい合ってね</span><span class="n" id="count-num2">3</span></div>
+      <div class="o child"><b>こども</b><small>こちら側に すわる</small></div>
+    </div>
     <div class="count display" id="count-num">3</div>
     <p class="best" id="count-note"></p>
   </section>
@@ -808,6 +833,7 @@
     <p class="ncmsg" id="ncmsg">たて・よこ ぜんぶの 計算が 合うように 数を入れよう</p>
     <div class="ncpad">
       <div class="ncnum" id="ncnum"></div>
+      <button class="btn btn-ok" id="btn-nccheck" style="font-size:19px;padding:15px 20px">こたえあわせ</button>
     </div>
   </section>
 
@@ -1166,6 +1192,14 @@ const ART={
  egg:'<path d="M30 8c10 0 17 14 17 24a17 17 0 0 1-34 0C13 22 20 8 30 8z" fill="#F6EFE0" stroke="#D8C9AE" stroke-width="2"/>',
  cup:'<path d="M12 20h30v16a15 15 0 0 1-30 0z" fill="#F4E7CF" stroke="#1B4965" stroke-width="2.4"/><path d="M42 24h5a7 7 0 0 1 0 14h-5" fill="none" stroke="#1B4965" stroke-width="2.4"/><rect x="6" y="50" width="42" height="4" rx="2" fill="#1B4965"/>',
  heart:'<path d="M30 52S8 38 8 24a12 12 0 0 1 22-7 12 12 0 0 1 22 7c0 14-22 28-22 28z" fill="#E0452F"/>',
+ rain:'<g fill="#9FC3D4"><circle cx="22" cy="24" r="11"/><circle cx="35" cy="20" r="13"/><circle cx="44" cy="26" r="8"/><rect x="20" y="24" width="26" height="10" rx="5"/></g><g fill="#62B6CB"><path d="M20 40c0 0-3 4-3 6a3 3 0 0 0 6 0c0-2-3-6-3-6z"/><path d="M31 44c0 0-3 4-3 6a3 3 0 0 0 6 0c0-2-3-6-3-6z"/><path d="M42 40c0 0-3 4-3 6a3 3 0 0 0 6 0c0-2-3-6-3-6z"/></g>',
+ snow:'<g stroke="#62B6CB" stroke-width="3.4" stroke-linecap="round"><path d="M30 8v44M11 19l38 22M49 19L11 41"/></g><g stroke="#62B6CB" stroke-width="2.6" stroke-linecap="round"><path d="M30 16l-5-5M30 16l5-5M30 44l-5 5M30 44l5 5M17 24l-7-1M17 24l-1-7M43 36l7 1M43 36l1 7M17 36l-7 1M17 36l-1 7M43 24l7-1M43 24l1-7"/></g>',
+ mountain:'<polygon points="30,10 50,46 10,46" fill="#6E8B8F"/><polygon points="30,10 38,24 30,20 22,28" fill="#fff"/><polygon points="44,24 58,46 33,46" fill="#8FA6A8"/>',
+ river:'<rect width="60" height="60" fill="#DCEBD6"/><path d="M14 0c0 12 14 14 14 26S12 44 12 60h36c0-18-14-20-14-32S48 12 48 0z" fill="#62B6CB"/>',
+ bridge:'<rect y="40" width="60" height="20" fill="#9FC3D4"/><path d="M4 40a26 26 0 0 1 52 0" fill="none" stroke="#E0452F" stroke-width="5"/><rect x="2" y="36" width="56" height="5" fill="#7A5230"/><rect x="12" y="41" width="3" height="9" fill="#7A5230"/><rect x="45" y="41" width="3" height="9" fill="#7A5230"/>',
+ island:'<rect y="34" width="60" height="26" fill="#62B6CB"/><path d="M8 42a22 10 0 0 1 44 0z" fill="#E9C46A"/><rect x="28" y="20" width="3" height="20" fill="#7A5230"/><path d="M29 21c-8-6-16-2-16-2s6 8 16 4z" fill="#2F8F5B"/><path d="M31 21c8-6 16-2 16-2s-6 8-16 4z" fill="#2F8F5B"/>',
+ carrot:'<path d="M30 54L18 24a13 13 0 0 1 24 0z" fill="#E8791F"/><path d="M30 22c0-8 4-14 4-14s3 7 0 14z" fill="#2F8F5B"/><path d="M28 22c-5-6-12-7-12-7s3 7 11 9z" fill="#2F8F5B"/><g stroke="#C25F10" stroke-width="1.4"><path d="M23 34h8M25 42h8"/></g>',
+ letter:'<rect x="6" y="16" width="48" height="30" rx="3" fill="#F4E7CF" stroke="#1B4965" stroke-width="2"/><path d="M6 18l24 17 24-17" fill="none" stroke="#1B4965" stroke-width="2"/><rect x="40" y="20" width="9" height="7" fill="#E0452F"/>',
  train:'<rect x="8" y="16" width="44" height="26" rx="6" fill="#E0452F"/><rect x="14" y="22" width="14" height="10" rx="2" fill="#C9DEE8"/><rect x="32" y="22" width="14" height="10" rx="2" fill="#C9DEE8"/><rect x="10" y="36" width="40" height="4" fill="#1B4965"/><circle cx="19" cy="46" r="5" fill="#16262E"/><circle cx="41" cy="46" r="5" fill="#16262E"/>'
 };
 function artSVG(key){
@@ -1201,7 +1235,17 @@ const KOKUGO=[
  ['臨機応変','りんきおうへん','四字熟語',['その場に合わせて','やり方をかえる','はんのうが早い'],'状況に応じてうまく対応すること',2],
  ['弱肉強食','じゃくにくきょうしょく','四字熟語',['弱いものが','強いものに食べられる','しぜんのおきて'],'強いものが弱いものをおさえる世のようす',2],
  ['起承転結','きしょうてんけつ','四字熟語',['文章のくみたて','4つの部分','物語の順番'],'文章や物語の組み立て方',2],
- ['有言実行','ゆうげんじっこう','四字熟語',['言ったことを','かならずやる','ことば＋行動'],'口に出したことを必ずやりとげること',2]
+ ['有言実行','ゆうげんじっこう','四字熟語',['言ったことを','かならずやる','ことば＋行動'],'口に出したことを必ずやりとげること',2],
+ ['心機一転','しんきいってん','四字熟語',['気もちを 切りかえる','あたらしく やり直す','「心」の字が入る'],'何かをきっかけに気持ちをすっかり入れかえること',2],
+ ['半信半疑','はんしんはんぎ','四字熟語',['半分しか 信じていない','うたがう気もちもある','同じ字が2回出てくる'],'信じる気持ちと疑う気持ちが半分ずつであること',2],
+ ['大器晩成','たいきばんせい','四字熟語',['大きな うつわ','おそく できあがる','ゆっくり 力をつける人'],'すぐれた人物は時間をかけて実力を出すという意味',2],
+ ['因果応報','いんがおうほう','四字熟語',['よい行いには よいことが','わるい行いには わるいことが','かえってくる'],'行いのよしあしに応じた結果が返ってくるということ',2],
+ ['油断大敵','ゆだんたいてき','四字熟語',['気をぬくと あぶない','いちばんの てき','油の字が入る'],'気をゆるめることがいちばんの敵だという教え',2],
+ ['空前絶後','くうぜんぜつご','四字熟語',['今までに なかった','これからも ないだろう','とてもめずらしい'],'過去にも例がなく今後もないだろうということ',2],
+ ['我田引水','がでんいんすい','四字熟語',['自分の田に 水を引く','自分に つごうよく','田と水の字が入る'],'自分に都合のいいように物事を進めること',2],
+ ['単刀直入','たんとうちょくにゅう','四字熟語',['前おきなしで','いきなり 本題に入る','刀の字が入る'],'遠回しにせず、すぐ大事な話に入ること',2],
+ ['骨が折れる','ほねがおれる','慣用句',['とても 苦労する','たいへんな 作業','からだの部分が入る'],'苦労が多くてたいへんなこと',2],
+ ['水を差す','みずをさす','慣用句',['もり上がっているのに','じゃまをする','のみものではない'],'うまくいっているところにじゃまを入れること',2]
 ];
 const RIKA=[
  ['モンシロチョウ','もんしろちょう','こん虫',['白いはね','キャベツにたまご','よう虫はあおむし'],'幼虫はキャベツの葉を食べて育つ',1],
@@ -1227,7 +1271,13 @@ const RIKA=[
  ['心臓','しんぞう','からだ',['ドクドク動く','血を送り出す','むねの中'],'1日に約10万回も動いている',2],
  ['消化','しょうか','からだ',['食べたものを','吸収できる形にする','胃や小腸のはたらき'],'養分の多くは小腸で吸収される',2],
  ['ふりこ','ふりこ','力',['つるしてゆらす','いつも同じリズム','ひもの長さでかわる'],'ゆれる速さは糸の長さで決まり、おもりの重さでは変わらない',2],
- ['二酸化炭素','にさんかたんそ','空気',['はき出す息','石灰水が白くにごる','植物が吸う'],'石灰水を白くにごらせる性質がある',2]
+ ['二酸化炭素','にさんかたんそ','空気',['はき出す息','石灰水が白くにごる','植物が吸う'],'石灰水を白くにごらせる性質がある',2],
+ ['水蒸気','すいじょうき','水',['目に 見えない','水が すがたを変えたもの','やかんの口の すぐそば'],'目に見える「ゆげ」は、水蒸気が冷えて水のつぶにもどったもの',2],
+ ['反射','はんしゃ','光',['光が はねかえる','かがみ','入る角度と出る角度が同じ'],'入ってくる角度と出ていく角度は等しくなる',2],
+ ['発芽','はつが','植物',['たねから 芽が出る','水・空気・てきとうな温度','はじまりの合図'],'発芽には水・空気・適当な温度の3つが必要',2],
+ ['呼吸','こきゅう','からだ',['すって はいて','酸素を とり入れる','肺の はたらき'],'酸素をとり入れ、二酸化炭素を出すはたらき',2],
+ ['天気図','てんきず','天気',['高気圧と 低気圧','曲がった線が たくさん','テレビの天気よほう'],'日本の天気は西から東へ変わることが多い',2],
+ ['磁力','じりょく','力',['はなれていても はたらく','鉄を 引きつける','N極とS極'],'磁石の力がはたらく空間を「磁界」という',2]
 ];
 const EIGO=[
  ['apple','アップル','たべもの',['くだもの','赤い','日本語で「りんご」'],'発音は「アポー」に近い',1,'apple'],
@@ -1242,14 +1292,22 @@ const EIGO=[
  ['book','ブック','もの',['読むもの','ページがある','日本語で「ほん」'],'「予約する」という動詞の意味もある',1,'book'],
  ['umbrella','アンブレラ','もの',['雨の日にさす','ほねがある','日本語で「かさ」'],'日がさは parasol という',1,'umbrella'],
  ['clock','クロック','もの',['はりが回る','かべにかける','日本語で「とけい」'],'うで時計は watch という',1,'clock'],
- ['key','キー','もの',['ドアをあける','ポケットに入る','日本語で「かぎ」'],'キーボードの key も同じことば',2,'key'],
- ['cloud','クラウド','そら',['空にうかぶ','白い','日本語で「くも」'],'インターネットの「クラウド」も同じことば',2,'cloud'],
- ['flower','フラワー','しぜん',['さく','いいにおい','日本語で「はな」'],'小麦粉の flour と発音が同じ',2,'flower'],
- ['bird','バード','どうぶつ',['空をとぶ','たまごをうむ','日本語で「とり」'],'英語のことわざ「早起きの鳥はえさをつかまえる」',2,'bird'],
- ['egg','エッグ','たべもの',['にわとりがうむ','目玉やき','日本語で「たまご」'],'ゆでたまごは boiled egg',2,'egg'],
- ['cup','カップ','もの',['のみものを入れる','とってがある','日本語で「コップ」'],'ゆうしょうカップも cup',2,'cup'],
- ['heart','ハート','からだ',['むねの中で動く','♡のかたち','日本語で「しんぞう」'],'「心・気もち」という意味もある',2,'heart'],
- ['train','トレイン','のりもの',['レールの上を走る','駅にとまる','日本語で「でんしゃ」'],'「訓練する」という動詞の意味もある',2,'train']
+ ['key','キー','もの',['ドアを あけるもの','パソコンの キーボードにも 同じことば','ピアノの ドレミにも 使う'],'「かぎ」とキーボードの key は同じ単語',2,'key'],
+ ['cloud','クラウド','そら',['空に うかんでいる','インターネットの ほぞん場所にも 使う','雨を ふらせる'],'インターネットの「クラウド」も同じことば',2,'cloud'],
+ ['flower','フラワー','しぜん',['さくもの','小麦粉 flour と 発音が同じ','花たばは bouquet'],'小麦粉の flour と発音がまったく同じ',2,'flower'],
+ ['bird','バード','どうぶつ',['空を とぶ','早起きの◯◯は えさを つかまえる','ゴルフにも 出てくることば'],'英語のことわざ The early bird catches the worm',2,'bird'],
+ ['egg','エッグ','たべもの',['にわとりが うむ','ゆでたものは boiled ◯◯','目玉やきは fried ◯◯'],'ゆでたまごは boiled egg、目玉やきは fried egg',2,'egg'],
+ ['cup','カップ','もの',['のみものを 入れる','ゆうしょうしたら もらえるもの','サッカーのワールド◯◯'],'ワールドカップの「カップ」も同じことば',2,'cup'],
+ ['heart','ハート','からだ',['むねの中で 動いている','「心・気もち」の意味もある','トランプの もよう'],'からだの器官と「心」の両方をあらわす',2,'heart'],
+ ['train','トレイン','のりもの',['レールの上を 走る','「訓練する」という 動詞にもなる','駅は station'],'名詞は「電車」、動詞は「訓練する」',2,'train'],
+ ['rain','レイン','てんき',['空から ふってくる','かさを さす日','rainbow の 前の半分'],'rainbow は rain（雨）＋ bow（弓）でできている',2,'rain'],
+ ['snow','スノー','てんき',['白くて つめたい','ふゆに つもる','◯◯man は ゆきだるま'],'ゆきだるまは snowman',2,'snow'],
+ ['mountain','マウンテン','しぜん',['高く もり上がった 土地','富士山も これ','のぼることは climbing'],'山にのぼることは mountain climbing',2,'mountain'],
+ ['river','リバー','しぜん',['水が ながれている','海に そそぐ','橋が かかっている'],'川岸は riverside',2,'river'],
+ ['bridge','ブリッジ','もの',['川の上に かけるもの','わたるためのもの','体をそらす ポーズにも 同じ名前'],'金門橋は Golden Gate Bridge',2,'bridge'],
+ ['island','アイランド','しぜん',['まわりが ぜんぶ 海','日本には たくさんある','s を 読まない'],'s を発音しないめずらしいつづり',2,'island'],
+ ['carrot','キャロット','たべもの',['オレンジ色の やさい','うさぎが 好き','土の中の 根を食べる'],'オレンジ色を carrot orange ということもある',2,'carrot'],
+ ['letter','レター','もの',['ゆうびんで おくるもの','切手を はる','「文字」という意味も ある'],'「手紙」と「文字」の両方の意味がある',2,'letter']
 ];
 
 /* ============================================================
@@ -1323,15 +1381,15 @@ function deckFor(mode){
     return a;
   }
   if(mode==='pref'){
-    return shuffle(PREF.filter(function(q){return lv===2||LV1_PREF.has(q[0]);})
+    return shuffle(PREF.filter(function(q){return lv===1?LV1_PREF.has(q[0]):!LV1_PREF.has(q[0]);})
       .map(function(q){return {name:q[0],yomi:q[1],tag:q[2]+'地方',hints:q[3],fact:q[4],art:null};}));
   }
   if(mode==='flag'){
-    return shuffle(FLAG.filter(function(q){return lv===2||LV1_FLAG.has(q[0]);})
+    return shuffle(FLAG.filter(function(q){return lv===1?LV1_FLAG.has(q[0]):!LV1_FLAG.has(q[0]);})
       .map(function(q){return {name:q[0],yomi:q[1],tag:q[2],hints:q[4],fact:q[5],art:{t:'flag',k:q[3]}};}));
   }
   const src={kokugo:KOKUGO,rika:RIKA,eigo:EIGO}[mode];
-  return shuffle(src.filter(function(q){return lv===2||q[5]===1;})
+  return shuffle(src.filter(function(q){return q[5]===lv;})
     .map(function(q){return {name:q[0],yomi:q[1],tag:q[2],hints:q[3],fact:q[4],art:q[6]?{t:'icon',k:q[6]}:null};}));
 }
 
@@ -1343,7 +1401,7 @@ const STEPS_HINT=[
 const STEPS_NUM=[
   '<b>たて</b>も<b>よこ</b>も、すべての 列で 計算が 合うように します。',
   'うすい わくの マスを タップして、下の 数字ボタンで 数を 入れます。',
-  '合っている 列は みどり、合っていない 列は 赤になります。'
+  'ぜんぶ入れたら <b>「こたえあわせ」</b>。合っている列は みどり、まちがいは 赤になります。'
 ];
 const STEPS_CROSS=[
   'じぶんの<b>担当のカギだけ</b>を 読んで かんがえます（上の わりふり）。',
@@ -1534,18 +1592,24 @@ function startCountdown(){
   if(state.mode==='numcross'){ beginNum(); return; }
   state.deck=(state.mode==='battle')?[]:buildDeck();
   state.idx=0; state.score=0; state.got=[]; state.paused=false;
+  const isB=(state.mode==='battle');
+  $('count-orient').hidden=!isB;
+  $('count-num').hidden=isB;
+  $('count-note').hidden=isB;
   $('count-note').textContent=(state.mode==='battle')
-    ? 'スマホを机に置いて 向かい合ってね'
+    ? ''
     : (state.mode==='math')
     ? 'じぶんのペースで だいじょうぶ'
     : (state.role==='child'?'こども':'おとな')+'がスマホを持ってね';
   show('s-count');
-  let n=3; $('count-num').textContent=n;
+  let n=3;
+  const setN=function(v){ $('count-num').textContent=v; $('count-num2').textContent=v; };
+  setN(n);
   const iv=setInterval(function(){
     n--;
-    if(n>0){ $('count-num').textContent=n; }
+    if(n>0){ setN(n); }
     else{ clearInterval(iv); beginRound(); }
-  },800);
+  },isB?1000:800);
 }
 $('btn-start').addEventListener('click',startCountdown);
 
@@ -2318,7 +2382,7 @@ function makeNum(level){
 
 function beginNum(){
   const puz=makeNum(state.level);
-  state.nc={puz:puz,val:{},sel:null,acc:0,t0:Date.now()};
+  state.nc={puz:puz,val:{},sel:null,checked:false,acc:0,t0:Date.now()};
   puz.hide.forEach(function(k){ state.nc.val[k]=''; });
 
   const cellAt={};
@@ -2360,12 +2424,14 @@ function ncDraw(){
   $('nc-left').textContent=left;
 
   const good={}, bad={};
-  NC_LINES.forEach(function(L){
-    const v=L.map(ncVal);
-    if(v.some(function(x){return x===null;})) return;
-    if(v[0]+v[1]===v[2]) L.forEach(function(k){ good[k]=true; });
-    else L.forEach(function(k){ bad[k]=true; });
-  });
+  if(nc.checked){
+    NC_LINES.forEach(function(L){
+      const v=L.map(ncVal);
+      if(v.some(function(x){return x===null;})) return;
+      if(v[0]+v[1]===v[2]) L.forEach(function(k){ good[k]=true; });
+      else L.forEach(function(k){ bad[k]=true; });
+    });
+  }
 
   $('ncgrid').querySelectorAll('.nccell').forEach(function(el){
     const k=el.dataset.k;
@@ -2375,16 +2441,30 @@ function ncDraw(){
     el.classList.toggle('good',!bad[k]&&!!good[k]);
   });
 
-  if(left===0){
-    const allOk=NC_LINES.every(function(L){ const v=L.map(ncVal); return v[0]+v[1]===v[2]; });
-    if(allOk){ numResult(); return; }
-    $('ncmsg').className='ncmsg ng';
-    $('ncmsg').textContent='赤いところの 計算が 合っていないよ';
-  }else{
+  if(!nc.checked){
     $('ncmsg').className='ncmsg';
     $('ncmsg').textContent='たて・よこ ぜんぶの 計算が 合うように 数を入れよう';
   }
 }
+
+function checkNum(){
+  const nc=state.nc;
+  const empty=nc.puz.hide.filter(function(k){ return nc.val[k]===''; }).length;
+  if(empty>0){
+    nc.checked=false;
+    ncDraw();
+    $('ncmsg').className='ncmsg ng';
+    $('ncmsg').textContent='まだ 空いているマスが '+empty+'こ あるよ';
+    return;
+  }
+  nc.checked=true;
+  const allOk=NC_LINES.every(function(L){ const v=L.map(ncVal); return v[0]+v[1]===v[2]; });
+  ncDraw();
+  if(allOk){ numResult(); return; }
+  $('ncmsg').className='ncmsg ng';
+  $('ncmsg').textContent='ふせいかい。赤い列の 計算が 合っていないよ';
+}
+$('btn-nccheck').addEventListener('click',checkNum);
 $('ncgrid').addEventListener('click',function(e){
   const b=e.target.closest('.nccell.open'); if(!b) return;
   state.nc.sel=b.dataset.k; ncDraw();
@@ -2393,8 +2473,9 @@ $('ncnum').addEventListener('click',function(e){
   const b=e.target.closest('button'); if(!b) return;
   const nc=state.nc, k=nc.sel;
   if(!k) return;
-  if(b.dataset.n==='del'){ nc.val[k]=nc.val[k].slice(0,-1); }
+  if(b.dataset.n==='del'){ nc.val[k]=nc.val[k].slice(0,-1); nc.checked=false; }
   else if(nc.val[k].length<3){ nc.val[k]=(nc.val[k]+b.dataset.n).replace(/^0(?=\d)/,''); }
+  nc.checked=false;
   ncDraw();
 });
 $('btn-npause').addEventListener('click',function(){ pauseGame(); });
