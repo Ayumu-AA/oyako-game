@@ -443,7 +443,7 @@
   .geoq-name{margin:0;font-size:0;line-height:0}
   .geoq{padding:10px 12px}
   .geoq-sub{font-size:clamp(14px,2.5vh,18px);color:var(--ink)}
-  .geomap{position:relative;flex:1 1 auto;min-width:0;min-height:0;background:#EAF2F5;border-radius:14px;border:1px solid var(--line);overflow:hidden}
+  .geomap{position:relative;flex:1 1 auto;min-width:0;min-height:0;background:#8FC9E8;border-radius:14px;border:1px solid var(--line);overflow:hidden}
   #geo-map .mapsvg{position:absolute;left:6px;top:6px;right:6px;bottom:6px;width:auto;height:auto}
   .geobar{
     flex:none;background:var(--paper);border:1px solid var(--line);border-radius:12px;
@@ -457,22 +457,24 @@
   /* ---------------- 地図 ---------------- */
   .mapsvg{display:block;width:100%;height:100%;touch-action:manipulation}
   #geo-map{touch-action:none;-webkit-user-select:none;user-select:none}
-  .mapsvg .pf,.mapsvg .cty{fill:#CFE0E6;stroke:#1B4965;stroke-width:.9;stroke-linejoin:round;vector-effect:non-scaling-stroke}
-  .mapsvg .sea{fill:#EAF2F5}
-  .mapsvg .land{fill:#B7CBD3;stroke:#fff;stroke-width:.5;vector-effect:non-scaling-stroke}
-  .mapsvg .pf.got,.mapsvg .cty.got{fill:#E9B44C}
+  /* 地図の色：陸は みどり、海は あお（地図帳に近づける） */
+  .mapsvg{--sea:#8FC9E8;--landa:#AFCF88;--landb:#C6D9A8;--mapline:#3F6B4E}
+  .mapsvg .pf,.mapsvg .cty{fill:var(--landa);stroke:var(--mapline);stroke-width:.9;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+  .mapsvg .sea{fill:var(--sea)}
+  .mapsvg .land{fill:var(--landb);stroke:#fff;stroke-width:.6;vector-effect:non-scaling-stroke}
+  .mapsvg .pf.got,.mapsvg .cty.got{fill:#F0B429}
   .mapsvg .pf.hit,.mapsvg .cty.hit{fill:#E0452F}
   .mapsvg .pf.near,.mapsvg .cty.near{fill:#F0A58F}
   .mapsvg .pf.sel,.mapsvg .cty.sel{fill:#1B4965}
-  .mapsvg .pf.off{fill:#DFE7EA;stroke:#B9C7CE}
-  .mapsvg .insetbox{fill:#EAF2F5;stroke:#7E93A0;stroke-width:1;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
-  .mapsvg .inslabel{fill:#5A7280;font-weight:700}
+  .mapsvg .pf.off{fill:#CBD8BE;stroke:#8FA684}
+  .mapsvg .insetbox{fill:var(--sea);stroke:#2F6B86;stroke-width:1;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
+  .mapsvg .inslabel{fill:#1B4965;font-weight:700}
   /* 県庁所在地 */
-  .mapsvg .capdot{fill:#fff;stroke:#33596F;stroke-width:1.1;vector-effect:non-scaling-stroke}
-  .mapsvg .capdot.on{fill:#fff;stroke:#1B4965;stroke-width:1.6}
+  .mapsvg .capdot{fill:#fff;stroke:#2C4A36;stroke-width:1.1;vector-effect:non-scaling-stroke}
+  .mapsvg .capdot.on{fill:#fff;stroke:#1B4965;stroke-width:1.8}
   .mapsvg .capcore{fill:#1B4965}
-  .mapsvg .findring{fill:none;stroke:#E0452F;stroke-width:2.2;stroke-dasharray:5 4;opacity:.85;vector-effect:non-scaling-stroke}
-  .mapsvg .caplab{font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round;fill:#3C4C55}
+  .mapsvg .findring{fill:none;stroke:#C91F0B;stroke-width:2.6;stroke-dasharray:5 4;opacity:.95;vector-effect:non-scaling-stroke}
+  .mapsvg .caplab{font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:3.4px;stroke-linejoin:round;fill:#2B3A32}
   .mapsvg .caplab.diff{fill:#C0392B}   /* 県名と ちがう 県庁所在地 */
   /* 正解した瞬間に0.9秒だけ出る地図 */
   .mapflash{
@@ -3152,9 +3154,24 @@ function resultMap(){
       地図は「問題の絵」に徹し、答えは 大きな4つのボタンで えらぶ。
    ============================================================ */
 const VIEW={k:1,deg:0,tx:0,ty:0};      /* 2本指で 拡大・回転できる（見たいときだけ） */
-function viewBoxNow(){
+/* 地図の枠と 地図の縦横比が ちがうと、上下（左右）に 大きな空白ができる。
+   枠の比率にあわせて ビューボックスを広げ、まわりの陸や海で うめる */
+function fitVB(vb,w,h){
+  if(!w||!h) return vb.slice();
+  let [x,y,bw,bh]=vb;
+  const ar=w/h;
+  if(bw/bh<ar){ const nw=bh*ar; x-=(nw-bw)/2; bw=nw; }
+  else{ const nh=bw/ar; y-=(nh-bh)/2; bh=nh; }
+  return [x,y,bw,bh];
+}
+function baseVB(){
   const g=state.g;
   return (g&&g.vb) ? g.vb : (geoIsWorld()? [0,0,WBOX[0],WBOX[1]] : jpFullVB());
+}
+function viewBoxNow(){
+  const g=state.g;
+  if(g&&g.vbFit) return g.vbFit;
+  return baseVB();
 }
 function viewApply(){
   const g=state.g; if(!g||!g.svg) return;
@@ -3218,12 +3235,54 @@ function geoChoices(ans){
   return shuffle(pick.concat([ans]));
 }
 
+/* 高学年の拡大枠。
+   地方・大陸の枠をそのまま使うと、ロシアのように とても大きい国が1つ入るだけで
+   枠が世界全体まで広がって 拡大の意味がなくなる。
+   そこで「正解が 画面の 1/9 くらいに見える大きさ」を基準に窓を作る。
+   ただし 正解をいつも まん中に置くと そこを見るだけで当たってしまうので、
+   はみ出さない範囲で ランダムに ずらす。 */
+function geoViewFor(ans,regionKeys){
+  const src=geoSrc();
+  const full=geoIsWorld()?[0,0,WBOX[0],WBOX[1]]:jpFullVB();
+  const region=regionKeys&&regionKeys.length ? bboxOf(src,regionKeys,geoIsWorld()?18:16) : full;
+  const ab=bboxOf(src,[ans],0);
+  const size=Math.max(ab[2],ab[3]);
+  const maxW=Math.max(region[2],region[3]);
+  const minW=Math.max(full[2],full[3])/7;
+  const w=Math.min(maxW, Math.max(size*9, minW));
+  let cx=ab[0]+ab[2]/2, cy=ab[1]+ab[3]/2;
+  const slackX=Math.max(0,(w-ab[2])/2-w*0.08);
+  const slackY=Math.max(0,(w-ab[3])/2-w*0.08);
+  cx+=(Math.random()*2-1)*slackX;
+  cy+=(Math.random()*2-1)*slackY;
+  let box=[cx-w/2,cy-w/2,w,w];
+  /* 正解が 枠からはみ出さないように 最後に調整 */
+  if(ab[0]<box[0]) box[0]=ab[0]-w*0.04;
+  if(ab[1]<box[1]) box[1]=ab[1]-w*0.04;
+  if(ab[0]+ab[2]>box[0]+w) box[0]=ab[0]+ab[2]-w+w*0.04;
+  if(ab[1]+ab[3]>box[1]+w) box[1]=ab[1]+ab[3]-w+w*0.04;
+  return box;
+}
 function geoDraw(marks,capLab){
   const g=state.g;
   const el=$('geo-map');
+  const r=el.getBoundingClientRect();
+  let fit=fitVB(baseVB(), r.width, r.height);
+  /* 枠が 地図の外まで はみ出すと 海だけの帯ができる。地図の中に 寄せる */
+  const full=geoIsWorld()?[0,0,WBOX[0],WBOX[1]]:jpFullVB();
+  if(fit[2]<=full[2]) fit[0]=Math.min(Math.max(fit[0],full[0]),full[0]+full[2]-fit[2]);
+  if(fit[3]<=full[3]) fit[1]=Math.min(Math.max(fit[1],full[1]),full[1]+full[3]-fit[3]);
+  if(g.ans && g.vb){    /* 寄せたせいで 正解が外に出ていないか 念のため見直す */
+    const ab=bboxOf(geoSrc(),[g.ans],0);
+    if(ab[0]<fit[0]) fit[0]=ab[0]-fit[2]*0.04;
+    if(ab[1]<fit[1]) fit[1]=ab[1]-fit[3]*0.04;
+    if(ab[0]+ab[2]>fit[0]+fit[2]) fit[0]=ab[0]+ab[2]-fit[2]+fit[2]*0.04;
+    if(ab[1]+ab[3]>fit[1]+fit[3]) fit[1]=ab[1]+ab[3]-fit[3]+fit[3]*0.04;
+  }
+  g.vbFit=fit;
   const ring=g.locked?null:g.ans;      /* こたえ合わせの前だけ 目じるしを出す */
-  el.innerHTML=geoIsWorld()?wSVG(marks,g.vb,{zoom:VIEW.k,ring:ring})
-    :jpSVG(marks,g.vb,{caps:g.capsOn?'all':null,capLab:capLab||[],zoom:VIEW.k,ring:ring});
+  el.innerHTML=geoIsWorld()?wSVG(marks,g.vbFit,{zoom:VIEW.k,ring:ring})
+    :jpSVG(marks,g.vbFit,{caps:g.capsOn?'all':null,capLab:capLab||[],zoom:VIEW.k,ring:ring});
   const svg=el.querySelector('svg');
   if(g.scope && g.scope.length){
     svg.querySelectorAll('[data-k]').forEach(function(p){
@@ -3239,6 +3298,7 @@ function geoRender(){
   g.ans=k;
   g.locked=false;
   g.capsOn=false;
+  g.vbFit=null;
   viewResetNow();
   if(state.level===1){
     g.scope=null;                       /* 全体を ふつうに見せる */
@@ -3246,7 +3306,7 @@ function geoRender(){
   }else{
     const sc=geoAllKeys().filter(function(x){ return geoGroupOf(x)===geoGroupOf(k); });
     if(sc.length>=4){    /* その地方・大陸だけで4たくが作れるときだけ 拡大する */
-      g.scope=sc; g.vb=bboxOf(geoSrc(),sc,geoIsWorld()?18:16);
+      g.scope=sc; g.vb=geoViewFor(k,sc);
     }else{
       g.scope=null; g.vb=null;
     }
@@ -3316,8 +3376,14 @@ $('btn-gpass').addEventListener('click',function(){
 });
 $('btn-gpause').addEventListener('click',function(){ pauseGame(); });
 
+window.addEventListener('resize',function(){
+  if($('s-geo').classList.contains('on') && state.g){
+    const m={}; if(state.g.ans) m[state.g.ans]='hit';
+    geoDraw(m, (state.g.locked&&!geoIsWorld())?[state.g.ans]:[]);
+  }
+});
 function beginGeo(){
-  state.g={deck:geoDeck(),idx:0,score:0,got:[],ans:null,opts:[],scope:null,vb:null,locked:false,svg:null,capsOn:false};
+  state.g={deck:geoDeck(),idx:0,score:0,got:[],ans:null,opts:[],scope:null,vb:null,vbFit:null,locked:false,svg:null,capsOn:false};
   state.score=0; state.got=[];
   $('geo-score').textContent='0';
   geoRender();
