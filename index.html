@@ -1,0 +1,2427 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>親子ゲーム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yusei+Magic&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<style>
+  :root{
+    --ink:#16262E;
+    --muted:#6B7F88;
+    --paper:#EAF2F5;
+    --surface:#FFFFFF;
+    --sea:#1B4965;
+    --sky:#62B6CB;
+    --vermilion:#E0452F;
+    --gold:#E9B44C;
+    --leaf:#2F8F5B;
+    --line:rgba(27,73,101,.16);
+    --shadow:0 2px 0 rgba(27,73,101,.16), 0 10px 24px rgba(27,73,101,.10);
+    --r:18px;
+    color-scheme:light;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background-color:var(--paper);
+    background-image:
+      repeating-linear-gradient(to right, var(--line) 0 1px, transparent 1px 44px),
+      repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px 44px);
+    color:var(--ink);
+    font-family:"Zen Maru Gothic",system-ui,-apple-system,"Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;
+    font-weight:500;
+    -webkit-text-size-adjust:100%;
+  }
+  ruby rt{font-size:.44em;font-weight:500;letter-spacing:.02em}
+  .wrap{
+    min-height:100svh;
+    max-width:520px;
+    margin:0 auto;
+    padding-inline:16px;
+    padding-block:20px 24px;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+  .screen{display:none;flex:1;flex-direction:column;gap:16px}
+  .screen.on{display:flex}
+
+  /* ---- typography ---- */
+  .display{font-family:"Yusei Magic",system-ui,sans-serif;font-weight:400;letter-spacing:.01em}
+  .eyebrow{
+    font-size:12px;letter-spacing:.18em;color:var(--sea);
+    text-transform:none;font-weight:700;
+  }
+  h1{margin:0;font-size:clamp(30px,9vw,40px);line-height:1.2;text-wrap:balance}
+  h2{margin:0;font-size:19px;line-height:1.4;text-wrap:balance}
+
+  /* ---- title screen ---- */
+  .brandmark{
+    display:flex;align-items:center;gap:10px;
+  }
+  .brandmark .pin{
+    width:30px;height:30px;border-radius:50%;
+    background:var(--vermilion);
+    box-shadow:inset 0 0 0 4px var(--surface), 0 0 0 1.5px var(--vermilion);
+    flex:none;
+  }
+  .brandmark span{font-size:13px;font-weight:700;color:var(--sea)}
+  .lede{margin:0;color:var(--muted);font-size:14.5px;line-height:1.75}
+
+  .modes{display:grid;gap:12px}
+  .mode{
+    display:flex;align-items:center;gap:14px;
+    width:100%;text-align:left;
+    background:var(--surface);
+    border:1.5px solid var(--line);
+    border-radius:var(--r);
+    padding:16px;
+    box-shadow:var(--shadow);
+    cursor:pointer;
+    font:inherit;color:inherit;
+    transition:transform .12s ease, border-color .12s ease;
+  }
+  .mode:hover{border-color:var(--sky)}
+  .mode:active{transform:translateY(2px)}
+  .mode .icon{
+    width:60px;height:44px;flex:none;display:grid;place-items:center;
+  }
+  .mode .icon svg{display:block;width:100%;height:auto;border-radius:3px;border:1px solid var(--line)}
+  .mode b{display:block;font-size:18px;font-weight:900}
+  .mode small{display:block;color:var(--muted);font-size:12.5px;margin-top:3px}
+
+  .settingrow{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--surface);border:1.5px solid var(--line);
+    border-radius:14px;padding:12px 14px;
+  }
+  .settingrow >span{font-size:13.5px;font-weight:700}
+  .seg{display:flex;gap:6px}
+  .seg button{
+    font:inherit;font-weight:700;font-size:13px;
+    border:1.5px solid var(--line);background:transparent;color:var(--muted);
+    border-radius:999px;padding:6px 13px;cursor:pointer;
+    font-variant-numeric:tabular-nums;
+  }
+  .seg button[aria-pressed="true"]{background:var(--sea);border-color:var(--sea);color:#fff}
+
+  .best{font-size:12.5px;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+
+  /* ---- how to play ---- */
+  .steps{display:grid;gap:10px;counter-reset:s}
+  .step{
+    display:flex;gap:13px;align-items:flex-start;
+    background:var(--surface);border:1.5px solid var(--line);
+    border-radius:14px;padding:14px;
+  }
+  .step .num{
+    flex:none;width:26px;height:26px;border-radius:50%;
+    background:var(--sea);color:#fff;display:grid;place-items:center;
+    font-size:14px;font-weight:900;font-variant-numeric:tabular-nums;
+  }
+  .step p{margin:0;font-size:14.5px;line-height:1.65}
+  .step p b{color:var(--vermilion)}
+
+  .roles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .role{
+    background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);
+    padding:16px 12px;text-align:center;cursor:pointer;font:inherit;color:inherit;
+    box-shadow:var(--shadow);
+  }
+  .role[aria-pressed="true"]{border-color:var(--vermilion);box-shadow:0 0 0 3px rgba(224,69,47,.15),var(--shadow)}
+  .role .face{font-size:30px;line-height:1}
+  .role b{display:block;margin-top:6px;font-size:16px;font-weight:900}
+  .role small{display:block;color:var(--muted);font-size:11.5px;margin-top:3px}
+
+  /* ---- buttons ---- */
+  .btn{
+    font:inherit;font-weight:900;font-size:18px;
+    border:none;border-radius:16px;padding:17px 20px;
+    cursor:pointer;width:100%;
+    box-shadow:0 3px 0 rgba(0,0,0,.18);
+    transition:transform .1s ease, box-shadow .1s ease;
+  }
+  .btn:active{transform:translateY(3px);box-shadow:0 0 0 rgba(0,0,0,.18)}
+  .btn-go{background:var(--vermilion);color:#fff}
+  .btn-ok{background:var(--leaf);color:#fff;font-size:22px;padding:22px 20px}
+  .btn-ghost{
+    background:transparent;color:var(--muted);
+    border:1.5px solid var(--line);box-shadow:none;font-size:15px;padding:14px 20px;
+  }
+  .btn-ghost:active{transform:translateY(2px)}
+  .btn-sea{background:var(--sea);color:#fff}
+  :where(button,a):focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+  .spacer{flex:1}
+
+  /* ---- play ---- */
+  .hud{display:flex;align-items:center;gap:12px}
+  .timerwrap{flex:1}
+  .timerbar{height:12px;border-radius:999px;background:rgba(27,73,101,.14);overflow:hidden}
+  .timerfill{height:100%;width:100%;background:var(--sky);border-radius:999px}
+  .timerfill.warn{background:var(--vermilion)}
+  .timertext{
+    font-variant-numeric:tabular-nums;font-weight:900;font-size:13px;color:var(--sea);
+    margin-top:4px;display:block;
+  }
+  .scorechip{
+    flex:none;background:var(--sea);color:#fff;border-radius:999px;
+    padding:8px 15px;font-weight:900;font-size:17px;font-variant-numeric:tabular-nums;
+  }
+  .iconbtn{
+    flex:none;width:46px;height:46px;border-radius:14px;
+    border:1.5px solid var(--line);background:var(--surface);
+    display:grid;place-items:center;cursor:pointer;padding:0;
+    box-shadow:0 2px 0 rgba(27,73,101,.10);
+  }
+  .iconbtn:active{transform:translateY(2px);box-shadow:none}
+  .iconbtn svg{width:18px;height:18px;fill:var(--sea)}
+
+  .overlay{
+    position:fixed;inset:0;z-index:20;
+    background:rgba(16,38,46,.62);
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;
+  }
+  .overlay[hidden]{display:none}
+  .sheet{
+    width:100%;max-width:360px;
+    background:var(--surface);border-radius:24px;padding:22px 18px;
+    box-shadow:0 18px 50px rgba(16,38,46,.35);
+    display:grid;gap:10px;text-align:center;
+  }
+  .sheet h2{margin:0 0 2px;font-size:24px}
+  .sheet p{margin:0 0 8px;color:var(--muted);font-size:13.5px;line-height:1.6}
+  .sheet .btn{font-size:17px;padding:15px 18px}
+  .sheet small{color:var(--muted);font-size:11.5px;display:block;margin-top:-2px}
+
+  .peek{
+    text-align:center;font-size:12px;font-weight:700;color:var(--vermilion);
+    background:rgba(224,69,47,.09);border-radius:999px;padding:7px 12px;
+  }
+  .card{
+    background:var(--surface);border:1.5px solid var(--line);border-radius:24px;
+    padding:22px 18px;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;align-items:center;gap:16px;
+    flex:1;justify-content:center;
+    text-align:center;
+  }
+  .card.hidden-answer{filter:blur(14px);opacity:.35}
+  .card.pop{animation:pop .22s ease}
+  @keyframes pop{from{transform:scale(.96);opacity:.4}to{transform:scale(1);opacity:1}}
+  @media (prefers-reduced-motion:reduce){.card.pop{animation:none}}
+  .regionchip{
+    font-size:12px;font-weight:700;color:var(--sea);
+    background:rgba(98,182,203,.2);border-radius:999px;padding:5px 13px;
+  }
+  .answer{font-size:clamp(36px,12vw,52px);line-height:1.25;font-weight:400}
+  .flagbox{width:min(220px,64vw)}
+  .flagbox svg{display:block;width:100%;height:auto;border:1.5px solid var(--line);border-radius:4px}
+  .hintlabel{font-size:11.5px;letter-spacing:.16em;color:var(--muted);font-weight:700}
+  .hints{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  .hints li{
+    list-style:none;
+    background:var(--gold);color:#463206;
+    border-radius:999px;padding:9px 15px;font-size:15px;font-weight:700;
+  }
+  .hints{margin:0;padding:0}
+  .reading{font-size:16px;color:var(--muted);font-weight:700;letter-spacing:.06em;margin-top:-8px}
+  #mathpad{display:grid;gap:11px;width:100%}
+  .numtiles{display:flex;flex-wrap:wrap;gap:9px;justify-content:center}
+  .numtiles button{
+    width:clamp(50px,15vw,60px);aspect-ratio:1;border-radius:15px;border:none;
+    background:var(--sea);color:#fff;display:grid;place-items:center;cursor:pointer;
+    font-family:"Yusei Magic",system-ui,sans-serif;font-size:clamp(26px,8.5vw,34px);
+    font-variant-numeric:tabular-nums;padding:0;
+    box-shadow:0 3px 0 rgba(0,0,0,.2);
+  }
+  .numtiles button:active{transform:translateY(3px);box-shadow:none}
+  .numtiles button.used{background:var(--paper);color:var(--line);box-shadow:none;pointer-events:none}
+  .goal{font-size:15px;font-weight:700;margin:0}
+  .goal b{color:var(--vermilion);font-size:20px}
+  .mexpr{
+    min-height:58px;
+    background:var(--paper);border:1.5px dashed var(--line);border-radius:14px;
+    display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px;
+    padding:8px 10px;
+    font-family:"Yusei Magic",system-ui,sans-serif;font-size:clamp(22px,7vw,30px);
+    font-variant-numeric:tabular-nums;color:var(--ink);
+  }
+  .mexpr.empty{
+    font-family:inherit;font-size:13px;font-weight:500;color:var(--muted);
+  }
+  .ops{display:flex;flex-wrap:wrap;gap:7px;justify-content:center}
+  .ops button{
+    min-width:48px;height:44px;border-radius:12px;padding:0 10px;
+    border:1.5px solid var(--line);background:var(--surface);color:var(--sea);
+    font-size:21px;font-weight:900;cursor:pointer;font-family:inherit;
+  }
+  .ops button:active{background:var(--sky);color:#fff}
+  .edit{display:flex;gap:8px}
+  .edit button{
+    flex:1;font:inherit;font-size:13px;font-weight:700;padding:9px 6px;
+    border-radius:11px;border:1.5px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;
+  }
+  .verdict{
+    margin:0;border-radius:12px;padding:11px 14px;
+    font-size:18px;font-weight:900;line-height:1.4;
+  }
+  .verdict.ok{background:rgba(47,143,91,.15);color:var(--leaf)}
+  .verdict.ng{background:rgba(224,69,47,.12);color:var(--vermilion)}
+  .solution{
+    background:rgba(47,143,91,.12);color:var(--leaf);
+    border-radius:14px;padding:12px 14px;font-size:19px;font-weight:900;
+    font-variant-numeric:tabular-nums;line-height:1.5;word-break:break-all;
+  }
+  .playbtns{display:grid;gap:9px}
+
+  /* ---- countdown ---- */
+  .count{
+    flex:1;display:grid;place-items:center;
+    font-size:clamp(90px,34vw,150px);color:var(--sea);line-height:1;
+  }
+
+  /* ---- result ---- */
+  .rankcard{
+    background:var(--surface);border:1.5px solid var(--line);border-radius:24px;
+    padding:24px 18px;box-shadow:var(--shadow);text-align:center;
+  }
+  .rankbadge{
+    display:inline-block;border-radius:999px;padding:6px 18px;
+    font-weight:900;font-size:14px;color:#fff;
+  }
+  .bignum{
+    font-size:clamp(60px,20vw,86px);line-height:1;margin:12px 0 2px;
+    font-variant-numeric:tabular-nums;color:var(--sea);
+  }
+  .bignum small{font-size:22px;margin-left:4px;color:var(--muted)}
+  .newbest{color:var(--vermilion);font-weight:900;font-size:13px;margin-top:6px}
+  .hee{
+    background:var(--sea);color:#fff;border-radius:20px;padding:18px;
+  }
+  .hee .eyebrow{color:var(--gold)}
+  .hee p{margin:8px 0 0;font-size:16.5px;line-height:1.6;font-weight:700}
+  .hee .hee-name{font-size:26px;font-weight:400;margin-top:10px;line-height:1.2}
+  .recap{
+    background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:14px;
+  }
+  .recap h3{margin:0 0 9px;font-size:12px;letter-spacing:.14em;color:var(--muted)}
+  .recap ul{margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+  .recap li{
+    list-style:none;font-size:13px;font-weight:700;
+    background:rgba(47,143,91,.12);color:var(--leaf);
+    border-radius:999px;padding:5px 11px;
+  }
+  .promo{
+    border:1.5px dashed var(--sea);border-radius:16px;padding:16px;text-align:center;
+    background:rgba(98,182,203,.10);
+  }
+  .promo b{display:block;font-size:16px;font-weight:900;color:var(--sea)}
+  .promo p{margin:6px 0 12px;font-size:13px;color:var(--muted);line-height:1.6}
+  .foot{text-align:center;font-size:11.5px;color:var(--muted)}
+
+  /* ---- はやおし親子バトル ---- */
+  .settingrow.stack{flex-direction:column;align-items:stretch;gap:9px}
+  .seg.wrap{flex-wrap:wrap}
+  #s-battle.on{
+    position:fixed;inset:0;z-index:5;
+    background:var(--paper);
+    padding:8px;gap:8px;
+    display:flex;flex-direction:column;
+  }
+  .side{
+    flex:1;min-height:0;
+    background:var(--surface);border:1.5px solid var(--line);border-radius:20px;
+    padding:10px;display:flex;flex-direction:column;gap:8px;
+    align-items:center;justify-content:center;
+    position:relative;overflow:hidden;
+  }
+  .side[data-side="adult"]{transform:rotate(180deg)}
+  .side.flash{background:#DFF2E6;border-color:var(--leaf)}
+  .sidetag{
+    position:absolute;top:7px;left:12px;
+    font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.1em;
+  }
+  .qart{width:min(84px,20vh);flex:none}
+  .qart svg,.qart img{display:block;width:100%;height:auto;border-radius:4px}
+  .qart svg{border:1px solid var(--line)}
+  .qtext{
+    margin:0;text-align:center;font-weight:900;line-height:1.3;
+    font-size:clamp(16px,4.6vh,24px);
+  }
+  .qtext.num{font-family:"Yusei Magic",system-ui,sans-serif;font-weight:400;font-size:clamp(26px,7vh,40px);font-variant-numeric:tabular-nums}
+  .choices{
+    display:grid;gap:7px;width:100%;
+    grid-template-columns:repeat(2,1fr);
+  }
+  .choices.one{grid-template-columns:1fr}
+  .choice{
+    font:inherit;font-weight:700;font-size:clamp(13px,2.5vh,17px);
+    padding:clamp(8px,1.6vh,14px) 6px;
+    border:1.5px solid var(--line);border-radius:12px;
+    background:var(--paper);color:var(--ink);cursor:pointer;
+    min-height:0;
+  }
+  .choice:active{background:var(--sky);color:#fff}
+  .side.locked .choice{opacity:.35;pointer-events:none}
+  .lockmsg{
+    display:none;position:absolute;inset:0;
+    background:rgba(224,69,47,.92);color:#fff;
+    align-items:center;justify-content:center;
+    font-size:26px;font-weight:900;
+  }
+  .side.locked .lockmsg{display:flex}
+  .mid{
+    flex:none;display:flex;align-items:center;gap:10px;
+    padding:0 4px;
+  }
+  .mscore{
+    background:var(--sea);color:#fff;border-radius:999px;
+    padding:6px 14px;font-weight:900;font-size:18px;font-variant-numeric:tabular-nums;
+    min-width:54px;text-align:center;
+  }
+  .mscore small{display:block;font-size:9px;font-weight:700;opacity:.75;letter-spacing:.08em}
+  .mtimer{flex:1;height:10px;border-radius:999px;background:rgba(27,73,101,.16);overflow:hidden}
+  .mtimer div{height:100%;width:100%;background:var(--sky)}
+  .mtimer div.warn{background:var(--vermilion)}
+  .mid .iconbtn{width:38px;height:38px;border-radius:11px}
+  .mid .iconbtn svg{width:14px;height:14px}
+
+  /* ---- 親子クロスワード ---- */
+  #s-cross.on{
+    position:fixed;inset:0;z-index:5;background:var(--paper);
+    padding:8px;display:flex;flex-direction:column;gap:8px;
+  }
+  .cwhud{display:flex;align-items:center;gap:9px;flex:none}
+  .cwstat{
+    background:var(--surface);border:1.5px solid var(--line);border-radius:12px;
+    padding:6px 12px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;
+  }
+  .cwstat b{color:var(--sea);font-size:16px}
+  /* 役割の強調 */
+  .rolesplit{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .rolesplit .rs{
+    border-radius:16px;padding:14px 10px;text-align:center;color:#fff;
+    box-shadow:var(--shadow);
+  }
+  .rolesplit .rs.yoko{background:var(--vermilion)}
+  .rolesplit .rs.tate{background:var(--sea)}
+  .rolesplit .rs b{display:block;font-size:15px;font-weight:900;letter-spacing:.04em}
+  .rolesplit .rs .who{
+    display:block;margin-top:6px;font-size:22px;
+    font-family:"Yusei Magic",system-ui,sans-serif;font-weight:400;
+  }
+  .rolesplit .rs .arrow{display:block;font-size:17px;opacity:.8;margin-top:2px}
+
+  .rolebar{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .rolebar span{
+    border-radius:10px;padding:6px 8px;text-align:center;color:#fff;
+    font-size:12.5px;font-weight:900;letter-spacing:.02em;
+  }
+  .rolebar .yoko{background:var(--vermilion)}
+  .rolebar .tate{background:var(--sea)}
+
+  /* 語のはじまるマスに 向きの色をつける */
+  .cwcell.sa::before{
+    content:'';position:absolute;left:0;top:5px;bottom:5px;width:4px;
+    background:var(--vermilion);border-radius:0 3px 3px 0;
+  }
+  .cwcell.sd::after{
+    content:'';position:absolute;top:0;left:5px;right:5px;height:4px;
+    background:var(--sea);border-radius:0 0 3px 3px;
+  }
+  .cwcell.inword.wa{background:#FDECE8}
+  .cwcell.inword.wd{background:#E4F0F6}
+  .cwcell.sel{background:var(--gold);border-color:#C9961F}
+
+  .cwscroll{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:2px}
+  .cwgrid{display:grid;gap:3px;justify-content:center;flex:none}
+  .cwcell{
+    width:var(--cw,42px);height:var(--cw,42px);padding:0;
+    border:1.5px solid var(--line);border-radius:5px;background:var(--surface);
+    position:relative;display:grid;place-items:center;cursor:pointer;
+    font-family:inherit;font-size:calc(var(--cw,42px)*0.52);font-weight:700;color:var(--ink);
+  }
+  .cwcell.black{background:transparent;border-color:transparent;pointer-events:none}
+  .cwcell.inword{background:#FFF6E0}
+  .cwcell.sel{background:var(--gold);border-color:#C9961F}
+  .cwcell .no{
+    position:absolute;top:0;left:2px;font-size:9px;font-weight:700;color:var(--muted);line-height:1.2;
+  }
+  .cluetoggle{
+    flex:none;width:100%;font:inherit;font-size:13px;font-weight:700;
+    padding:9px 12px;border-radius:11px;border:1.5px dashed var(--line);
+    background:transparent;color:var(--muted);cursor:pointer;
+  }
+  .clues{display:grid;gap:10px;flex:none}
+  .clues[hidden]{display:none}
+  .cluegrp{display:grid;gap:5px}
+  .cluehead{font-size:11.5px;font-weight:900;letter-spacing:.12em;margin:0}
+  .cluehead.yoko{color:var(--vermilion)}
+  .cluehead.tate{color:var(--sea)}
+  .clue{
+    display:flex;gap:8px;align-items:baseline;width:100%;text-align:left;
+    font:inherit;font-size:13px;font-weight:500;color:var(--ink);
+    padding:7px 10px;border-radius:10px;border:1.5px solid var(--line);
+    background:var(--surface);cursor:pointer;
+  }
+  .clue b{flex:none;width:18px;font-weight:900;color:var(--muted);font-variant-numeric:tabular-nums}
+  .clue.sel{border-color:var(--gold);background:#FFF8E8}
+  .clue.ok{color:var(--leaf);opacity:.75}
+  .clue.ok b{color:var(--leaf)}
+  .cwnow{flex:none;display:grid;gap:5px}
+  .cwnow button{
+    display:flex;gap:9px;align-items:center;width:100%;text-align:left;
+    font:inherit;font-size:13.5px;font-weight:500;color:var(--ink);
+    padding:9px 11px;border-radius:12px;border:1.5px solid var(--line);
+    background:var(--surface);cursor:pointer;
+  }
+  .cwnow button .tag{
+    flex:none;font-size:11px;font-weight:900;border-radius:999px;
+    padding:3px 9px;color:#fff;font-variant-numeric:tabular-nums;
+  }
+  .cwnow button .tag.yoko{background:var(--vermilion)}
+  .cwnow button .tag.tate{background:var(--sea)}
+  .cwnow button.sel{border-color:var(--gold);background:#FFF8E8}
+  .cwnow button.ok .txt{color:var(--leaf)}
+  .cwnow .none{
+    font-size:12.5px;color:var(--muted);text-align:center;padding:9px;
+  }
+  .cwpad{flex:none;display:grid;gap:5px}
+  .kbd{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
+  .kbd button{
+    aspect-ratio:1;padding:0;border:1.5px solid var(--line);border-radius:7px;
+    background:var(--surface);color:var(--ink);
+    font:inherit;font-size:clamp(13px,3.6vw,16px);font-weight:700;cursor:pointer;
+  }
+  .kbd button:active{background:var(--sky);color:#fff}
+  .kbd button.blank{visibility:hidden}
+  .kbd2{display:flex;gap:5px}
+  .kbd2 button{
+    flex:1;padding:9px 3px;white-space:nowrap;border:1.5px solid var(--line);border-radius:9px;
+    background:var(--surface);color:var(--sea);font:inherit;font-size:13px;font-weight:700;cursor:pointer;
+  }
+  .kbd2 button.wide{flex:1.4;color:var(--muted)}
+
+  /* ---- けいさんクロス（1人用） ---- */
+  #s-numcross.on{
+    position:fixed;inset:0;z-index:5;background:var(--paper);
+    padding:8px;display:flex;flex-direction:column;gap:10px;
+  }
+  .ncwrap{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;justify-content:center;gap:12px}
+  .ncgrid{
+    display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.6fr) minmax(0,1.25fr) minmax(0,.6fr) minmax(0,1.25fr);
+    gap:5px;align-items:center;justify-items:center;
+    width:min(100%,360px);margin:0 auto;
+  }
+  .ncop{
+    font-size:clamp(16px,5vw,21px);font-weight:900;color:var(--sea);
+  }
+  .ncblank{width:100%}
+  .nccell{
+    width:100%;min-width:0;aspect-ratio:1.15;padding:0;border-radius:12px;
+    border:1.5px solid var(--line);background:var(--surface);
+    display:grid;place-items:center;cursor:default;
+    font-family:"Yusei Magic",system-ui,sans-serif;
+    font-size:clamp(18px,6vw,26px);color:var(--ink);
+    font-variant-numeric:tabular-nums;
+  }
+  .nccell.fixed{background:#E3EEF3;color:var(--sea);border-color:transparent}
+  .nccell.open{cursor:pointer;border-style:dashed;border-color:var(--sky)}
+  .nccell.sel{background:var(--gold);border-color:#C9961F;border-style:solid}
+  .nccell.good{background:rgba(47,143,91,.16);border-color:var(--leaf);color:var(--leaf)}
+  .nccell.bad{background:rgba(224,69,47,.14);border-color:var(--vermilion);color:var(--vermilion)}
+  .ncmsg{
+    flex:none;text-align:center;font-size:13.5px;font-weight:700;
+    border-radius:12px;padding:10px;color:var(--muted);
+  }
+  .ncmsg.ng{background:rgba(224,69,47,.12);color:var(--vermilion)}
+  .ncpad{flex:none;min-width:0}
+  .ncnum{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;width:100%}
+  .ncnum button{
+    min-width:0;height:clamp(42px,6.4vh,54px);
+    padding:0;border:1.5px solid var(--line);border-radius:11px;
+    background:var(--surface);color:var(--ink);cursor:pointer;
+    font-family:"Yusei Magic",system-ui,sans-serif;font-size:clamp(18px,5.5vw,24px);
+    font-variant-numeric:tabular-nums;
+  }
+  .ncnum button:active{background:var(--sky);color:#fff}
+
+  .vs{
+    display:flex;align-items:center;justify-content:center;gap:14px;
+    font-variant-numeric:tabular-nums;
+  }
+  .vs .n{font-size:clamp(44px,15vw,64px);line-height:1;color:var(--sea)}
+  .vs .dash{font-size:26px;color:var(--muted);align-self:flex-start;margin-top:14px}
+  .vs .who{font-size:12px;font-weight:700;color:var(--muted);display:block;text-align:center;margin-top:4px}
+</style>
+
+<div class="wrap">
+
+  <!-- ============ タイトル ============ -->
+  <section class="screen on" id="s-title">
+    <div class="brandmark">
+      <div class="pin" aria-hidden="true"></div>
+      <span id="brand-title"></span>
+    </div>
+    <h1 class="display">親子ゲーム</h1>
+    <p class="lede">
+      きょうかの内ようで、<b>親子でいっしょに</b>あそべるゲームです。<br>
+      ひとりであそべるゲームもあります。
+    </p>
+
+    <div class="modes">
+      <button class="mode" data-group="relay">
+        <span class="icon" id="ico-relay" aria-hidden="true"></span>
+        <span><b>親子ヒントリレー</b><small>2人で ／ 5つのきょうか</small></span>
+      </button>
+      <button class="mode" data-group="battle">
+        <span class="icon" id="ico-battle" aria-hidden="true"></span>
+        <span><b>はやおし親子バトル</b><small>2人で ／ 向かい合って対戦</small></span>
+      </button>
+      <button class="mode" data-group="cross">
+        <span class="icon" id="ico-cross" aria-hidden="true"></span>
+        <span><b>親子クロスワード</b><small>2人で ／ 協力して完成させる</small></span>
+      </button>
+      <button class="mode" data-group="solo">
+        <span class="icon" id="ico-solo" aria-hidden="true"></span>
+        <span><b>ひとりであそぶ</b><small>1人で ／ 算数</small></span>
+      </button>
+    </div>
+
+    <div class="settingrow">
+      <span>がくねん</span>
+      <div class="seg" id="seg-level" role="group" aria-label="がくねん">
+        <button type="button" data-lv="1">ていがくねん</button>
+        <button type="button" data-lv="2" aria-pressed="true">こうがくねん</button>
+      </div>
+    </div>
+
+    <div class="settingrow">
+      <span>せいげん時間</span>
+      <div class="seg" id="seg-time" role="group" aria-label="せいげん時間">
+        <button type="button" data-t="60">60秒</button>
+        <button type="button" data-t="90" aria-pressed="true">90秒</button>
+        <button type="button" data-t="120">120秒</button>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+    <p class="foot" id="brand-foot"></p>
+  </section>
+
+  <!-- ============ グループの中身 ============ -->
+  <section class="screen" id="s-sub">
+    <p class="eyebrow" id="sub-eyebrow"></p>
+    <h1 class="display" id="sub-title"></h1>
+    <p class="lede" id="sub-lede"></p>
+    <div class="modes" id="sub-modes"></div>
+    <p class="best" id="sub-note"></p>
+    <div class="spacer"></div>
+    <button class="btn btn-ghost" data-back="s-title">もどる</button>
+  </section>
+
+  <!-- ============ あそびかた＋やくわり ============ -->
+  <section class="screen" id="s-how">
+    <p class="eyebrow">あそびかた</p>
+    <h2 id="how-title"></h2>
+    <div class="rolesplit" id="cross-roles" hidden>
+      <div class="rs yoko"><b>ヨコのカギ</b><span class="arrow">→</span><span class="who">こども</span></div>
+      <div class="rs tate"><b>タテのカギ</b><span class="arrow">↓</span><span class="who">おとな</span></div>
+    </div>
+    <div class="steps" id="steps"></div>
+
+    <div class="settingrow stack" id="row-subject" hidden>
+      <span>きょうか</span>
+      <div class="seg wrap" id="seg-subject" role="group" aria-label="きょうか">
+        <button type="button" data-s="mix" aria-pressed="true">ぜんぶミックス</button>
+        <button type="button" data-s="pref">都道府県</button>
+        <button type="button" data-s="flag">国旗</button>
+        <button type="button" data-s="kokugo">ことば</button>
+        <button type="button" data-s="rika">りか</button>
+        <button type="button" data-s="eigo">えいご</button>
+        <button type="button" data-s="calc">けいさん</button>
+      </div>
+    </div>
+    <div class="settingrow stack" id="row-kana" hidden>
+      <span>50音の ならび</span>
+      <div class="seg wrap" id="seg-kana" role="group" aria-label="50音のならび">
+        <button type="button" data-kn="R" aria-pressed="true">みぎから（教科書の五十音表と同じ）</button>
+        <button type="button" data-kn="L">ひだりから（あ か さ た な…）</button>
+      </div>
+    </div>
+    <div class="settingrow stack" id="row-handi" hidden>
+      <span>おとなのハンデ</span>
+      <div class="seg wrap" id="seg-handi" role="group" aria-label="ハンデ">
+        <button type="button" data-h="0">なし（3たく・3たく）</button>
+        <button type="button" data-h="1" aria-pressed="true">ふつう（子2・親4）</button>
+        <button type="button" data-h="2">たっぷり（子2・親6）</button>
+      </div>
+    </div>
+
+    <p class="eyebrow" id="role-label">スマホを持つのは？（ヒントを出す人）</p>
+    <div class="roles" id="roles">
+      <button class="role" data-role="child" aria-pressed="true">
+        <div class="face" aria-hidden="true">🧒</div>
+        <b>こども</b><small>こどもが出題する</small>
+      </button>
+      <button class="role" data-role="adult" aria-pressed="false">
+        <div class="face" aria-hidden="true">🧑</div>
+        <b>おとな</b><small>おとなが出題する</small>
+      </button>
+    </div>
+
+    <p class="best" id="best-line"></p>
+    <div class="spacer"></div>
+    <button class="btn btn-go" id="btn-start">はじめる</button>
+    <button class="btn btn-ghost" id="btn-how-back">もどる</button>
+  </section>
+
+  <!-- ============ カウントダウン ============ -->
+  <section class="screen" id="s-count">
+    <div class="count display" id="count-num">3</div>
+    <p class="best" id="count-note"></p>
+  </section>
+
+  <!-- ============ プレイ ============ -->
+  <section class="screen" id="s-play">
+    <div class="hud">
+      <div class="timerwrap">
+        <div class="timerbar"><div class="timerfill" id="timer-fill"></div></div>
+        <span class="timertext" id="timer-text">90</span>
+      </div>
+      <div class="scorechip"><span id="score">0</span><span style="font-size:13px"> もん</span></div>
+      <button class="iconbtn" id="btn-pause" type="button" aria-label="一時停止">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1.5"/><rect x="14" y="4" width="5" height="16" rx="1.5"/></svg>
+      </button>
+    </div>
+    <p class="peek" id="peek-note"></p>
+
+    <div class="card" id="card">
+      <span class="regionchip" id="region"></span>
+      <div class="flagbox" id="flagbox" hidden></div>
+      <div id="mathpad" hidden>
+        <p class="goal">ぜんぶ使って <b>10</b> を作ろう</p>
+        <div class="mexpr empty" id="mexpr"></div>
+        <div class="numtiles" id="numtiles"></div>
+        <div class="ops" id="ops"></div>
+        <div class="edit">
+          <button type="button" id="btn-undo">1つもどす</button>
+          <button type="button" id="btn-clear">ぜんぶけす</button>
+        </div>
+        <p class="verdict" id="verdict" hidden></p>
+      </div>
+      <div class="answer display" id="answer"></div>
+      <p class="reading" id="reading" hidden></p>
+      <div id="hintblock">
+        <p class="hintlabel">ヒントのたね</p>
+        <ul class="hints" id="hints"></ul>
+      </div>
+      <p class="solution" id="solution" hidden></p>
+    </div>
+
+    <div class="playbtns">
+      <button class="btn btn-ok" id="btn-ok">せいかい！</button>
+      <button class="btn btn-ghost" id="btn-hint" hidden>こたえを見る</button>
+      <button class="btn btn-ghost" id="btn-pass">パス</button>
+    </div>
+
+  </section>
+
+  <!-- ============ はやおしバトル ============ -->
+  <section class="screen" id="s-battle">
+    <div class="side" data-side="adult" id="side-adult">
+      <span class="sidetag">おとな</span>
+      <div class="qart" hidden></div>
+      <p class="qtext"></p>
+      <div class="choices"></div>
+      <div class="lockmsg">おてつき！</div>
+    </div>
+    <div class="mid">
+      <span class="mscore"><span id="sc-adult">0</span><small>おとな</small></span>
+      <div class="mtimer"><div id="btimer"></div></div>
+      <span class="mscore"><span id="sc-child">0</span><small>こども</small></span>
+      <button class="iconbtn" id="btn-bpause" type="button" aria-label="一時停止">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1.5"/><rect x="14" y="4" width="5" height="16" rx="1.5"/></svg>
+      </button>
+    </div>
+    <div class="side" data-side="child" id="side-child">
+      <span class="sidetag">こども</span>
+      <div class="qart" hidden></div>
+      <p class="qtext"></p>
+      <div class="choices"></div>
+      <div class="lockmsg">おてつき！</div>
+    </div>
+  </section>
+
+  <!-- ============ 親子クロスワード ============ -->
+  <section class="screen" id="s-cross">
+    <div class="cwhud">
+      <span class="cwstat">じかん <b id="cw-time">0:00</b></span>
+      <span class="cwstat">のこり <b id="cw-left">0</b>マス</span>
+      <div class="spacer"></div>
+      <button class="iconbtn" id="btn-cpause" type="button" aria-label="一時停止">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1.5"/><rect x="14" y="4" width="5" height="16" rx="1.5"/></svg>
+      </button>
+    </div>
+    <div class="rolebar">
+      <span class="yoko">ヨコ → こども</span>
+      <span class="tate">タテ ↓ おとな</span>
+    </div>
+    <div class="cwscroll">
+      <div class="cwgrid" id="cwgrid"></div>
+      <button type="button" class="cluetoggle" id="btn-cluelist">カギの一覧を ひらく</button>
+      <div class="clues" id="cwclues" hidden></div>
+    </div>
+    <div class="cwnow" id="cwnow"></div>
+    <div class="cwpad">
+      <div class="kbd" id="kbd"></div>
+      <div class="kbd2">
+        <button type="button" data-k="゛">てんてん</button>
+        <button type="button" data-k="゜">まる</button>
+        <button type="button" data-k="小">小さく</button>
+        <button type="button" class="wide" data-k="del">1つけす</button>
+        <button type="button" class="wide" data-k="hint">ここを開く</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ けいさんクロス（1人用） ============ -->
+  <section class="screen" id="s-numcross">
+    <div class="cwhud">
+      <span class="cwstat">じかん <b id="nc-time">0:00</b></span>
+      <span class="cwstat">のこり <b id="nc-left">0</b>マス</span>
+      <div class="spacer"></div>
+      <button class="iconbtn" id="btn-npause" type="button" aria-label="一時停止">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1.5"/><rect x="14" y="4" width="5" height="16" rx="1.5"/></svg>
+      </button>
+    </div>
+    <div class="ncwrap">
+      <div class="ncgrid" id="ncgrid"></div>
+    </div>
+    <p class="ncmsg" id="ncmsg">たて・よこ ぜんぶの 計算が 合うように 数を入れよう</p>
+    <div class="ncpad">
+      <div class="ncnum" id="ncnum"></div>
+    </div>
+  </section>
+
+  <!-- ============ クロスワード完成 ============ -->
+  <section class="screen" id="s-cresult">
+    <div class="rankcard">
+      <span class="rankbadge" id="cwbadge" style="background:#C9961F">かんせい！</span>
+      <div class="bignum display" id="cw-final">0:00</div>
+      <p class="lede" id="cw-msg" style="margin:0"></p>
+    </div>
+    <div class="hee">
+      <p class="eyebrow">きょうの へぇ</p>
+      <p class="hee-name display" id="cwhee-name"></p>
+      <p id="cwhee-text"></p>
+    </div>
+    <div class="promo">
+      <b id="cpromo-name"></b>
+      <p id="cpromo-text"></p>
+    </div>
+    <button class="btn btn-go" id="btn-cagain">べつのもんだい</button>
+    <button class="btn btn-ghost" data-back="s-title">さいしょの画面へ</button>
+  </section>
+
+  <!-- ============ バトル結果 ============ -->
+  <section class="screen" id="s-bresult">
+    <div class="rankcard">
+      <span class="rankbadge" id="bwin"></span>
+      <div class="vs">
+        <div><span class="n display" id="bs-adult">0</span><span class="who">おとな</span></div>
+        <span class="dash">−</span>
+        <div><span class="n display" id="bs-child">0</span><span class="who">こども</span></div>
+      </div>
+      <p class="lede" id="bmsg" style="margin:10px 0 0"></p>
+    </div>
+
+    <div class="hee">
+      <p class="eyebrow">きょうの へぇ</p>
+      <p class="hee-name display" id="bhee-name"></p>
+      <p id="bhee-text"></p>
+    </div>
+
+    <div class="promo">
+      <b id="bpromo-name"></b>
+      <p id="bpromo-text"></p>
+    </div>
+
+    <button class="btn btn-go" id="btn-bagain">もういちど</button>
+    <button class="btn btn-ghost" data-back="s-title">さいしょの画面へ</button>
+  </section>
+
+  <!-- ============ 結果 ============ -->
+  <section class="screen" id="s-result">
+    <div class="rankcard">
+      <span class="rankbadge" id="rank"></span>
+      <div class="bignum display"><span id="final">0</span><small>もん</small></div>
+      <p class="lede" id="rank-msg" style="margin:0"></p>
+      <p class="newbest" id="newbest" hidden>じこベスト こうしん！</p>
+    </div>
+
+    <div class="hee">
+      <p class="eyebrow">きょうの へぇ</p>
+      <p class="hee-name display" id="hee-name"></p>
+      <p id="hee-text"></p>
+    </div>
+
+    <div class="recap" id="recap" hidden>
+      <h3>こたえられたもの</h3>
+      <ul id="recap-list"></ul>
+    </div>
+
+    <div class="promo">
+      <b id="promo-name"></b>
+      <p id="promo-text"></p>
+    </div>
+
+    <button class="btn btn-go" id="btn-again">もういちど</button>
+    <button class="btn btn-ghost" data-back="s-title">さいしょの画面へ</button>
+  </section>
+
+  <div class="overlay" id="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="pause-title">
+    <div class="sheet">
+      <h2 class="display" id="pause-title">一時ていし中</h2>
+      <p id="pause-info"></p>
+      <button class="btn btn-ok" id="btn-resume" style="font-size:19px">つづける</button>
+      <button class="btn btn-sea" id="btn-restart">さいしょから やりなおす</button>
+      <button class="btn btn-ghost" id="btn-quit">タイトルにもどる</button>
+      <small>やりなおす・もどると、いまの点数は消えます</small>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   ここだけ書きかえれば塾名・メッセージが変わります
+   ============================================================ */
+const CONFIG = {
+  schoolName: 'プラウ経験型教育塾',
+  eventName : '',
+  promoText : 'スコアを受付の先生に見せてね。参加賞をプレゼント！おうちでも遊べます。'
+};
+
+/* ============================================================
+   国旗の描画（すべてSVGで手描き・画像ファイル不要）
+   ============================================================ */
+function pts(cx,cy,r,n,rot){
+  let a=[];
+  for(let i=0;i<n*2;i++){
+    const rad=(i%2===0)?r:r*0.382;
+    const t=(Math.PI/ n)*i - Math.PI/2 + (rot||0);
+    a.push((cx+rad*Math.cos(t)).toFixed(2)+','+(cy+rad*Math.sin(t)).toFixed(2));
+  }
+  return a.join(' ');
+}
+function star(cx,cy,r,fill,rot){
+  return '<polygon points="'+pts(cx,cy,r,5,rot||0)+'" fill="'+fill+'"/>';
+}
+function trigram(x,y,rot,pat){
+  let s='<g transform="translate('+x+' '+y+') rotate('+rot+')" fill="#0A0A0A">';
+  pat.forEach(function(solid,i){
+    const yy=-2.9+i*2.3;
+    if(solid){ s+='<rect x="-4.6" y="'+yy+'" width="9.2" height="1.5"/>'; }
+    else{ s+='<rect x="-4.6" y="'+yy+'" width="3.8" height="1.5"/><rect x="0.8" y="'+yy+'" width="3.8" height="1.5"/>'; }
+  });
+  return s+'</g>';
+}
+function unionJack(){
+  let s='<rect width="60" height="40" fill="#00247D"/>';
+  s+='<path d="M0 0 L60 40 M60 0 L0 40" stroke="#fff" stroke-width="8"/>';
+  s+='<path d="M0 0 L60 40 M60 0 L0 40" stroke="#CF142B" stroke-width="3.4"/>';
+  s+='<path d="M30 0 V40 M0 20 H60" stroke="#fff" stroke-width="12"/>';
+  s+='<path d="M30 0 V40 M0 20 H60" stroke="#CF142B" stroke-width="7"/>';
+  return s;
+}
+function usStars(){
+  let s='',rows=[6,5,6,5,6,5,6,5,6];
+  const w=24,h=40*7/13;
+  rows.forEach(function(n,r){
+    const cy=h*(r+1)/10;
+    for(let i=0;i<n;i++){
+      const cx=(n===6)? w*(i+1)/7 : w*(i+1.5)/7;
+      s+=star(cx,cy,1.05,'#fff');
+    }
+  });
+  return s;
+}
+function chakra(){
+  let s='<circle cx="30" cy="20" r="6.2" fill="none" stroke="#0A3C8A" stroke-width="1"/><circle cx="30" cy="20" r="1.3" fill="#0A3C8A"/>';
+  for(let i=0;i<24;i++){
+    const t=Math.PI*2*i/24;
+    s+='<line x1="'+(30+1.6*Math.cos(t)).toFixed(2)+'" y1="'+(20+1.6*Math.sin(t)).toFixed(2)+'" x2="'+(30+6.2*Math.cos(t)).toFixed(2)+'" y2="'+(20+6.2*Math.sin(t)).toFixed(2)+'" stroke="#0A3C8A" stroke-width="0.45"/>';
+  }
+  return s;
+}
+function sunRays(cx,cy,r){
+  let s='';
+  for(let i=0;i<16;i++){
+    const t=Math.PI*2*i/16;
+    const x1=cx+r*Math.cos(t), y1=cy+r*Math.sin(t);
+    const x2=cx+(r*2.1)*Math.cos(t), y2=cy+(r*2.1)*Math.sin(t);
+    s+='<line x1="'+x1.toFixed(2)+'" y1="'+y1.toFixed(2)+'" x2="'+x2.toFixed(2)+'" y2="'+y2.toFixed(2)+'" stroke="#E8B84B" stroke-width="1.1"/>';
+  }
+  return s;
+}
+const MAPLE='M30 6.4 L31.3 12.6 L35.9 11.3 L34.9 15.9 L41.7 13.9 L40.1 18.3 L46.3 21.7 L42.4 23.7 L43.7 26.7 L37.2 25.9 L36.6 28.5 L31.4 25.8 L32.7 33.4 L30 32.1 L27.3 33.4 L28.6 25.8 L23.4 28.5 L22.8 25.9 L16.3 26.7 L17.6 23.7 L13.7 21.7 L19.9 18.3 L18.3 13.9 L25.1 15.9 L24.1 11.3 L28.7 12.6 Z';
+
+const FLAGS={
+  jp:function(){return '<rect width="60" height="40" fill="#fff"/><circle cx="30" cy="20" r="12" fill="#BC002D"/>';},
+  kr:function(){
+    let s='<rect width="60" height="40" fill="#fff"/>';
+    s+='<g transform="rotate(-33.69 30 20)">';
+    s+='<circle cx="30" cy="20" r="9" fill="#CD2E3A"/>';
+    s+='<path d="M21 20a9 9 0 0 0 18 0a4.5 4.5 0 0 0-9 0a4.5 4.5 0 0 1-9 0z" fill="#0047A0"/>';
+    s+='</g>';
+    s+=trigram(11,8,-57,[1,1,1])+trigram(49,8,57,[0,1,0])+trigram(11,32,57,[1,0,1])+trigram(49,32,-57,[0,0,0]);
+    return s;
+  },
+  cn:function(){
+    let s='<rect width="60" height="40" fill="#DE2910"/>'+star(11,10,5.2,'#FFDE00');
+    const small=[[21,4.5],[25.5,8.5],[25.5,14.5],[21,18.5]];
+    small.forEach(function(p,i){ s+=star(p[0],p[1],1.9,'#FFDE00',[0.4,0.2,-0.2,-0.4][i]); });
+    return s;
+  },
+  us:function(){
+    let s='<rect width="60" height="40" fill="#fff"/>';
+    for(let i=0;i<7;i++){ s+='<rect y="'+(i*2*40/13).toFixed(2)+'" width="60" height="'+(40/13).toFixed(2)+'" fill="#B22234"/>'; }
+    s+='<rect width="24" height="'+(40*7/13).toFixed(2)+'" fill="#3C3B6E"/>'+usStars();
+    return s;
+  },
+  ca:function(){
+    return '<rect width="60" height="40" fill="#D52B1E"/><rect x="15" width="30" height="40" fill="#fff"/>'
+      +'<rect x="29.25" y="30" width="1.5" height="4.4" fill="#D52B1E"/><path d="'+MAPLE+'" fill="#D52B1E"/>';
+  },
+  br:function(){
+    let s='<rect width="60" height="40" fill="#009739"/>';
+    s+='<polygon points="30,4 55,20 30,36 5,20" fill="#FEDD00"/>';
+    s+='<circle cx="30" cy="20" r="9" fill="#012169"/>';
+    s+='<path d="M21.6 17.2 A 13 13 0 0 0 38.6 22.6 L 38.2 20.4 A 11.5 11.5 0 0 1 21.9 15.6 Z" fill="#fff"/>';
+    [[27,15],[31,14],[34,16.5],[26,24],[32.5,25],[35,22]].forEach(function(p){ s+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="0.7" fill="#fff"/>'; });
+    return s;
+  },
+  gb:unionJack,
+  fr:function(){return '<rect width="20" height="40" fill="#002395"/><rect x="20" width="20" height="40" fill="#fff"/><rect x="40" width="20" height="40" fill="#ED2939"/>';},
+  de:function(){return '<rect width="60" height="13.34" fill="#000"/><rect y="13.34" width="60" height="13.33" fill="#DD0000"/><rect y="26.67" width="60" height="13.33" fill="#FFCE00"/>';},
+  it:function(){return '<rect width="20" height="40" fill="#009246"/><rect x="20" width="20" height="40" fill="#fff"/><rect x="40" width="20" height="40" fill="#CE2B37"/>';},
+  ch:function(){return '<rect width="60" height="40" fill="#D52B1E"/><rect x="26" y="9" width="8" height="22" fill="#fff"/><rect x="19" y="16" width="22" height="8" fill="#fff"/>';},
+  se:function(){return '<rect width="60" height="40" fill="#006AA7"/><rect x="18" width="7" height="40" fill="#FECC02"/><rect y="16.5" width="60" height="7" fill="#FECC02"/>';},
+  dk:function(){return '<rect width="60" height="40" fill="#C8102E"/><rect x="18" width="7" height="40" fill="#fff"/><rect y="16.5" width="60" height="7" fill="#fff"/>';},
+  nl:function(){return '<rect width="60" height="13.34" fill="#AE1C28"/><rect y="13.34" width="60" height="13.33" fill="#fff"/><rect y="26.67" width="60" height="13.33" fill="#21468B"/>';},
+  ru:function(){return '<rect width="60" height="13.34" fill="#fff"/><rect y="13.34" width="60" height="13.33" fill="#0039A6"/><rect y="26.67" width="60" height="13.33" fill="#D52B1E"/>';},
+  gr:function(){
+    let s='<rect width="60" height="40" fill="#0D5EAF"/>';
+    for(let i=0;i<4;i++){ s+='<rect y="'+((i*2+1)*40/9).toFixed(2)+'" width="60" height="'+(40/9).toFixed(2)+'" fill="#fff"/>'; }
+    s+='<rect width="'+(40*5/9).toFixed(2)+'" height="'+(40*5/9).toFixed(2)+'" fill="#0D5EAF"/>';
+    s+='<rect x="9.26" y="0" width="4.44" height="22.2" fill="#fff"/><rect x="0" y="8.88" width="22.2" height="4.44" fill="#fff"/>';
+    return s;
+  },
+  tr:function(){
+    return '<rect width="60" height="40" fill="#E30A17"/><circle cx="23" cy="20" r="8" fill="#fff"/><circle cx="26.2" cy="20" r="6.4" fill="#E30A17"/>'+star(36.5,20,4.6,'#fff',Math.PI/10*2);
+  },
+  in:function(){
+    return '<rect width="60" height="13.34" fill="#FF9933"/><rect y="13.34" width="60" height="13.33" fill="#fff"/><rect y="26.67" width="60" height="13.33" fill="#138808"/>'+chakra();
+  },
+  th:function(){
+    return '<rect width="60" height="40" fill="#A51931"/><rect y="6.67" width="60" height="26.66" fill="#F4F5F8"/><rect y="13.34" width="60" height="13.32" fill="#2D2A4A"/>';
+  },
+  vn:function(){return '<rect width="60" height="40" fill="#DA251D"/>'+star(30,20,9,'#FFFF00');},
+  id:function(){return '<rect width="60" height="20" fill="#CE1126"/><rect y="20" width="60" height="20" fill="#fff"/>';},
+  za:function(){
+    let s='<rect width="60" height="20" fill="#E03C31"/><rect y="20" width="60" height="20" fill="#001489"/>';
+    s+='<polygon points="0,0 13,0 36,17 60,17 60,23 36,23 13,40 0,40 0,31 22,20 0,9" fill="#fff"/>';
+    s+='<polygon points="0,4 8,4 33,18.6 60,18.6 60,21.4 33,21.4 8,36 0,36 0,28.6 17,20 0,11.4" fill="#007A4D"/>';
+    s+='<polygon points="0,0 0,40 23,20" fill="#FFB612"/><polygon points="0,4 0,36 18.5,20" fill="#000"/>';
+    return s;
+  },
+  ar:function(){
+    let s='<rect width="60" height="13.34" fill="#74ACDF"/><rect y="13.34" width="60" height="13.33" fill="#fff"/><rect y="26.67" width="60" height="13.33" fill="#74ACDF"/>';
+    s+=sunRays(30,20,3.2)+'<circle cx="30" cy="20" r="3.2" fill="#F6B40E" stroke="#85340A" stroke-width="0.4"/>';
+    return s;
+  },
+  au:function(){
+    let s='<rect width="60" height="40" fill="#00247D"/><g transform="scale(0.5)">'+unionJack()+'</g>';
+    s+=star(15,30,4.2,'#fff');
+    s+=star(45,9,2.1,'#fff')+star(50,19,2.4,'#fff')+star(43,23,2.1,'#fff')+star(46,32,2.4,'#fff')+star(39,17,1.3,'#fff');
+    return s;
+  }
+};
+function flagSVG(code){
+  return '<svg viewBox="0 0 60 40" role="img" aria-label="国旗">'+FLAGS[code]()+'</svg>';
+}
+
+/* ============================================================
+   お題データ
+   ============================================================ */
+const PREF=[
+ ['北海道','ほっかいどう','北海道',['ラベンダー','ゆきまつり','カニ'],'日本でいちばん広い都道府県'],
+ ['青森県','あおもりけん','東北',['りんご','ねぶたまつり','本州のいちばん北'],'りんごの生産量が日本一'],
+ ['岩手県','いわてけん','東北',['わんこそば','宮沢賢治','本州でいちばん広い'],'面積は北海道のつぎに広い'],
+ ['宮城県','みやぎけん','東北',['牛タン','ずんだもち','仙台七夕'],'仙台は「杜の都」とよばれる'],
+ ['秋田県','あきたけん','東北',['秋田犬','なまはげ','きりたんぽ'],'なまはげは国の重要無形民俗文化財'],
+ ['山形県','やまがたけん','東北',['さくらんぼ','いも煮会','蔵王の樹氷'],'さくらんぼの生産量が日本一'],
+ ['福島県','ふくしまけん','東北',['もも','赤べこ','会津のお城'],'面積は日本で3番目に広い'],
+ ['茨城県','いばらきけん','関東',['納豆','メロン','筑波山'],'メロンの生産量が日本一'],
+ ['栃木県','とちぎけん','関東',['いちご','日光東照宮','ぎょうざ'],'いちごの生産量が日本一'],
+ ['群馬県','ぐんまけん','関東',['こんにゃく','草津温泉','だるま'],'こんにゃくいもの生産量が日本一'],
+ ['埼玉県','さいたまけん','関東',['海がない','草加せんべい','川越の蔵'],'海に面していない8県のひとつ'],
+ ['千葉県','ちばけん','関東',['落花生','成田空港','ディズニー'],'落花生の生産量が日本一'],
+ ['東京都','とうきょうと','関東',['スカイツリー','日本の首都','渋谷'],'47のうち「都」はここだけ'],
+ ['神奈川県','かながわけん','関東',['横浜','鎌倉の大仏','中華街'],'人口は東京のつぎに多い'],
+ ['新潟県','にいがたけん','中部',['お米','雪','へぎそば'],'米の生産量が日本一'],
+ ['富山県','とやまけん','中部',['ほたるいか','立山','ますずし'],'富山湾は日本でいちばん深い湾'],
+ ['石川県','いしかわけん','中部',['金沢','兼六園','金ぱく'],'金ぱくの生産量はほぼ100%'],
+ ['福井県','ふくいけん','中部',['恐竜の化石','めがね','東尋坊'],'めがねフレームの生産量が日本一'],
+ ['山梨県','やまなしけん','中部',['ぶどう','もも','富士山の北がわ'],'ぶどうとももの生産量が日本一'],
+ ['長野県','ながのけん','中部',['りんご','そば','冬のオリンピック'],'となり合う県が8つで日本一多い'],
+ ['岐阜県','ぎふけん','中部',['白川郷','う飼い','海がない'],'海に面していない県のひとつ'],
+ ['静岡県','しずおかけん','中部',['お茶','うなぎ','富士山の南がわ'],'お茶の生産量が日本一'],
+ ['愛知県','あいちけん','中部',['名古屋','みそカツ','自動車の工場'],'自動車の生産量が日本一'],
+ ['三重県','みえけん','近畿',['伊勢神宮','真珠','赤福'],'真珠の養殖が世界ではじめて成功した場所'],
+ ['滋賀県','しがけん','近畿',['琵琶湖','近江牛','ひこにゃん'],'琵琶湖は県の面積の約6分の1'],
+ ['京都府','きょうとふ','近畿',['金閣寺','舞妓さん','八ツ橋'],'「府」は京都と大阪だけ'],
+ ['大阪府','おおさかふ','近畿',['たこ焼き','通天閣','お笑い'],'面積は日本で2番目に小さい'],
+ ['兵庫県','ひょうごけん','近畿',['神戸','明石焼き','姫路城'],'日本海と瀬戸内海の両方に面する'],
+ ['奈良県','ならけん','近畿',['大仏','しか','法隆寺'],'法隆寺は世界で最も古い木造建築'],
+ ['和歌山県','わかやまけん','近畿',['みかん','梅ぼし','パンダ'],'梅の生産量が日本一'],
+ ['鳥取県','とっとりけん','中国',['砂丘','なし','ゲゲゲの鬼太郎'],'人口が日本でいちばん少ない'],
+ ['島根県','しまねけん','中国',['出雲大社','しじみ','石見銀山'],'10月を「神在月」とよぶ'],
+ ['岡山県','おかやまけん','中国',['桃太郎','マスカット','きびだんご'],'晴れの日が多く「晴れの国」'],
+ ['広島県','ひろしまけん','中国',['お好み焼き','もみじまんじゅう','厳島神社'],'かきの生産量が日本一'],
+ ['山口県','やまぐちけん','中国',['ふぐ','秋吉台','本州のいちばん西'],'ふぐの取扱量が日本一'],
+ ['徳島県','とくしまけん','四国',['阿波おどり','すだち','うず潮'],'すだちの生産量はほぼ100%'],
+ ['香川県','かがわけん','四国',['うどん','こんぴらさん','オリーブ'],'面積が日本でいちばん小さい'],
+ ['愛媛県','えひめけん','四国',['みかん','道後温泉','タオル'],'今治タオルの生産量が日本一'],
+ ['高知県','こうちけん','四国',['かつおのたたき','坂本龍馬','よさこい'],'森林のわりあいが日本一'],
+ ['福岡県','ふくおかけん','九州',['明太子','とんこつラーメン','屋台'],'九州でいちばん人口が多い'],
+ ['佐賀県','さがけん','九州',['有田焼','バルーン','のり'],'のりの生産量が日本一'],
+ ['長崎県','ながさきけん','九州',['カステラ','ちゃんぽん','島がいっぱい'],'島の数が日本一'],
+ ['熊本県','くまもとけん','九州',['くまモン','阿蘇山','いぐさ'],'たたみのいぐさの生産量はほぼ100%'],
+ ['大分県','おおいたけん','九州',['温泉','別府','かぼす'],'温泉のわき出る量が日本一'],
+ ['宮崎県','みやざきけん','九州',['マンゴー','チキン南蛮','日向夏'],'きゅうりの生産量が日本一'],
+ ['鹿児島県','かごしまけん','九州',['桜島','さつまいも','黒ぶた'],'さつまいもの生産量が日本一'],
+ ['沖縄県','おきなわけん','沖縄',['シーサー','さんごの海','ゴーヤー'],'冬でも雪がふらない']
+];
+const FLAG=[
+ ['日本','にほん','アジア','jp',['白い旗','まん中に赤いまる','わたしたちの国'],'正式には「日章旗（にっしょうき）」'],
+ ['韓国','かんこく','アジア','kr',['おとなりの国','キムチ','赤と青のうずまき'],'まん中は「太極」、四すみは天・地・水・火'],
+ ['中国','ちゅうごく','アジア','cn',['赤い旗','黄色い星が5つ','パンダ'],'大きい星は国、小さい4つは国民をあらわす'],
+ ['アメリカ','あめりか','北アメリカ','us',['しましま13本','星が50こ','ハンバーガー'],'星の数＝州の数、しま＝独立したときの13州'],
+ ['カナダ','かなだ','北アメリカ','ca',['メープルシロップ','赤い葉っぱ','アメリカの北'],'葉はサトウカエデ（メープル）'],
+ ['ブラジル','ぶらじる','南アメリカ','br',['サッカー','アマゾン川','緑と黄色'],'青い丸の中は南十字星などの星座'],
+ ['イギリス','いぎりす','ヨーロッパ','gb',['3つの十字がかさなる','二階建てバス','ロンドン'],'3つの国の旗を重ねた「ユニオンジャック」'],
+ ['フランス','ふらんす','ヨーロッパ','fr',['青白赤のたて3色','エッフェル塔','パン'],'「トリコロール」＝三色という意味'],
+ ['ドイツ','どいつ','ヨーロッパ','de',['黒赤金のよこ3色','ソーセージ','車づくり'],'いちばん下は「金色」とよばれる'],
+ ['イタリア','いたりあ','ヨーロッパ','it',['緑白赤のたて3色','ピザ','パスタ'],'緑は国土、白は雪、赤は情熱といわれる'],
+ ['スイス','すいす','ヨーロッパ','ch',['赤に白い十字','四角い旗','アルプス'],'正方形の国旗は世界で2つだけ'],
+ ['スウェーデン','すうぇーでん','ヨーロッパ','se',['青に黄色い十字','北ヨーロッパ','家具のお店'],'十字が左による「スカンジナビア十字」'],
+ ['デンマーク','でんまーく','ヨーロッパ','dk',['赤に白い十字','レゴ','人魚ひめ'],'今も使われる国旗で世界最古といわれる'],
+ ['オランダ','おらんだ','ヨーロッパ','nl',['赤白青のよこ3色','チューリップ','風車'],'世界で最初の三色旗といわれる'],
+ ['ロシア','ろしあ','ヨーロッパ','ru',['白青赤のよこ3色','マトリョーシカ','世界一広い国'],'面積は世界一で日本の約45倍'],
+ ['ギリシャ','ぎりしゃ','ヨーロッパ','gr',['青と白のしましま','オリンピックのはじまり','パルテノン神殿'],'9本のしまはことばの9つの音'],
+ ['トルコ','とるこ','ヨーロッパ','tr',['赤に三日月と星','ケバブ','アジアとヨーロッパの境'],'三日月と星はイスラム圏の旗に多い'],
+ ['インド','いんど','アジア','in',['オレンジ白緑','まん中に青い車輪','カレー'],'車輪は「チャクラ」でスポークは24本'],
+ ['タイ','たい','アジア','th',['赤白青のよこじま','ゾウ','トムヤムクン'],'まん中の青がいちばん太い'],
+ ['ベトナム','べとなむ','アジア','vn',['赤に黄色い星ひとつ','フォー','アオザイ'],'星の5つの角は5つの働く人をあらわす'],
+ ['インドネシア','いんどねしあ','アジア','id',['赤と白のよこ2色','バリ島','島がとても多い'],'島の数は1万7千以上'],
+ ['南アフリカ','みなみあふりか','アフリカ','za',['Yの字のもよう','6色つかう','アフリカの南のはし'],'色の数が世界でいちばん多い国旗のひとつ'],
+ ['アルゼンチン','あるぜんちん','南アメリカ','ar',['水色と白','まん中に太陽の顔','サッカー'],'「五月の太陽」とよばれる'],
+ ['オーストラリア','おーすとらりあ','オセアニア','au',['左上にイギリスの旗','コアラ','カンガルー'],'右の十字は南十字星']
+];
+
+/* ============================================================
+   英語モードの絵：あとから自分の画像に差し替えられます
+   IMAGES に「英単語: 画像のURL（または data: で始まる文字列）」を書くと、
+   その単語だけ下のSVGの代わりにその画像が表示されます。
+   例)  IMAGES.apple = 'images/apple.png';
+   ============================================================ */
+const IMAGES = {};
+
+/* ------- 絵（差し替えがないときに使う既定のイラスト） ------- */
+const ART={
+ apple:'<circle cx="30" cy="36" r="19" fill="#E0452F"/><circle cx="22" cy="32" r="6" fill="#F0705C"/><rect x="28.6" y="12" width="2.8" height="9" rx="1.4" fill="#7A5230"/><path d="M31 17c6-7 13-6 13-6s-1 8-9 9z" fill="#2F8F5B"/>',
+ cat:'<polygon points="14,20 17,7 27,15" fill="#E9B44C"/><polygon points="46,20 43,7 33,15" fill="#E9B44C"/><circle cx="30" cy="33" r="19" fill="#E9B44C"/><circle cx="23" cy="30" r="2.6" fill="#16262E"/><circle cx="37" cy="30" r="2.6" fill="#16262E"/><path d="M30 38l-3 2 3 2 3-2z" fill="#E0452F"/><path d="M12 34h10M12 40h10M38 34h10M38 40h10" stroke="#16262E" stroke-width="1.4" stroke-linecap="round"/>',
+ star:'<polygon points="30,6 36.2,22.6 54,23.4 40.2,34.6 44.8,51.8 30,42 15.2,51.8 19.8,34.6 6,23.4 23.8,22.6" fill="#E9B44C"/>',
+ sun:'<circle cx="30" cy="30" r="14" fill="#E9B44C"/><g stroke="#E9B44C" stroke-width="3.4" stroke-linecap="round"><path d="M30 4v8M30 48v8M4 30h8M48 30h8M11.6 11.6l5.6 5.6M42.8 42.8l5.6 5.6M48.4 11.6l-5.6 5.6M17.2 42.8l-5.6 5.6"/></g>',
+ moon:'<path d="M38 7A24 24 0 1 0 38 53 30 30 0 0 0 38 7z" fill="#E9B44C"/>',
+ fish:'<ellipse cx="27" cy="30" rx="20" ry="12" fill="#62B6CB"/><polygon points="47,30 58,20 58,40" fill="#1B4965"/><circle cx="17" cy="27" r="2.6" fill="#16262E"/><path d="M27 18v24" stroke="#1B4965" stroke-width="2" opacity=".5"/>',
+ house:'<polygon points="30,8 54,28 6,28" fill="#E0452F"/><rect x="12" y="28" width="36" height="24" fill="#F4E7CF"/><rect x="25" y="36" width="10" height="16" fill="#7A5230"/><rect x="15" y="32" width="7" height="7" fill="#62B6CB"/><rect x="38" y="32" width="7" height="7" fill="#62B6CB"/>',
+ car:'<path d="M14 26h32l6 8v8H8v-8z" fill="#E0452F"/><path d="M18 26l4-8h16l4 8z" fill="#62B6CB"/><circle cx="18" cy="43" r="6" fill="#16262E"/><circle cx="42" cy="43" r="6" fill="#16262E"/><circle cx="18" cy="43" r="2.4" fill="#F4E7CF"/><circle cx="42" cy="43" r="2.4" fill="#F4E7CF"/>',
+ tree:'<rect x="27" y="34" width="6" height="20" fill="#7A5230"/><circle cx="30" cy="22" r="13" fill="#2F8F5B"/><circle cx="19" cy="30" r="9" fill="#2F8F5B"/><circle cx="41" cy="30" r="9" fill="#2F8F5B"/>',
+ book:'<path d="M8 14h20a4 4 0 0 1 4 4v30a6 6 0 0 0-6-4H8z" fill="#1B4965"/><path d="M52 14H32a4 4 0 0 0-4 4v30a6 6 0 0 1 6-4h18z" fill="#62B6CB"/><path d="M30 18v30" stroke="#F4E7CF" stroke-width="2"/>',
+ umbrella:'<path d="M6 32a24 24 0 0 1 48 0z" fill="#E0452F"/><path d="M22 32c0-14 3-24 8-24s8 10 8 24" fill="none" stroke="#F4E7CF" stroke-width="1.6"/><path d="M30 32v16a5 5 0 0 0 10 0" fill="none" stroke="#16262E" stroke-width="3" stroke-linecap="round"/>',
+ clock:'<circle cx="30" cy="30" r="22" fill="#F4E7CF" stroke="#1B4965" stroke-width="3"/><path d="M30 16v14l10 6" fill="none" stroke="#16262E" stroke-width="3" stroke-linecap="round"/><circle cx="30" cy="30" r="2.4" fill="#E0452F"/>',
+ key:'<circle cx="18" cy="30" r="11" fill="none" stroke="#E9B44C" stroke-width="6"/><rect x="27" y="27" width="27" height="6" fill="#E9B44C"/><rect x="44" y="33" width="5" height="8" fill="#E9B44C"/><rect x="52" y="33" width="5" height="6" fill="#E9B44C"/>',
+ cloud:'<g fill="#9FC3D4"><circle cx="22" cy="32" r="12"/><circle cx="36" cy="27" r="15"/><circle cx="46" cy="34" r="9"/><rect x="20" y="32" width="29" height="11" rx="5.5"/></g>',
+ flower:'<rect x="28.6" y="30" width="2.8" height="24" fill="#2F8F5B"/><path d="M31 42c8 0 12-5 12-5s-6-3-12 2z" fill="#2F8F5B"/><circle cx="30" cy="14" r="7" fill="#E0452F"/><circle cx="42" cy="22" r="7" fill="#E0452F"/><circle cx="37" cy="34" r="7" fill="#E0452F"/><circle cx="23" cy="34" r="7" fill="#E0452F"/><circle cx="18" cy="22" r="7" fill="#E0452F"/><circle cx="30" cy="25" r="6" fill="#E9B44C"/>',
+ bird:'<ellipse cx="28" cy="32" rx="16" ry="12" fill="#62B6CB"/><circle cx="42" cy="23" r="8" fill="#62B6CB"/><polygon points="49,23 58,26 49,28" fill="#E9B44C"/><circle cx="44" cy="21" r="2" fill="#16262E"/><path d="M18 30c6-4 14-2 16 4-6 4-14 2-16-4z" fill="#1B4965"/><path d="M24 43l-3 8M32 43l1 8" stroke="#E9B44C" stroke-width="2.4" stroke-linecap="round"/>',
+ egg:'<path d="M30 8c10 0 17 14 17 24a17 17 0 0 1-34 0C13 22 20 8 30 8z" fill="#F6EFE0" stroke="#D8C9AE" stroke-width="2"/>',
+ cup:'<path d="M12 20h30v16a15 15 0 0 1-30 0z" fill="#F4E7CF" stroke="#1B4965" stroke-width="2.4"/><path d="M42 24h5a7 7 0 0 1 0 14h-5" fill="none" stroke="#1B4965" stroke-width="2.4"/><rect x="6" y="50" width="42" height="4" rx="2" fill="#1B4965"/>',
+ heart:'<path d="M30 52S8 38 8 24a12 12 0 0 1 22-7 12 12 0 0 1 22 7c0 14-22 28-22 28z" fill="#E0452F"/>',
+ train:'<rect x="8" y="16" width="44" height="26" rx="6" fill="#E0452F"/><rect x="14" y="22" width="14" height="10" rx="2" fill="#C9DEE8"/><rect x="32" y="22" width="14" height="10" rx="2" fill="#C9DEE8"/><rect x="10" y="36" width="40" height="4" fill="#1B4965"/><circle cx="19" cy="46" r="5" fill="#16262E"/><circle cx="41" cy="46" r="5" fill="#16262E"/>'
+};
+function artSVG(key){
+  if(IMAGES[key]) return '<img src="'+IMAGES[key]+'" alt="">';
+  return '<svg viewBox="0 0 60 60" role="img" aria-label="絵">'+(ART[key]||'')+'</svg>';
+}
+
+/* ============================================================
+   国語・理科・英語のお題
+   [こたえ, よみ, チップ, ヒント3つ, へぇ, 学年(1=低学年でも可), 絵のキー]
+   ============================================================ */
+const KOKUGO=[
+ ['さるも木から落ちる','さるもきからおちる','ことわざ',['じょうずな人でも','しっぱいする','木にのぼる動物'],'名人でも失敗することがある、という意味',1],
+ ['ねこの手も借りたい','ねこのてもかりたい','慣用句',['とてもいそがしい','だれでもいいから手つだって','ニャーと鳴く動物'],'とても忙しいようすをあらわす',1],
+ ['犬も歩けば棒に当たる','いぬもあるけばぼうにあたる','ことわざ',['出歩くと','思いがけないことに出あう','ワンと鳴く動物'],'何かすれば思わぬ幸運や災難に出会う',1],
+ ['石の上にも三年','いしのうえにもさんねん','ことわざ',['がまん','つづければできる','つめたいものの上'],'つらくても続ければ成功するという教え',1],
+ ['早起きは三文の徳','はやおきはさんもんのとく','ことわざ',['朝はやく起きると','いいことがある','三文＝すこしのお金'],'早起きすると少し得をするという意味',1],
+ ['花より団子','はなよりだんご','ことわざ',['見て楽しむより','食べるほうがいい','おはなみ'],'見た目よりも実際の利益を選ぶこと',1],
+ ['急がば回れ','いそがばまわれ','ことわざ',['急ぐときこそ','遠回り','安全な道を行く'],'急ぐときほど確実な方法のほうが早い',1],
+ ['ちりも積もれば山となる','ちりもつもればやまとなる','ことわざ',['小さなもの','たくさん集まると','大きくなる'],'小さなことも積み重なれば大きくなる',1],
+ ['口が軽い','くちがかるい','慣用句',['ひみつを','すぐ人に話す','からだの部分'],'おしゃべりで秘密を守れないこと',1],
+ ['手をやく','てをやく','慣用句',['こまってしまう','あつかいにくい','からだの部分'],'あつかいに困ることのたとえ',1],
+ ['頭が下がる','あたまがさがる','慣用句',['そんけいする','おじぎしたくなる','からだの部分'],'心から尊敬する気持ちをあらわす',1],
+ ['百聞は一見にしかず','ひゃくぶんはいっけんにしかず','ことわざ',['100回聞くより','1回見るほうが','たしか'],'人から聞くより自分の目で見るほうが確か',1],
+ ['一石二鳥','いっせきにちょう','四字熟語',['ひとつのことで','ふたつ得をする','石と鳥'],'一つの行いで二つの利益を得ること',2],
+ ['十人十色','じゅうにんといろ','四字熟語',['人それぞれ','考えがちがう','数字と色'],'人はそれぞれ好みや考えがちがう',2],
+ ['以心伝心','いしんでんしん','四字熟語',['言わなくても','気もちが伝わる','心という字が2つ'],'ことばにしなくても心が通じ合うこと',2],
+ ['三日坊主','みっかぼうず','四字熟語',['すぐあきる','つづかない','お坊さん'],'あきっぽくて長続きしないこと',2],
+ ['自画自賛','じがじさん','四字熟語',['自分で','自分をほめる','絵'],'自分で自分をほめること',2],
+ ['温故知新','おんこちしん','四字熟語',['むかしを学んで','新しいことを知る','古い＋新しい'],'昔を研究して新しい知識を得ること',2],
+ ['四苦八苦','しくはっく','四字熟語',['とても苦労する','数字が2つ入る','苦しい'],'ひどく苦しみなやむこと',2],
+ ['一期一会','いちごいちえ','四字熟語',['一生に一度の出あい','茶道のことば','大切にする'],'一生に一度の出会いを大切にすること',2],
+ ['臨機応変','りんきおうへん','四字熟語',['その場に合わせて','やり方をかえる','はんのうが早い'],'状況に応じてうまく対応すること',2],
+ ['弱肉強食','じゃくにくきょうしょく','四字熟語',['弱いものが','強いものに食べられる','しぜんのおきて'],'強いものが弱いものをおさえる世のようす',2],
+ ['起承転結','きしょうてんけつ','四字熟語',['文章のくみたて','4つの部分','物語の順番'],'文章や物語の組み立て方',2],
+ ['有言実行','ゆうげんじっこう','四字熟語',['言ったことを','かならずやる','ことば＋行動'],'口に出したことを必ずやりとげること',2]
+];
+const RIKA=[
+ ['モンシロチョウ','もんしろちょう','こん虫',['白いはね','キャベツにたまご','よう虫はあおむし'],'幼虫はキャベツの葉を食べて育つ',1],
+ ['ダンゴムシ','だんごむし','生きもの',['さわると丸くなる','石の下にいる','あしがたくさん'],'こん虫ではなくエビやカニのなかま',1],
+ ['カタツムリ','かたつむり','生きもの',['からをせおう','雨の日に出てくる','ゆっくり動く'],'からの中には内ぞうが入っている',1],
+ ['タンポポ','たんぽぽ','植物',['黄色い花','わた毛がとぶ','春にさく'],'わた毛は風に乗って種を遠くまで運ぶ',1],
+ ['アサガオ','あさがお','植物',['朝にさく','つるがのびる','小学校で育てる'],'朝にさいて昼にはしぼんでしまう',1],
+ ['じしゃく','じしゃく','力',['鉄がくっつく','NとS','同じきょくはしりぞけ合う'],'同じ極どうしはしりぞけ合い、ちがう極は引き合う',1],
+ ['かげ','かげ','光',['太陽の反対がわ','光をさえぎるとできる','時間で動く'],'太陽が高いほど影は短くなる',1],
+ ['こおり','こおり','水',['水がひえてできる','0度','とけると水にもどる'],'水はこおると体積がふえる',1],
+ ['テントウムシ','てんとうむし','こん虫',['赤い背中','黒い点','アブラムシを食べる'],'アブラムシを食べてくれる農家の味方',1],
+ ['セミ','せみ','こん虫',['夏に鳴く','木にとまる','ぬけがら'],'よう虫として土の中で数年すごす',1],
+ ['にじ','にじ','天気',['雨のあと','7色','空にかかる'],'太陽の光が水てきで分かれてできる',1],
+ ['台風','たいふう','天気',['強い風と雨','夏から秋','うずをまく'],'中心の「目」の中は風が弱い',1],
+ ['光合成','こうごうせい','植物',['葉っぱがする','日光と水と二酸化炭素','酸素を出す'],'植物が日光を使って養分をつくるはたらき',2],
+ ['蒸発','じょうはつ','水',['水が見えなくなる','水じょう気になる','せんたく物がかわく'],'液体が気体に変わること',2],
+ ['てこ','てこ','力',['支点・力点・作用点','小さな力で重いものを','シーソー'],'支点から力点までが長いほど小さな力で動く',2],
+ ['電磁石','でんじしゃく','電気',['コイルに電気を流す','鉄しんを入れる','電気を切ると力が消える'],'電流の向きを変えると極も入れかわる',2],
+ ['月の満ち欠け','つきのみちかけ','宇宙',['三日月','満月','形が変わっていく'],'約29.5日でもとの形にもどる',2],
+ ['食物連鎖','しょくもつれんさ','生きもの',['食べる・食べられる','くさりのようにつながる','植物からはじまる'],'生き物どうしのつながりのこと',2],
+ ['地層','ちそう','大地',['しまもよう','がけで見える','長い年月でできる'],'下にあるものほど古い時代に積もったもの',2],
+ ['火山','かざん','大地',['マグマ','ふん火','けむりが出る山'],'地下のマグマがふき出してできる',2],
+ ['心臓','しんぞう','からだ',['ドクドク動く','血を送り出す','むねの中'],'1日に約10万回も動いている',2],
+ ['消化','しょうか','からだ',['食べたものを','吸収できる形にする','胃や小腸のはたらき'],'養分の多くは小腸で吸収される',2],
+ ['ふりこ','ふりこ','力',['つるしてゆらす','いつも同じリズム','ひもの長さでかわる'],'ゆれる速さは糸の長さで決まり、おもりの重さでは変わらない',2],
+ ['二酸化炭素','にさんかたんそ','空気',['はき出す息','石灰水が白くにごる','植物が吸う'],'石灰水を白くにごらせる性質がある',2]
+];
+const EIGO=[
+ ['apple','アップル','たべもの',['くだもの','赤い','日本語で「りんご」'],'発音は「アポー」に近い',1,'apple'],
+ ['cat','キャット','どうぶつ',['ニャーと鳴く','ペット','日本語で「ねこ」'],'鳴き声は英語で meow（ミャウ）',1,'cat'],
+ ['star','スター','そら',['夜空に光る','とがりが5つ','日本語で「ほし」'],'「有名人」という意味でも使う',1,'star'],
+ ['sun','サン','そら',['昼にかがやく','あたたかい','日本語で「たいよう」'],'日曜日 Sunday はこのことばから',1,'sun'],
+ ['moon','ムーン','そら',['夜に光る','みちかけする','日本語で「つき」'],'月曜日 Monday はこのことばから',1,'moon'],
+ ['fish','フィッシュ','生きもの',['水の中をおよぐ','おすしになる','日本語で「さかな」'],'2ひき以上でも fish のまま',1,'fish'],
+ ['house','ハウス','もの',['人がすむ','やねがある','日本語で「いえ」'],'home は「家庭」、house は「建物」',1,'house'],
+ ['car','カー','のりもの',['タイヤが4つ','道を走る','日本語で「くるま」'],'イギリスでは道の左側を走る',1,'car'],
+ ['tree','ツリー','しぜん',['森にある','葉っぱがしげる','日本語で「き」'],'切った木材は wood という',1,'tree'],
+ ['book','ブック','もの',['読むもの','ページがある','日本語で「ほん」'],'「予約する」という動詞の意味もある',1,'book'],
+ ['umbrella','アンブレラ','もの',['雨の日にさす','ほねがある','日本語で「かさ」'],'日がさは parasol という',1,'umbrella'],
+ ['clock','クロック','もの',['はりが回る','かべにかける','日本語で「とけい」'],'うで時計は watch という',1,'clock'],
+ ['key','キー','もの',['ドアをあける','ポケットに入る','日本語で「かぎ」'],'キーボードの key も同じことば',2,'key'],
+ ['cloud','クラウド','そら',['空にうかぶ','白い','日本語で「くも」'],'インターネットの「クラウド」も同じことば',2,'cloud'],
+ ['flower','フラワー','しぜん',['さく','いいにおい','日本語で「はな」'],'小麦粉の flour と発音が同じ',2,'flower'],
+ ['bird','バード','どうぶつ',['空をとぶ','たまごをうむ','日本語で「とり」'],'英語のことわざ「早起きの鳥はえさをつかまえる」',2,'bird'],
+ ['egg','エッグ','たべもの',['にわとりがうむ','目玉やき','日本語で「たまご」'],'ゆでたまごは boiled egg',2,'egg'],
+ ['cup','カップ','もの',['のみものを入れる','とってがある','日本語で「コップ」'],'ゆうしょうカップも cup',2,'cup'],
+ ['heart','ハート','からだ',['むねの中で動く','♡のかたち','日本語で「しんぞう」'],'「心・気もち」という意味もある',2,'heart'],
+ ['train','トレイン','のりもの',['レールの上を走る','駅にとまる','日本語で「でんしゃ」'],'「訓練する」という動詞の意味もある',2,'train']
+];
+
+/* ============================================================
+   算数「10を作る」
+   ============================================================ */
+const MATH_TIPS=[
+ '10の作り方はひとつとはかぎらない。べつの式もさがしてみよう',
+ 'かけ算とわり算を先に計算するのがきまり。カッコを使うと順番を変えられる',
+ '「1・1・9・9」のように、一見むずかしい組み合わせにも答えがあることがある',
+ 'ひき算で0を作ってから、たし算で10にする手もある'
+];
+function solveSet(items,ops,noNeg){
+  if(items.length===1) return Math.abs(items[0].v-10)<1e-6 ? items[0].s : null;
+  for(let i=0;i<items.length;i++){
+    for(let j=0;j<items.length;j++){
+      if(i===j) continue;
+      const a=items[i],b=items[j];
+      const rest=items.filter(function(_,k){return k!==i&&k!==j;});
+      for(let o=0;o<ops.length;o++){
+        const op=ops[o]; let v,str;
+        if(op==='+'){ if(i>j) continue; v=a.v+b.v; str='('+a.s+'＋'+b.s+')'; }
+        else if(op==='*'){ if(i>j) continue; v=a.v*b.v; str='('+a.s+'×'+b.s+')'; }
+        else if(op==='-'){ v=a.v-b.v; str='('+a.s+'−'+b.s+')'; }
+        else { if(Math.abs(b.v)<1e-9) continue; v=a.v/b.v; str='('+a.s+'÷'+b.s+')'; }
+        if(noNeg && v<-1e-9) continue;
+        const r=solveSet(rest.concat([{v:v,s:str}]),ops,noNeg);
+        if(r) return r;
+      }
+    }
+  }
+  return null;
+}
+function makePuzzle(level){
+  const count=(level===1)?3:4;
+  const ops=(level===1)?['+','-']:['+','-','*','/'];
+  for(let tries=0;tries<400;tries++){
+    const nums=[];
+    for(let i=0;i<count;i++) nums.push(1+Math.floor(Math.random()*9));
+    const start=nums.map(function(n){return {v:n,s:String(n)};});
+    let sol=null;
+    const tiers=(level===1)
+      ? [[['+'],true],[['+','-'],true]]
+      : [[['+'],true],[['+','-'],true],[['+','-','*'],true],[['+','-','*','/'],true],[['+','-','*','/'],false]];
+    for(let t=0;t<tiers.length && !sol;t++) sol=solveSet(start,tiers[t][0],tiers[t][1]);
+    if(sol){
+      let t=sol;
+      if(t.charAt(0)==='(' ) t=t.slice(1,-1);
+      return {nums:nums,sol:t+'＝10'};
+    }
+  }
+  return {nums:(level===1)?[2,3,5]:[1,2,3,4],sol:(level===1)?'2+3+5＝10':'1+2+3+4＝10'};
+}
+
+/* ============================================================
+   ゲーム本体
+   ============================================================ */
+const $=function(id){return document.getElementById(id);};
+const state={mode:'pref',level:2,bsubj:'mix',handi:1,kana:'R',b:null,seconds:90,role:'child',deck:[],idx:0,score:0,got:[],timer:null,endAt:0,paused:false,remain:0};
+const MODE_NAME={cross:'親子クロスワード',numcross:'けいさんクロス（算数）',pref:'都道府県',flag:'世界の国旗',kokugo:'ことば（国語）',rika:'りか（理科）',eigo:'えいご（英語）',math:'10を作る（算数）',battle:'はやおし親子バトル'};
+
+/* 低学年モードで出すものを選ぶ */
+const LV1_PREF=new Set(['北海道','青森県','宮城県','千葉県','東京都','神奈川県','新潟県','長野県','静岡県','愛知県','京都府','大阪府','兵庫県','奈良県','広島県','香川県','愛媛県','福岡県','鹿児島県','沖縄県']);
+const LV1_FLAG=new Set(['日本','アメリカ','中国','韓国','イギリス','フランス','ドイツ','イタリア','カナダ','ブラジル','スイス','オーストラリア']);
+
+function buildDeck(){ return deckFor(state.mode); }
+function deckFor(mode){
+  const lv=state.level;
+  if(mode==='math'){
+    const a=[];
+    for(let i=0;i<40;i++) a.push(makePuzzle(lv));
+    return a;
+  }
+  if(mode==='pref'){
+    return shuffle(PREF.filter(function(q){return lv===2||LV1_PREF.has(q[0]);})
+      .map(function(q){return {name:q[0],yomi:q[1],tag:q[2]+'地方',hints:q[3],fact:q[4],art:null};}));
+  }
+  if(mode==='flag'){
+    return shuffle(FLAG.filter(function(q){return lv===2||LV1_FLAG.has(q[0]);})
+      .map(function(q){return {name:q[0],yomi:q[1],tag:q[2],hints:q[4],fact:q[5],art:{t:'flag',k:q[3]}};}));
+  }
+  const src={kokugo:KOKUGO,rika:RIKA,eigo:EIGO}[mode];
+  return shuffle(src.filter(function(q){return lv===2||q[5]===1;})
+    .map(function(q){return {name:q[0],yomi:q[1],tag:q[2],hints:q[3],fact:q[4],art:q[6]?{t:'icon',k:q[6]}:null};}));
+}
+
+const STEPS_HINT=[
+  'スマホを持つ人は、画面の<b>こたえを見せないように</b>持ちます。',
+  '下の<b>黄色いことば</b>を使って、声だけでヒントを出します。',
+  'もう一人が当てたら<b>「せいかい！」</b>をタップ。わからなければパス。'
+];
+const STEPS_NUM=[
+  '<b>たて</b>も<b>よこ</b>も、すべての 列で 計算が 合うように します。',
+  'うすい わくの マスを タップして、下の 数字ボタンで 数を 入れます。',
+  '合っている 列は みどり、合っていない 列は 赤になります。'
+];
+const STEPS_CROSS=[
+  'じぶんの<b>担当のカギだけ</b>を 読んで かんがえます（上の わりふり）。',
+  'マスかカギをタップして、下の 50音ボタンで ことばを 入れます。',
+  '交わるマスは <b>相手へのヒント</b>になります。自分のぶんを 進めるほど 相手が 楽になる！'
+];
+const STEPS_BATTLE=[
+  'スマホを<b>机に置いて</b>、おとなとこどもが向かい合ってすわります。',
+  '上下に同じ問題が出ます。<b>先に正解をタップ</b>した人が1点。',
+  'まちがえると<b>1.5秒お休み</b>。そのあいだに相手にとられます。'
+];
+const STEPS_MATH=[
+  '画面の数字を<b>ぜんぶ1回ずつ</b>使います。',
+  '＋ − × ÷ とカッコを使って、答えが<b>10</b>になる式を考えます。',
+  'できたら<b>「できた！」</b>をタップ。わからなければ「こたえを見る」。'
+];
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.toggle('on',s.id===id);});
+  window.scrollTo(0,0);
+}
+function shuffle(a){
+  const b=a.slice();
+  for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=b[i];b[i]=b[j];b[j]=t;}
+  return b;
+}
+function store(key,val){
+  try{ if(val===undefined) return localStorage.getItem(key); localStorage.setItem(key,val); }catch(e){ return null; }
+}
+
+/* --- タイトル画面の見た目 --- */
+$('brand-title').textContent=[CONFIG.schoolName,CONFIG.eventName].filter(Boolean).join('　');
+$('brand-foot').textContent='presented by '+CONFIG.schoolName;
+$('promo-name').textContent=CONFIG.schoolName;
+$('promo-text').textContent=CONFIG.promoText;
+const ICON={
+ pref:'<svg viewBox="0 0 60 40" aria-hidden="true"><rect width="60" height="40" fill="#EAF2F5"/><path d="M8 26 L16 12 L24 20 L31 9 L40 19 L47 14 L54 27 Z" fill="#62B6CB"/><circle cx="31" cy="9" r="3.4" fill="#E0452F"/></svg>',
+ flag:flagSVG('jp'),
+ kokugo:'<svg viewBox="0 0 60 40" aria-hidden="true"><rect width="60" height="40" fill="#FDF7EA"/><text x="30" y="29" text-anchor="middle" font-size="22" font-family="serif" fill="#1B4965">語</text></svg>',
+ rika:'<svg viewBox="0 0 60 40" aria-hidden="true"><rect width="60" height="40" fill="#EAF2F5"/><path d="M26 8v10L18 32h24l-8-14V8z" fill="none" stroke="#2F8F5B" stroke-width="2.4"/><path d="M21 25h18" stroke="#2F8F5B" stroke-width="2.4"/><path d="M23 8h14" stroke="#2F8F5B" stroke-width="2.4" stroke-linecap="round"/></svg>',
+ eigo:'<svg viewBox="0 0 60 40" aria-hidden="true"><rect width="60" height="40" fill="#EAF2F5"/><text x="30" y="28" text-anchor="middle" font-size="19" font-weight="700" font-family="Georgia,serif" fill="#E0452F">ABC</text></svg>',
+ math:'<svg viewBox="0 0 60 40" aria-hidden="true"><rect width="60" height="40" fill="#EAF2F5"/><text x="30" y="28" text-anchor="middle" font-size="21" font-weight="700" font-family="system-ui,sans-serif" fill="#1B4965">＝10</text></svg>',
+ numcross:'<svg viewBox="0 0 60 40" aria-hidden="true"><rect width="60" height="40" fill="#EAF2F5"/><g fill="#fff" stroke="#1B4965" stroke-width="1.2"><rect x="13" y="5" width="9" height="9"/><rect x="31" y="5" width="9" height="9"/><rect x="13" y="23" width="9" height="9"/><rect x="31" y="23" width="9" height="9"/></g><text x="27" y="12.5" font-size="7" fill="#E0452F" font-weight="700" font-family="system-ui">＋</text><text x="45" y="12.5" font-size="7" fill="#1B4965" font-weight="700" font-family="system-ui">＝</text><text x="27" y="30.5" font-size="7" fill="#E0452F" font-weight="700" font-family="system-ui">＋</text><text x="45" y="30.5" font-size="7" fill="#1B4965" font-weight="700" font-family="system-ui">＝</text><rect x="49" y="5" width="9" height="9" fill="#fff" stroke="#1B4965" stroke-width="1.2"/><rect x="49" y="23" width="9" height="9" fill="#fff" stroke="#1B4965" stroke-width="1.2"/></svg>'
+};
+const MODE_SUB={
+ pref:'47都道府県 ／ 社会',
+ flag:'24の国 ／ 社会',
+ kokugo:'ことわざ・四字熟語 ／ 国語',
+ rika:'生きもの・もののしくみ ／ 理科',
+ eigo:'絵を見て英語で答える ／ 英語',
+ math:'数字をならべて10を作る ／ 算数',
+ numcross:'たて・よこの 計算を そろえる ／ 算数'
+};
+const MODE_LABEL={pref:'都道府県',flag:'世界の国旗',kokugo:'ことば',rika:'りか',eigo:'えいご',math:'10を作る',numcross:'けいさんクロス'};
+
+const GROUPS={
+ relay:{
+   eyebrow:'2人であそぶ',
+   title:'親子ヒントリレー',
+   lede:'スマホを持った人だけが<b>こたえを見て、ことばだけでヒント</b>を出します。もう一人が声で答え、当たったら「せいかい！」をタップ。<br>こどもがスマホを持てば、<b>こどもが親に教える</b>番になります。',
+   note:'きょうかをえらんでください',
+   modes:['pref','flag','kokugo','rika','eigo']
+ },
+ solo:{
+   eyebrow:'1人であそぶ',
+   title:'ひとりであそぶ',
+   lede:'ひとりで、じぶんのペースであそべるゲームです。<br>とくてんは この端末にきろくされるので、じこベストをこえるのが目標になります。',
+   note:'',
+   modes:['math','numcross']
+ }
+};
+
+$('ico-relay').innerHTML='<svg viewBox="0 0 60 40" aria-hidden="true"><rect width="60" height="40" fill="#EAF2F5"/><path d="M6 8h26a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H17l-7 6v-6H6a3 3 0 0 1-3-3V11a3 3 0 0 1 3-3z" fill="#E9B44C"/><path d="M54 16H32a3 3 0 0 0-3 3v9a3 3 0 0 0 3 3h13l7 5v-5h2a3 3 0 0 0 3-3v-9a3 3 0 0 0-3-3z" fill="#1B4965"/></svg>';
+$('ico-battle').innerHTML='<svg viewBox="0 0 60 40" aria-hidden="true"><rect width="60" height="40" fill="#EAF2F5"/><rect x="6" y="4" width="48" height="14" rx="4" fill="#1B4965"/><rect x="6" y="22" width="48" height="14" rx="4" fill="#E0452F"/><text x="30" y="14.5" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">TAP</text><text x="30" y="32.5" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="system-ui,sans-serif">TAP</text></svg>';
+$('ico-cross').innerHTML='<svg viewBox="0 0 60 40" aria-hidden="true"><rect width="60" height="40" fill="#EAF2F5"/><g fill="#fff" stroke="#1B4965" stroke-width="1.2"><rect x="14" y="4" width="10" height="10"/><rect x="24" y="4" width="10" height="10"/><rect x="34" y="4" width="10" height="10"/><rect x="24" y="14" width="10" height="10"/><rect x="14" y="24" width="10" height="10"/><rect x="24" y="24" width="10" height="10"/><rect x="34" y="24" width="10" height="10"/></g><rect x="24" y="14" width="10" height="10" fill="#E9B44C" stroke="#1B4965" stroke-width="1.2"/></svg>';
+$('ico-solo').innerHTML='<svg viewBox="0 0 60 40" aria-hidden="true"><rect width="60" height="40" fill="#EAF2F5"/><circle cx="22" cy="14" r="6" fill="#1B4965"/><path d="M10 34a12 12 0 0 1 24 0z" fill="#1B4965"/><text x="47" y="27" text-anchor="middle" font-size="15" font-weight="700" font-family="system-ui,sans-serif" fill="#E0452F">10</text></svg>';
+
+function openGroup(g){
+  const G=GROUPS[g];
+  $('sub-eyebrow').textContent=G.eyebrow;
+  $('sub-title').textContent=G.title;
+  $('sub-lede').innerHTML=G.lede;
+  $('sub-note').textContent=G.note;
+  $('sub-modes').innerHTML=G.modes.map(function(m){
+    return '<button class="mode" data-mode="'+m+'">'
+      +'<span class="icon" aria-hidden="true">'+ICON[m]+'</span>'
+      +'<span><b>'+MODE_LABEL[m]+'</b><small>'+MODE_SUB[m]+'</small></span></button>';
+  }).join('');
+  show('s-sub');
+}
+
+/* --- せいげん時間 --- */
+$('seg-time').addEventListener('click',function(e){
+  const b=e.target.closest('button'); if(!b) return;
+  state.seconds=Number(b.dataset.t);
+  $('seg-time').querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});
+  refreshBest();
+});
+
+/* --- モード選択 --- */
+function setupHow(){
+  const isMath=(state.mode==='math');
+  const isBattle=(state.mode==='battle');
+  const isCross=(state.mode==='cross');
+  $('how-title').textContent=MODE_NAME[state.mode]+'　（'+(state.level===1?'ていがくねん':'こうがくねん')+'）';
+  $('row-subject').hidden=!isBattle;
+  $('row-handi').hidden=!isBattle;
+  $('row-kana').hidden=!isCross;
+  $('cross-roles').hidden=!isCross;
+  refreshBest();
+  const isNum=(state.mode==='numcross');
+  const steps=isNum?STEPS_NUM:isCross?STEPS_CROSS:isBattle?STEPS_BATTLE:(isMath?STEPS_MATH:STEPS_HINT);
+  $('steps').innerHTML=steps.map(function(t,i){
+    return '<div class="step"><div class="num">'+(i+1)+'</div><p>'+t+'</p></div>';
+  }).join('');
+  $('role-label').hidden=isMath||isBattle||isCross||isNum;
+  $('roles').hidden=isMath||isBattle||isCross||isNum;
+}
+document.addEventListener('click',function(e){
+  const b=e.target.closest('.mode'); if(!b) return;
+  if(b.dataset.group){
+    if(b.dataset.group==='battle'||b.dataset.group==='cross'){
+      state.mode=b.dataset.group; setupHow(); show('s-how');
+    }
+    else openGroup(b.dataset.group);
+    return;
+  }
+  if(b.dataset.mode){
+    state.mode=b.dataset.mode;
+    setupHow();
+    show('s-how');
+  }
+});
+function segPick(id,attr,cb){
+  $(id).addEventListener('click',function(e){
+    const b=e.target.closest('button'); if(!b) return;
+    $(id).querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});
+    cb(b.dataset[attr]);
+  });
+}
+segPick('seg-subject','s',function(v){ state.bsubj=v; });
+segPick('seg-handi','h',function(v){ state.handi=Number(v); });
+segPick('seg-kana','kn',function(v){ state.kana=v; store('oyako-kana',v); });
+
+$('seg-level').addEventListener('click',function(e){
+  const b=e.target.closest('button'); if(!b) return;
+  state.level=Number(b.dataset.lv);
+  $('seg-level').querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});
+  refreshBest();
+});
+
+/* --- やくわり --- */
+$('roles').addEventListener('click',function(e){
+  const b=e.target.closest('.role'); if(!b) return;
+  state.role=b.dataset.role;
+  $('roles').querySelectorAll('.role').forEach(function(x){x.setAttribute('aria-pressed',String(x===b));});
+});
+
+$('btn-how-back').addEventListener('click',function(){ stopTimer(); closeOverlay(); backFromHow(); refreshBest(); });
+document.querySelectorAll('[data-back]').forEach(function(b){
+  b.addEventListener('click',function(){
+    stopTimer(); closeOverlay();
+    show(b.dataset.back); refreshBest();
+  });
+});
+
+/* --- ベストスコア --- */
+/* 50音のならびは 端末に保存しておく */
+(function(){
+  const v=store('oyako-kana');
+  if(v==='R'||v==='L'){
+    state.kana=v;
+    $('seg-kana').querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed',String(b.dataset.kn===v)); });
+  }
+})();
+
+function bestKey(){ return 'oyako-'+state.mode+'-'+state.level+'-'+state.seconds; }
+function refreshBest(){
+  const v=store(bestKey());
+  $('best-line').textContent=(state.mode==='battle'||state.mode==='cross'||state.mode==='numcross')?''
+    :(v? 'この端末のベスト　'+state.seconds+'秒で '+v+'もん' : 'この端末にはまだ記録がありません');
+}
+refreshBest();
+
+/* --- スタート --- */
+function startCountdown(){
+  if(state.mode==='cross'){ beginCross(); return; }
+  if(state.mode==='numcross'){ beginNum(); return; }
+  state.deck=(state.mode==='battle')?[]:buildDeck();
+  state.idx=0; state.score=0; state.got=[]; state.paused=false;
+  $('count-note').textContent=(state.mode==='battle')
+    ? 'スマホを机に置いて 向かい合ってね'
+    : (state.mode==='math')
+    ? 'じぶんのペースで だいじょうぶ'
+    : (state.role==='child'?'こども':'おとな')+'がスマホを持ってね';
+  show('s-count');
+  let n=3; $('count-num').textContent=n;
+  const iv=setInterval(function(){
+    n--;
+    if(n>0){ $('count-num').textContent=n; }
+    else{ clearInterval(iv); beginRound(); }
+  },800);
+}
+$('btn-start').addEventListener('click',startCountdown);
+
+function beginRound(){
+  if(state.mode==='battle'){
+    beginBattle();
+    state.endAt=Date.now()+state.seconds*1000;
+    tick();
+    state.timer=setInterval(tick,100);
+    return;
+  }
+  const isMath=(state.mode==='math');
+  $('peek-note').hidden=isMath;
+  $('peek-note').textContent='画面を'+(state.role==='child'?'おとな':'こども')+'に見せないでね';
+  $('btn-ok').textContent=isMath?'できた！':'せいかい！';
+  $('btn-hint').hidden=!isMath;
+  $('score').textContent='0';
+  render();
+  show('s-play');
+  state.endAt=Date.now()+state.seconds*1000;
+  tick();
+  state.timer=setInterval(tick,100);
+}
+function stopTimer(){ if(state.timer){clearInterval(state.timer); state.timer=null;} }
+function tick(){
+  if(state.mode==='numcross'){
+    const nc=state.nc;
+    $('nc-time').textContent=fmtTime(nc.acc+(nc.t0?(Date.now()-nc.t0):0));
+    return;
+  }
+  if(state.mode==='cross'){ $('cw-time').textContent=fmtTime(cwElapsed()); return; }
+  const left=Math.max(0,state.endAt-Date.now());
+  const ratio=left/(state.seconds*1000);
+  $('timer-fill').style.width=(ratio*100).toFixed(1)+'%';
+  $('timer-fill').classList.toggle('warn',left<=10000);
+  $('btimer').style.width=(ratio*100).toFixed(1)+'%';
+  $('btimer').classList.toggle('warn',left<=10000);
+  $('timer-text').textContent=Math.ceil(left/1000);
+  if(left<=0){ stopTimer(); finish(); }
+}
+
+function nameHTML(name,yomi){
+  return /[\u4E00-\u9FFF]/.test(name) ? '<ruby>'+name+'<rt>'+yomi+'</rt></ruby>' : name;
+}
+function current(){ return state.deck[state.idx % state.deck.length]; }
+
+/* ============================================================
+   10を作る：式を組み立てて判定する
+   ============================================================ */
+state.mx={tokens:[],locked:false};
+
+function drawExpr(){
+  const t=state.mx.tokens;
+  const box=$('mexpr');
+  if(!t.length){
+    box.classList.add('empty');
+    box.textContent='数字と記号をタップして 式を作ろう';
+  }else{
+    box.classList.remove('empty');
+    box.textContent=t.map(function(x){return x.v;}).join(' ');
+  }
+  $('numtiles').querySelectorAll('button').forEach(function(b){
+    const used=t.some(function(x){return x.t==='n' && x.i===Number(b.dataset.i);});
+    b.classList.toggle('used',used);
+  });
+}
+function clearExpr(){
+  state.mx.tokens=[]; state.mx.locked=false;
+  $('verdict').hidden=true;
+  drawExpr();
+}
+function pushToken(tok){
+  if(state.mx.locked) return;
+  state.mx.tokens.push(tok);
+  $('verdict').hidden=true;
+  drawExpr();
+}
+
+/* 式を計算する。おかしい式なら null を返す */
+function evalTokens(tokens){
+  let i=0;
+  function bad(){ throw new Error('bad'); }
+  function factor(){
+    const t=tokens[i];
+    if(!t) bad();
+    if(t.t==='n'){ i++; return t.v; }
+    if(t.v==='('){ i++; const v=expr(); if(!tokens[i]||tokens[i].v!==')') bad(); i++; return v; }
+    bad();
+  }
+  function term(){
+    let v=factor();
+    while(tokens[i] && tokens[i].t==='o' && (tokens[i].v==='×'||tokens[i].v==='÷')){
+      const op=tokens[i].v; i++; const r=factor();
+      if(op==='÷'){ if(Math.abs(r)<1e-12) bad(); v=v/r; } else { v=v*r; }
+    }
+    return v;
+  }
+  function expr(){
+    let v=term();
+    while(tokens[i] && tokens[i].t==='o' && (tokens[i].v==='＋'||tokens[i].v==='−')){
+      const op=tokens[i].v; i++; const r=term();
+      v=(op==='＋')?(v+r):(v-r);
+    }
+    return v;
+  }
+  try{
+    const v=expr();
+    if(i!==tokens.length) return null;
+    return v;
+  }catch(e){ return null; }
+}
+
+function fmt(v){
+  if(Math.abs(v-Math.round(v))<1e-9) return String(Math.round(v));
+  return String(Math.round(v*100)/100);
+}
+
+function checkMath(){
+  if(state.mx.locked) return;
+  const q=current();
+  const t=state.mx.tokens;
+  const v=$('verdict');
+  v.hidden=false;
+
+  const usedCount=t.filter(function(x){return x.t==='n';}).length;
+  if(usedCount<q.nums.length){
+    v.className='verdict ng';
+    v.textContent='数字を ぜんぶ使ってね（のこり '+(q.nums.length-usedCount)+'こ）';
+    return;
+  }
+  const val=evalTokens(t);
+  if(val===null){
+    v.className='verdict ng';
+    v.textContent='式が とちゅうだよ。記号やカッコを見なおしてね';
+    return;
+  }
+  if(Math.abs(val-10)<1e-9){
+    v.className='verdict ok';
+    v.textContent='せいかい！　'+t.map(function(x){return x.v;}).join(' ')+' ＝ 10';
+    state.mx.locked=true;
+    state.score++; state.got.push(q);
+    $('score').textContent=state.score;
+    setTimeout(function(){ if(state.mx.locked && $('s-play').classList.contains('on')) next(); },1200);
+  }else{
+    v.className='verdict ng';
+    v.textContent='ざんねん。'+fmt(val)+' になったよ';
+  }
+}
+
+$('numtiles').addEventListener('click',function(e){
+  const b=e.target.closest('button'); if(!b) return;
+  const i=Number(b.dataset.i);
+  pushToken({t:'n',i:i,v:current().nums[i]});
+});
+$('ops').addEventListener('click',function(e){
+  const b=e.target.closest('button'); if(!b) return;
+  const o=b.dataset.op;
+  pushToken({t:(o==='('||o===')')?'p':'o',v:o});
+});
+$('btn-undo').addEventListener('click',function(){
+  if(state.mx.locked) return;
+  state.mx.tokens.pop();
+  $('verdict').hidden=true;
+  drawExpr();
+});
+$('btn-clear').addEventListener('click',clearExpr);
+
+function render(){
+  const q=current();
+  const card=$('card');
+  card.classList.remove('pop'); void card.offsetWidth; card.classList.add('pop');
+
+  if(state.mode==='math'){
+    $('flagbox').hidden=true;
+    $('mathpad').hidden=false;
+    $('region').textContent=(state.level===1?'3つの数字':'4つの数字');
+    $('answer').innerHTML='';
+    $('reading').hidden=true;
+    $('hintblock').hidden=true;
+    $('solution').hidden=true;
+    $('btn-hint').textContent='こたえを見る';
+    $('numtiles').innerHTML=q.nums.map(function(n,i){
+      return '<button type="button" data-i="'+i+'">'+n+'</button>';
+    }).join('');
+    const ops=(state.level===1)?['＋','−']:['＋','−','×','÷','(',')'];
+    $('ops').innerHTML=ops.map(function(o){
+      return '<button type="button" data-op="'+o+'">'+o+'</button>';
+    }).join('');
+    clearExpr();
+    return;
+  }
+
+  $('mathpad').hidden=true;
+  $('solution').hidden=true;
+  $('hintblock').hidden=false;
+  $('region').textContent=q.tag;
+  $('answer').innerHTML=nameHTML(q.name,q.yomi);
+  if(state.mode==='eigo'){
+    $('reading').hidden=false; $('reading').textContent=q.yomi;
+  }else{
+    $('reading').hidden=true;
+  }
+  if(q.art){
+    $('flagbox').hidden=false;
+    $('flagbox').innerHTML=(q.art.t==='flag')?flagSVG(q.art.k):artSVG(q.art.k);
+  }else{
+    $('flagbox').hidden=true;
+  }
+  $('hints').innerHTML=q.hints.map(function(h){return '<li>'+h+'</li>';}).join('');
+}
+function next(){ state.idx++; render(); }
+
+/* --- 一時停止 --- */
+function pauseGame(){
+  if(state.paused || !state.timer) return;
+  state.paused=true;
+  if(state.mode==='cross'){ state.cw.acc=cwElapsed(); state.cw.t0=0; }
+  if(state.mode==='numcross'){
+    const nc=state.nc; nc.acc=nc.acc+(nc.t0?(Date.now()-nc.t0):0); nc.t0=0;
+  }
+  state.remain=Math.max(0,state.endAt-Date.now());
+  stopTimer();
+  if(state.mode==='cross'||state.mode==='numcross'){
+    const isNc=(state.mode==='numcross');
+    $('pause-info').textContent='かかった時間 '+fmtTime(isNc?state.nc.acc:state.cw.acc)
+      +' ／ のこり '+$(isNc?'nc-left':'cw-left').textContent+'マス';
+    $('overlay').hidden=false; $('btn-resume').focus(); return;
+  }
+  $('pause-info').textContent='のこり '+Math.ceil(state.remain/1000)+'秒'
+    +((state.mode==='battle' && state.b)?(' ／ おとな '+state.b.score.adult+' − こども '+state.b.score.child):(' ／ いま '+state.score+'もん'));
+  if(state.mode!=='battle') $('card').classList.add('hidden-answer');
+  $('overlay').hidden=false;
+  $('btn-resume').focus();
+}
+function resumeGame(){
+  if(!state.paused) return;
+  state.paused=false;
+  $('overlay').hidden=true;
+  $('card').classList.remove('hidden-answer');
+  if(state.mode==='cross'||state.mode==='numcross'){
+    if(state.mode==='cross') state.cw.t0=Date.now(); else state.nc.t0=Date.now();
+    tick();
+    state.timer=setInterval(tick,250);
+    return;
+  }
+  state.endAt=Date.now()+state.remain;
+  tick();
+  state.timer=setInterval(tick,100);
+}
+function closeOverlay(){ state.paused=false; $('overlay').hidden=true; $('card').classList.remove('hidden-answer'); }
+
+$('btn-pause').addEventListener('click',pauseGame);
+$('btn-resume').addEventListener('click',resumeGame);
+$('btn-restart').addEventListener('click',function(){
+  closeOverlay(); stopTimer(); startCountdown();
+});
+$('btn-quit').addEventListener('click',function(){
+  closeOverlay(); stopTimer(); show('s-title'); refreshBest();
+});
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Escape') return;
+  if(!$('s-play').classList.contains('on') && !$('s-battle').classList.contains('on') && !$('s-cross').classList.contains('on') && !$('s-numcross').classList.contains('on')) return;
+  if(state.paused){ resumeGame(); } else { pauseGame(); }
+});
+
+$('btn-ok').addEventListener('click',function(){
+  if(state.mode==='math'){ checkMath(); return; }
+  state.score++; state.got.push(current());
+  $('score').textContent=state.score;
+  next();
+});
+$('btn-pass').addEventListener('click',next);
+$('btn-hint').addEventListener('click',function(){
+  const sol=$('solution');
+  if(sol.hidden){
+    sol.hidden=false; sol.textContent='れい：'+current().sol;
+    $('btn-hint').textContent='つぎへ';
+  }else{ next(); }
+});
+
+function finish(){
+  closeOverlay();
+  if(state.mode==='battle'){ battleResult(); return; }
+  const isMath=(state.mode==='math');
+  const n=state.score;
+  $('final').textContent=n;
+  const gold=isMath?4:9, silver=isMath?2:5;
+  let rank,color,msg;
+  if(n>=gold){ rank='ゴールド'; color='#C9961F'; msg=isMath?'すごい！式を見つけるのが速い。':'すごい！ヒントの出し方がプロきゅうです。'; }
+  else if(n>=silver){ rank='シルバー'; color='#7E93A0'; msg=isMath?'いいペース。かけ算とわり算も使ってみよう。':'いいコンビ！つぎは役わりを交代してみよう。'; }
+  else{ rank='ブロンズ'; color='#B0703C'; msg='ここからが本番。もう一回やると必ずのびます。'; }
+  const rb=$('rank'); rb.textContent=rank; rb.style.background=color;
+  $('rank-msg').textContent=msg;
+
+  if(isMath){
+    $('hee-name').textContent='10を作るコツ';
+    $('hee-text').textContent=MATH_TIPS[Math.floor(Math.random()*MATH_TIPS.length)]+'。';
+  }else{
+    const pick=state.got.length? state.got[Math.floor(Math.random()*state.got.length)] : state.deck[0];
+    $('hee-name').textContent=pick.name;
+    $('hee-text').textContent=pick.fact+'。';
+  }
+
+  if(state.got.length){
+    $('recap').hidden=false;
+    $('recap-list').innerHTML=state.got.map(function(q){
+      return '<li>'+(isMath?q.nums.join(' '):q.name)+'</li>';
+    }).join('');
+  }else{ $('recap').hidden=true; }
+
+  const prev=Number(store(bestKey())||0);
+  if(n>prev){ store(bestKey(),String(n)); $('newbest').hidden=(prev===0&&n===0); }
+  else{ $('newbest').hidden=true; }
+
+  show('s-result');
+}
+
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden && ($('s-play').classList.contains('on')||$('s-battle').classList.contains('on')||$('s-cross').classList.contains('on')||$('s-numcross').classList.contains('on'))) pauseGame();
+});
+
+$('btn-again').addEventListener('click',function(){
+  setupHow();
+  show('s-how');
+});
+function backFromHow(){
+  if(state.mode==='battle'||state.mode==='cross') show('s-title');
+  else openGroup((state.mode==='math'||state.mode==='numcross')?'solo':'relay');
+}
+
+/* ============================================================
+   はやおし親子バトル
+   ============================================================ */
+const HANDI=[[3,3],[2,4],[2,6]];   /* [こどもの選たく肢, おとなの選たく肢] */
+const BSUBJ_ALL=['pref','flag','kokugo','rika','eigo','calc'];
+
+function calcQuestion(){
+  const lv=state.level; let a,b,text,ans;
+  if(lv===1){
+    if(Math.random()<0.5){ a=2+Math.floor(Math.random()*8); b=2+Math.floor(Math.random()*8); text=a+' + '+b; ans=a+b; }
+    else{ a=5+Math.floor(Math.random()*13); b=1+Math.floor(Math.random()*(a-1)); text=a+' − '+b; ans=a-b; }
+  }else{
+    const r=Math.random();
+    if(r<0.45){ a=2+Math.floor(Math.random()*8); b=2+Math.floor(Math.random()*8); text=a+' × '+b; ans=a*b; }
+    else if(r<0.75){ b=2+Math.floor(Math.random()*8); ans=2+Math.floor(Math.random()*8); a=b*ans; text=a+' ÷ '+b; }
+    else{ a=12+Math.floor(Math.random()*78); b=12+Math.floor(Math.random()*78); text=a+' + '+b; ans=a+b; }
+  }
+  const pool=[];
+  while(pool.length<8){
+    const d=ans+(Math.floor(Math.random()*13)-6);
+    if(d>=0 && d!==ans && pool.indexOf(String(d))<0) pool.push(String(d));
+  }
+  return {art:null,text:text,num:true,answer:String(ans),pool:pool,fact:null};
+}
+
+function makeBattleQ(){
+  const keys=(state.bsubj==='mix')?BSUBJ_ALL:[state.bsubj];
+  const key=keys[Math.floor(Math.random()*keys.length)];
+  if(key==='calc') return calcQuestion();
+  const deck=state.b.pools[key];
+  if(!deck || !deck.length) return calcQuestion();
+  const q=deck[Math.floor(Math.random()*deck.length)];
+  let text,art=null;
+  if(key==='flag'){ text='この国旗はどこ？'; art=q.art; }
+  else if(key==='eigo'){ text='これを英語で？'; art=q.art; }
+  else if(key==='pref'){ text=q.hints.slice(0,2).join('・'); }
+  else{ text=q.hints.slice(0,2).join('・'); }
+  const pool=deck.filter(function(x){return x.name!==q.name;}).map(function(x){return x.name;});
+  return {art:art,text:text,num:false,answer:q.name,pool:shuffle(pool),fact:q.fact};
+}
+
+function pickOpts(q,n){
+  const a=[q.answer];
+  for(let i=0;i<q.pool.length && a.length<n;i++){
+    if(a.indexOf(q.pool[i])<0) a.push(q.pool[i]);
+  }
+  return shuffle(a);
+}
+
+function beginBattle(){
+  state.b={
+    pools:{},score:{adult:0,child:0},lock:{adult:0,child:0},done:false,q:null,last:null
+  };
+  ['pref','flag','kokugo','rika','eigo'].forEach(function(k){ state.b.pools[k]=deckFor(k); });
+  $('sc-adult').textContent='0';
+  $('sc-child').textContent='0';
+  nextBattle();
+  show('s-battle');
+}
+
+function nextBattle(){
+  const b=state.b;
+  b.done=false;
+  b.q=makeBattleQ();
+  const n=HANDI[state.handi];
+  const opts={child:pickOpts(b.q,n[0]),adult:pickOpts(b.q,n[1])};
+  ['adult','child'].forEach(function(side){
+    const root=$('side-'+side);
+    const art=root.querySelector('.qart');
+    if(b.q.art){ art.hidden=false; art.innerHTML=(b.q.art.t==='flag')?flagSVG(b.q.art.k):artSVG(b.q.art.k); }
+    else{ art.hidden=true; art.innerHTML=''; }
+    const t=root.querySelector('.qtext');
+    t.textContent=b.q.text;
+    t.classList.toggle('num',!!b.q.num);
+    const c=root.querySelector('.choices');
+    c.classList.toggle('one',opts[side].length<=2);
+    c.innerHTML=opts[side].map(function(o){
+      return '<button type="button" class="choice">'+o+'</button>';
+    }).join('');
+    root.classList.remove('flash');
+  });
+}
+
+$('s-battle').addEventListener('click',function(e){
+  const btn=e.target.closest('.choice'); if(!btn) return;
+  const root=btn.closest('.side'); const side=root.dataset.side;
+  const b=state.b;
+  if(!b || b.done || state.paused) return;
+  if(root.classList.contains('locked')) return;
+  if(btn.textContent===b.q.answer){
+    b.done=true;
+    b.score[side]++;
+    if(b.q.fact) b.last=b.q;
+    $('sc-'+side).textContent=b.score[side];
+    root.classList.add('flash');
+    setTimeout(nextBattle,420);
+  }else{
+    root.classList.add('locked');
+    setTimeout(function(){ root.classList.remove('locked'); },1500);
+  }
+});
+
+$('btn-bpause').addEventListener('click',function(){ pauseGame(); });
+
+function battleResult(){
+  const b=state.b, a=b.score.adult, c=b.score.child;
+  const badge=$('bwin');
+  if(a>c){ badge.textContent='おとなの かち'; badge.style.background='#1B4965'; $('bmsg').textContent='さすが。つぎはハンデを増やしてみよう。'; }
+  else if(c>a){ badge.textContent='こどもの かち'; badge.style.background='#E0452F'; $('bmsg').textContent='はやい！おとなに勝ったね。'; }
+  else{ badge.textContent='ひきわけ'; badge.style.background='#7E93A0'; $('bmsg').textContent='いい勝負。もう一回やって決着をつけよう。'; }
+  $('bs-adult').textContent=a;
+  $('bs-child').textContent=c;
+  if(b.last){ $('bhee-name').textContent=b.last.answer; $('bhee-text').textContent=b.last.fact+'。'; }
+  else{ $('bhee-name').textContent='はやおしのコツ'; $('bhee-text').textContent='あせってまちがえると1.5秒お休み。あわてず確実にいくほうが速いことが多い。'; }
+  $('bpromo-name').textContent=CONFIG.schoolName;
+  $('bpromo-text').textContent=CONFIG.promoText;
+  show('s-bresult');
+}
+
+$('btn-bagain').addEventListener('click',function(){ setupHow(); show('s-how'); });
+const CROSS={
+ 1:[
+  {g:['###ゆびわ','たいふう##','###び##','さくぶん##','と#####','うちゅう##'],w:[{d:'A',r:0,c:3,w:'ゆびわ',q:'ゆびに はめる かざり'},{d:'A',r:1,c:0,w:'たいふう',q:'夏から秋に くる 大きな風と雨'},{d:'A',r:3,c:0,w:'さくぶん',q:'じぶんの 思ったことを 書く文しょう'},{d:'A',r:5,c:0,w:'うちゅう',q:'星や 月が ある ひろい ところ'},{d:'D',r:0,c:3,w:'ゆうびん',q:'手紙を とどける しくみ'},{d:'D',r:3,c:0,w:'さとう',q:'あまい 白いこな'}]},
+  {g:['###か##','か##えいご','みそしる##','な#ゃ###','り#か###','#たいよう#'],w:[{d:'A',r:1,c:3,w:'えいご',q:'ABCを つかう ことば'},{d:'A',r:2,c:0,w:'みそしる',q:'日本の食たくの しるもの'},{d:'A',r:5,c:1,w:'たいよう',q:'昼の空で かがやく 星'},{d:'D',r:0,c:3,w:'かえる',q:'おたまじゃくしが 大きくなったすがた'},{d:'D',r:1,c:0,w:'かみなり',q:'ゴロゴロ ピカッと 鳴るもの'},{d:'D',r:2,c:2,w:'しゃかい',q:'町や国のことを 学ぶ きょうか'}]},
+  {g:['たけのこ##','い###ろ#','こうちょう#','#ち##そ#','#ゅ#さくら','とうふ###'],w:[{d:'A',r:0,c:0,w:'たけのこ',q:'春に 土から 出てくる たけの子ども'},{d:'A',r:2,c:0,w:'こうちょう',q:'学校で いちばん えらい 先生'},{d:'A',r:4,c:3,w:'さくら',q:'春にさく ピンク色の花'},{d:'A',r:5,c:0,w:'とうふ',q:'大豆から作る 白い食べもの'},{d:'D',r:0,c:0,w:'たいこ',q:'ドンドンと たたく がっき'},{d:'D',r:1,c:4,w:'ろうそく',q:'火を つける ほそ長いもの'},{d:'D',r:2,c:1,w:'うちゅう',q:'星や 月が ある ひろい ところ'}]}
+ ],
+ 2:[
+  {g:['##たんぽぽ','やさい###','##ふ##よ','#こうちょう','#く###が','#ご#かびん'],w:[{d:'A',r:0,c:2,w:'たんぽぽ',q:'わた毛が とぶ 黄色い花'},{d:'A',r:1,c:0,w:'やさい',q:'にんじんや キャベツの なかま'},{d:'A',r:3,c:1,w:'こうちょう',q:'学校で いちばん えらい 先生'},{d:'A',r:5,c:3,w:'かびん',q:'花をいける 入れもの'},{d:'D',r:0,c:2,w:'たいふう',q:'夏から秋に くる 大きな風と雨'},{d:'D',r:2,c:5,w:'ようがん',q:'火山から ながれ出る あついもの'},{d:'D',r:3,c:1,w:'こくご',q:'漢字や文しょうを 学ぶきょうか'}]},
+  {g:['あ####で','ま#あきかん','が##り#ち','さくぶん##','#じ####','からす###'],w:[{d:'A',r:1,c:2,w:'あきかん',q:'のみおわった かん'},{d:'A',r:3,c:0,w:'さくぶん',q:'じぶんの 思ったことを 書く文しょう'},{d:'A',r:5,c:0,w:'からす',q:'まっ黒で カーとなく鳥'},{d:'D',r:0,c:0,w:'あまがさ',q:'雨の日に さすもの'},{d:'D',r:0,c:5,w:'でんち',q:'かい中電とうに 入れるもの'},{d:'D',r:1,c:3,w:'きりん',q:'首がとても長い どうぶつ'},{d:'D',r:3,c:1,w:'くじら',q:'海にいる いちばん大きい どうぶつ'}]},
+  {g:['######ら','###ゆうびん','###び##ど','#ひまわり#せ','#ら##か#る','#が#きしゃ#','ばなな#つ##'],w:[{d:'A',r:1,c:3,w:'ゆうびん',q:'手紙を とどける しくみ'},{d:'A',r:3,c:1,w:'ひまわり',q:'夏にさく 大きな黄色い花'},{d:'A',r:5,c:3,w:'きしゃ',q:'えんとつから けむりが出る 電車のなかま'},{d:'A',r:6,c:0,w:'ばなな',q:'黄色くて ほそ長いくだもの'},{d:'D',r:0,c:6,w:'らんどせる',q:'小学生が せなかに せおう かばん'},{d:'D',r:1,c:3,w:'ゆびわ',q:'ゆびに はめる かざり'},{d:'D',r:3,c:1,w:'ひらがな',q:'あ・い・う・え・お の文字'},{d:'D',r:3,c:4,w:'りかしつ',q:'じっけんを する きょうしつ'}]}
+ ]
+};
+
+/* ============================================================
+   親子クロスワード
+   ============================================================ */
+const KBD=[
+ ['あ','か','さ','た','な','は','ま','や','ら','わ'],
+ ['い','き','し','ち','に','ひ','み','' ,'り','を'],
+ ['う','く','す','つ','ぬ','ふ','む','ゆ','る','ん'],
+ ['え','け','せ','て','ね','へ','め','' ,'れ','' ],
+ ['お','こ','そ','と','の','ほ','も','よ','ろ','ー']
+];
+const DAKU={'か':'が','き':'ぎ','く':'ぐ','け':'げ','こ':'ご','さ':'ざ','し':'じ','す':'ず','せ':'ぜ','そ':'ぞ','た':'だ','ち':'ぢ','つ':'づ','て':'で','と':'ど','は':'ば','ひ':'び','ふ':'ぶ','へ':'べ','ほ':'ぼ'};
+const HANDAKU={'は':'ぱ','ひ':'ぴ','ふ':'ぷ','へ':'ぺ','ほ':'ぽ'};
+const SMALL={'あ':'ぁ','い':'ぃ','う':'ぅ','え':'ぇ','お':'ぉ','つ':'っ','や':'ゃ','ゆ':'ゅ','よ':'ょ','わ':'ゎ'};
+
+function cwKey(r,c){ return r+'_'+c; }
+function cwCells(w){
+  const a=[];
+  for(let i=0;i<w.w.length;i++) a.push(w.d==='A'?[w.r,w.c+i]:[w.r+i,w.c]);
+  return a;
+}
+function cwElapsed(){
+  const cw=state.cw;
+  return cw.acc + (cw.t0?(Date.now()-cw.t0):0);
+}
+function fmtTime(ms){
+  const t=Math.floor(ms/1000);
+  return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');
+}
+
+function beginCross(){
+  const list=CROSS[state.level]||CROSS[1];
+  let idx=Math.floor(Math.random()*list.length);
+  if(state.cw && state.cw.idx===idx && list.length>1) idx=(idx+1)%list.length;
+  const puz=list[idx];
+  const R=puz.g.length, C=puz.g[0].length;
+
+  /* 番号をふる（単語の先頭マス、上から順に） */
+  const nums={}; let n=0;
+  puz.w.slice().sort(function(a,b){return (a.r-b.r)||(a.c-b.c);}).forEach(function(w){
+    const k=cwKey(w.r,w.c);
+    if(!(k in nums)){ n++; nums[k]=n; }
+  });
+
+  state.cw={idx:idx,puz:puz,R:R,C:C,nums:nums,letters:{},sel:null,hints:0,acc:0,t0:Date.now()};
+
+  const g=$('cwgrid');
+  g.style.gridTemplateColumns='repeat('+C+',var(--cw))';
+  g.style.setProperty('--cw', Math.min(46, Math.floor((Math.min(window.innerWidth,520)-40-3*(C-1))/C))+'px');
+  let html='';
+  for(let r=0;r<R;r++){
+    for(let c=0;c<C;c++){
+      if(puz.g[r][c]==='#'){ html+='<div class="cwcell black"></div>'; }
+      else{
+        const no=nums[cwKey(r,c)];
+        const sa=puz.w.some(function(w){return w.d==='A'&&w.r===r&&w.c===c;});
+        const sd=puz.w.some(function(w){return w.d==='D'&&w.r===r&&w.c===c;});
+        html+='<button type="button" class="cwcell'+(sa?' sa':'')+(sd?' sd':'')+'" data-r="'+r+'" data-c="'+c+'">'
+          +(no?'<span class="no">'+no+'</span>':'')+'<span class="ch"></span></button>';
+      }
+    }
+  }
+  g.innerHTML=html;
+
+  const mk=function(dir,label,cls){
+    const ws=puz.w.filter(function(w){return w.d===dir;});
+    return '<div class="cluegrp"><p class="cluehead '+cls+'">'+label+'</p>'
+      +ws.map(function(w){
+        const i=puz.w.indexOf(w);
+        return '<button type="button" class="clue" data-i="'+i+'"><b>'+nums[cwKey(w.r,w.c)]+'</b><span>'+w.q+'（'+w.w.length+'文字）</span></button>';
+      }).join('')+'</div>';
+  };
+  $('cwclues').innerHTML=mk('A','ヨコのカギ　こどもが かんがえる','yoko')+mk('D','タテのカギ　おとなが かんがえる','tate');
+  $('cwnow').innerHTML='';
+  $('cwclues').hidden=true;
+  $('btn-cluelist').textContent='カギの一覧を ひらく';
+
+  $('kbd').innerHTML=KBD.map(function(row0){
+    const row=(state.kana==='R')?row0.slice().reverse():row0;
+    return row.map(function(k){
+      return k? '<button type="button" data-k="'+k+'">'+k+'</button>' : '<button class="blank" tabindex="-1"></button>';
+    }).join('');
+  }).join('');
+
+  selectWord(0);
+  cwDraw();
+  show('s-cross');
+  state.timer=setInterval(tick,250);
+}
+
+function selectWord(i){
+  const w=state.cw.puz.w[i];
+  state.cw.sel={i:i,pos:0}; state.cw.last=null;
+}
+function wordsAt(r,c){
+  const out=[];
+  state.cw.puz.w.forEach(function(w,i){
+    if(cwCells(w).some(function(p){return p[0]===r&&p[1]===c;})) out.push(i);
+  });
+  return out;
+}
+function cwDraw(){
+  const cw=state.cw, puz=cw.puz;
+  const sel=cw.sel, selW=puz.w[sel.i], selCells=cwCells(selW);
+  const selPos=selCells[sel.pos];
+  $('cwgrid').querySelectorAll('.cwcell:not(.black)').forEach(function(el){
+    const r=Number(el.dataset.r), c=Number(el.dataset.c);
+    el.querySelector('.ch').textContent=cw.letters[cwKey(r,c)]||'';
+    const inw=selCells.some(function(p){return p[0]===r&&p[1]===c;});
+    el.classList.toggle('inword',inw);
+    el.classList.toggle('wa',inw&&selW.d==='A');
+    el.classList.toggle('wd',inw&&selW.d==='D');
+    el.classList.toggle('sel',!!selPos&&selPos[0]===r&&selPos[1]===c);
+  });
+  let left=0;
+  for(let r=0;r<cw.R;r++) for(let c=0;c<cw.C;c++){
+    if(puz.g[r][c]!=='#' && !cw.letters[cwKey(r,c)]) left++;
+  }
+  $('cw-left').textContent=left;
+  $('cwclues').querySelectorAll('.clue').forEach(function(el){
+    const i=Number(el.dataset.i), w=puz.w[i];
+    const ok=cwCells(w).every(function(p,k){return cw.letters[cwKey(p[0],p[1])]===w.w[k];});
+    el.classList.toggle('ok',ok);
+    el.classList.toggle('sel',i===sel.i);
+  });
+  drawNow(selPos);
+  if(left===0) cwCheckAll();
+}
+
+/* いま選んでいるマスに かかわるカギを キーボードの上に出す */
+function drawNow(pos){
+  const cw=state.cw, puz=cw.puz;
+  if(!pos){ $('cwnow').innerHTML='<p class="none">マスか カギを タップしてね</p>'; return; }
+  const ws=wordsAt(pos[0],pos[1]);
+  $('cwnow').innerHTML=ws.map(function(i){
+    const w=puz.w[i];
+    const no=cw.nums[cwKey(w.r,w.c)];
+    const ok=cwCells(w).every(function(p,k){return cw.letters[cwKey(p[0],p[1])]===w.w[k];});
+    return '<button type="button" data-i="'+i+'" class="'+(i===cw.sel.i?'sel ':'')+(ok?'ok':'')+'">'
+      +'<span class="tag '+(w.d==='A'?'yoko':'tate')+'">'+(w.d==='A'?'ヨコ':'タテ')+' '+no+'</span>'
+      +'<span class="txt">'+w.q+'（'+w.w.length+'文字）</span></button>';
+  }).join('');
+}
+$('cwnow').addEventListener('click',function(e){
+  const b=e.target.closest('button'); if(!b) return;
+  const i=Number(b.dataset.i), cw=state.cw;
+  const cur=cwCells(cw.puz.w[cw.sel.i])[cw.sel.pos];
+  const nc=cwCells(cw.puz.w[i]);
+  const pos=nc.findIndex(function(p){return p[0]===cur[0]&&p[1]===cur[1];});
+  cw.sel={i:i,pos:pos<0?0:pos};
+  cw.last=null;
+  cwDraw();
+});
+function cwCheckAll(){
+  const cw=state.cw;
+  const all=cw.puz.w.every(function(w){
+    return cwCells(w).every(function(p,k){return cw.letters[cwKey(p[0],p[1])]===w.w[k];});
+  });
+  if(all) crossResult();
+}
+function cwInput(ch){
+  const cw=state.cw, sel=cw.sel;
+  const cells=cwCells(cw.puz.w[sel.i]);
+  const p=cells[sel.pos];
+  cw.letters[cwKey(p[0],p[1])]=ch;
+  cw.last=[p[0],p[1]];
+  sel.pos=Math.min(sel.pos+1,cells.length-1);
+  cwDraw();
+}
+function cwModify(kind){
+  const cw=state.cw, sel=cw.sel;
+  const cells=cwCells(cw.puz.w[sel.i]);
+  let p=cw.last;
+  if(!p || !cw.letters[cwKey(p[0],p[1])]){
+    p=cells[sel.pos];
+    if(!cw.letters[cwKey(p[0],p[1])] && sel.pos>0) p=cells[sel.pos-1];
+  }
+  const cur=cw.letters[cwKey(p[0],p[1])];
+  if(!cur){ cwDraw(); return; }
+  const map=(kind==='゛')?DAKU:(kind==='゜')?HANDAKU:SMALL;
+  const rev={};
+  Object.keys(map).forEach(function(k){ rev[map[k]]=k; });
+  const nv=map[cur]||rev[cur]||null;
+  if(nv) cw.letters[cwKey(p[0],p[1])]=nv;
+  cwDraw();
+}
+
+$('cwgrid').addEventListener('click',function(e){
+  const el=e.target.closest('.cwcell'); if(!el||el.classList.contains('black')) return;
+  const r=Number(el.dataset.r), c=Number(el.dataset.c);
+  const cw=state.cw, ws=wordsAt(r,c);
+  if(!ws.length) return;
+  let i=cw.sel.i;
+  const cells=cwCells(cw.puz.w[i]);
+  const inCur=cells.some(function(p){return p[0]===r&&p[1]===c;});
+  if(!inCur || ws.length===1){ i=ws[0]; }
+  else if(ws.length>1){ i=ws[(ws.indexOf(i)+1)%ws.length]; }
+  const nc=cwCells(cw.puz.w[i]);
+  cw.sel={i:i,pos:nc.findIndex(function(p){return p[0]===r&&p[1]===c;})};
+  cw.last=null;
+  cwDraw();
+});
+$('btn-cluelist').addEventListener('click',function(){
+  const el=$('cwclues');
+  el.hidden=!el.hidden;
+  $('btn-cluelist').textContent=el.hidden?'カギの一覧を ひらく':'カギの一覧を とじる';
+});
+$('cwclues').addEventListener('click',function(e){
+  const el=e.target.closest('.clue'); if(!el) return;
+  selectWord(Number(el.dataset.i)); cwDraw();
+});
+$('kbd').addEventListener('click',function(e){
+  const b=e.target.closest('button'); if(!b||!b.dataset.k) return;
+  cwInput(b.dataset.k);
+});
+document.querySelector('.kbd2').addEventListener('click',function(e){
+  const b=e.target.closest('button'); if(!b) return;
+  const k=b.dataset.k;
+  if(k==='del'){
+    const cw=state.cw, sel=cw.sel, cells=cwCells(cw.puz.w[sel.i]);
+    const p=cells[sel.pos];
+    if(cw.letters[cwKey(p[0],p[1])]) delete cw.letters[cwKey(p[0],p[1])];
+    else if(sel.pos>0){ sel.pos--; const q=cells[sel.pos]; delete cw.letters[cwKey(q[0],q[1])]; }
+    cwDraw();
+  }else if(k==='hint'){
+    const cw=state.cw, cells=cwCells(cw.puz.w[cw.sel.i]);
+    const right=function(x){ return cw.letters[cwKey(x[0],x[1])]===cw.puz.g[x[0]][x[1]]; };
+    let p=cells[cw.sel.pos];
+    if(right(p)){
+      const q=cells.find(function(x){ return !right(x); });
+      if(!q) return;              /* この語はもう全部あっている */
+      p=q; cw.sel.pos=cells.indexOf(q);
+    }
+    cw.letters[cwKey(p[0],p[1])]=cw.puz.g[p[0]][p[1]];
+    cw.hints++;
+    cw.last=[p[0],p[1]];
+    cw.sel.pos=Math.min(cw.sel.pos+1,cells.length-1);
+    cwDraw();
+  }else{
+    cwModify(k);
+  }
+});
+$('btn-cpause').addEventListener('click',function(){ pauseGame(); });
+
+function crossResult(){
+  stopTimer();
+  const cw=state.cw;
+  const ms=cwElapsed();
+  $('cw-final').textContent=fmtTime(ms);
+  $('cw-msg').textContent=(cw.hints===0)
+    ? 'ヒントなしで かんせい！おみごと。'
+    : 'マスを '+cw.hints+'回 開けて かんせい！';
+  const w=cw.puz.w[Math.floor(Math.random()*cw.puz.w.length)];
+  $('cwhee-name').textContent=w.w;
+  $('cwhee-text').textContent=w.q+'、でした。';
+  const key='oyako-cross-'+state.level;
+  const prev=Number(store(key)||0);
+  if(!prev || ms<prev){ store(key,String(ms)); }
+  $('cpromo-name').textContent=CONFIG.schoolName;
+  $('cpromo-text').textContent=CONFIG.promoText;
+  show('s-cresult');
+}
+
+/* ============================================================
+   けいさんクロス（1人用）
+   ============================================================ */
+const NC_KEYS=['a','b','s1','d','e','s2','c1','c2','T'];
+const NC_POS={a:[0,0],b:[0,2],s1:[0,4],d:[2,0],e:[2,2],s2:[2,4],c1:[4,0],c2:[4,2],T:[4,4]};
+const NC_COEF={a:[1,0,0,0],b:[0,1,0,0],s1:[1,1,0,0],d:[0,0,1,0],e:[0,0,0,1],s2:[0,0,1,1],c1:[1,0,1,0],c2:[0,1,0,1],T:[1,1,1,1]};
+const NC_LINES=[['a','b','s1'],['d','e','s2'],['c1','c2','T'],['a','d','c1'],['b','e','c2'],['s1','s2','T']];
+const NC_TIPS=[
+ 'たて と よこ の 両方から せめると 早く うまる',
+ 'いちばん たくさん 数が そろっている 列から 考えるのが コツ',
+ '「ぜんぶの 合計」のマスは、たて・よこ どちらからでも 出せる'
+];
+
+/* 見えているマスだけで 答えが1つに決まるか（ランクが4か）を調べる */
+function ncRank(keys){
+  const m=keys.map(function(k){return NC_COEF[k].slice();});
+  let rank=0;
+  for(let col=0;col<4;col++){
+    let piv=-1;
+    for(let i=rank;i<m.length;i++){ if(Math.abs(m[i][col])>1e-9){ piv=i; break; } }
+    if(piv<0) continue;
+    const t=m[rank]; m[rank]=m[piv]; m[piv]=t;
+    for(let i=0;i<m.length;i++){
+      if(i===rank||Math.abs(m[i][col])<1e-9) continue;
+      const f=m[i][col]/m[rank][col];
+      for(let j=0;j<4;j++) m[i][j]-=f*m[rank][j];
+    }
+    rank++;
+  }
+  return rank;
+}
+function makeNum(level){
+  const lo=(level===1)?1:3, hi=(level===1)?9:19;
+  const k=(level===1)?4:5;
+  for(let t=0;t<600;t++){
+    const rnd=function(){ return lo+Math.floor(Math.random()*(hi-lo+1)); };
+    const a=rnd(),b=rnd(),d=rnd(),e=rnd();
+    const v={a:a,b:b,s1:a+b,d:d,e:e,s2:d+e,c1:a+d,c2:b+e,T:a+b+d+e};
+    const hide=shuffle(NC_KEYS.slice()).slice(0,k);
+    const shown=NC_KEYS.filter(function(x){return hide.indexOf(x)<0;});
+    if(ncRank(shown)===4) return {v:v,hide:hide};
+  }
+  return {v:{a:2,b:3,s1:5,d:4,e:1,s2:5,c1:6,c2:4,T:10},hide:['s1','c1','e','T']};
+}
+
+function beginNum(){
+  const puz=makeNum(state.level);
+  state.nc={puz:puz,val:{},sel:null,acc:0,t0:Date.now()};
+  puz.hide.forEach(function(k){ state.nc.val[k]=''; });
+
+  const cellAt={};
+  NC_KEYS.forEach(function(k){ cellAt[NC_POS[k][0]+'_'+NC_POS[k][1]]=k; });
+  let html='';
+  for(let r=0;r<5;r++){
+    for(let c=0;c<5;c++){
+      const k=cellAt[r+'_'+c];
+      if(k){
+        const open=puz.hide.indexOf(k)>=0;
+        html+='<button type="button" class="nccell '+(open?'open':'fixed')+'" data-k="'+k+'"'+(open?'':' disabled')+'>'
+          +(open?'':puz.v[k])+'</button>';
+      }else if(r%2===0 && c%2===1){ html+='<span class="ncop">'+(c===3?'＝':'＋')+'</span>'; }
+      else if(r%2===1 && c%2===0){ html+='<span class="ncop">'+(r===3?'＝':'＋')+'</span>'; }
+      else{ html+='<span class="ncblank"></span>'; }
+    }
+  }
+  $('ncgrid').innerHTML=html;
+  $('ncnum').innerHTML=['1','2','3','4','5','6','7','8','9','0'].map(function(n){
+    return '<button type="button" data-n="'+n+'">'+n+'</button>';
+  }).join('')+'<button type="button" data-n="del" style="grid-column:span 5;font-size:15px;font-family:inherit;font-weight:700;color:var(--muted)">1つけす</button>';
+
+  state.nc.sel=puz.hide[0];
+  ncDraw();
+  show('s-numcross');
+  state.timer=setInterval(tick,250);
+}
+
+function ncVal(k){
+  const nc=state.nc;
+  if(nc.puz.hide.indexOf(k)<0) return nc.puz.v[k];
+  const s=nc.val[k];
+  return s===''?null:Number(s);
+}
+function ncDraw(){
+  const nc=state.nc;
+  let left=0;
+  nc.puz.hide.forEach(function(k){ if(nc.val[k]==='') left++; });
+  $('nc-left').textContent=left;
+
+  const good={}, bad={};
+  NC_LINES.forEach(function(L){
+    const v=L.map(ncVal);
+    if(v.some(function(x){return x===null;})) return;
+    if(v[0]+v[1]===v[2]) L.forEach(function(k){ good[k]=true; });
+    else L.forEach(function(k){ bad[k]=true; });
+  });
+
+  $('ncgrid').querySelectorAll('.nccell').forEach(function(el){
+    const k=el.dataset.k;
+    if(nc.puz.hide.indexOf(k)>=0) el.textContent=nc.val[k];
+    el.classList.toggle('sel',k===nc.sel);
+    el.classList.toggle('bad',!!bad[k]);
+    el.classList.toggle('good',!bad[k]&&!!good[k]);
+  });
+
+  if(left===0){
+    const allOk=NC_LINES.every(function(L){ const v=L.map(ncVal); return v[0]+v[1]===v[2]; });
+    if(allOk){ numResult(); return; }
+    $('ncmsg').className='ncmsg ng';
+    $('ncmsg').textContent='赤いところの 計算が 合っていないよ';
+  }else{
+    $('ncmsg').className='ncmsg';
+    $('ncmsg').textContent='たて・よこ ぜんぶの 計算が 合うように 数を入れよう';
+  }
+}
+$('ncgrid').addEventListener('click',function(e){
+  const b=e.target.closest('.nccell.open'); if(!b) return;
+  state.nc.sel=b.dataset.k; ncDraw();
+});
+$('ncnum').addEventListener('click',function(e){
+  const b=e.target.closest('button'); if(!b) return;
+  const nc=state.nc, k=nc.sel;
+  if(!k) return;
+  if(b.dataset.n==='del'){ nc.val[k]=nc.val[k].slice(0,-1); }
+  else if(nc.val[k].length<3){ nc.val[k]=(nc.val[k]+b.dataset.n).replace(/^0(?=\d)/,''); }
+  ncDraw();
+});
+$('btn-npause').addEventListener('click',function(){ pauseGame(); });
+
+function numResult(){
+  stopTimer();
+  const ms=state.nc.acc+(state.nc.t0?(Date.now()-state.nc.t0):0);
+  $('cwbadge').textContent='かんせい！';
+  $('cw-final').textContent=fmtTime(ms);
+  $('cw-msg').textContent='たて・よこ ぜんぶの 計算が そろいました。';
+  $('cwhee-name').textContent='けいさんクロスの コツ';
+  $('cwhee-text').textContent=NC_TIPS[Math.floor(Math.random()*NC_TIPS.length)]+'。';
+  const key='oyako-numcross-'+state.level;
+  const prev=Number(store(key)||0);
+  if(!prev || ms<prev) store(key,String(ms));
+  $('cpromo-name').textContent=CONFIG.schoolName;
+  $('cpromo-text').textContent=CONFIG.promoText;
+  show('s-cresult');
+}
+
+$('btn-cagain').addEventListener('click',function(){
+  stopTimer();
+  if(state.mode==='numcross') beginNum(); else beginCross();
+});
+
+
+</script>
+
+</body>
+</html>
