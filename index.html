@@ -397,6 +397,22 @@
     font-size:26px;font-weight:900;
   }
   .side.locked .lockmsg{display:flex}
+  /* 終了オーバーレイ：時間切れ直後の連打を すべて受けとめる */
+  .bfin{
+    display:none;position:absolute;inset:0;z-index:40;
+    background:#1B4965;color:#fff;
+    flex-direction:column;
+  }
+  .bfin.on{display:flex}
+  .bfin .half{
+    flex:1;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:6px;text-align:center;
+  }
+  .bfin .half.up{transform:rotate(180deg)}
+  .bfin .big{font-size:clamp(26px,5.2vh,40px);font-weight:900;letter-spacing:.04em}
+  .bfin .sub{font-size:clamp(13px,2.2vh,16px);opacity:.85}
+  /* 結果画面：出たての数秒はボタンを押せなくする */
+  .reslock .btn{opacity:.35;pointer-events:none}
   .mid{
     flex:none;display:flex;align-items:center;gap:10px;
     padding:0 4px;
@@ -783,6 +799,10 @@
       <p class="qtext"></p>
       <div class="choices"></div>
       <div class="lockmsg">おてつき！</div>
+    </div>
+    <div class="bfin" id="bfin" aria-hidden="true">
+      <div class="half up"><span class="big">しゅうりょう！</span><span class="sub">手を とめて けっかを 見よう</span></div>
+      <div class="half"><span class="big">しゅうりょう！</span><span class="sub">手を とめて けっかを 見よう</span></div>
     </div>
   </section>
 
@@ -2494,9 +2514,36 @@ $('btn-hint').addEventListener('click',function(){
   }else{ next(); }
 });
 
+/* 結果画面が出たばかりのあいだ ボタンを押せなくする（連打で結果を飛ばさないため） */
+function lockResult(screenId,ms){
+  const sc=$(screenId);
+  const go=sc.querySelector('.btn-go');
+  const label=go?go.dataset.label||go.textContent:'';
+  if(go) go.dataset.label=label;
+  sc.classList.add('reslock');
+  clearInterval(sc._lockIv);
+  let left=Math.ceil(ms/1000);
+  if(go) go.textContent='けっかを 見てね… '+left;
+  sc._lockIv=setInterval(function(){
+    left--;
+    if(left>0){ if(go) go.textContent='けっかを 見てね… '+left; return; }
+    clearInterval(sc._lockIv);
+    sc.classList.remove('reslock');
+    if(go) go.textContent=label;
+  },1000);
+}
+
+/* バトルは 時間切れの瞬間に 全画面の「しゅうりょう！」で タップを受けとめてから結果へ */
+function battleFinish(){
+  if(state.b) state.b.done=true;
+  const f=$('bfin');
+  f.classList.add('on');
+  setTimeout(function(){ f.classList.remove('on'); battleResult(); },1400);
+}
+
 function finish(){
   closeOverlay();
-  if(state.mode==='battle'){ battleResult(); return; }
+  if(state.mode==='battle'){ battleFinish(); return; }
   const isMath=(state.mode==='math');
   const n=state.score;
   $('final').textContent=n;
@@ -2529,6 +2576,7 @@ function finish(){
   else{ $('newbest').hidden=true; }
 
   show('s-result');
+  lockResult('s-result',2000);
 }
 
 document.addEventListener('visibilitychange',function(){
@@ -2598,6 +2646,7 @@ function beginBattle(){
     pools:{},score:{adult:0,child:0},lock:{adult:0,child:0},done:false,q:null,last:null
   };
   ['pref','flag','kokugo','rika','rekishi','eigo'].forEach(function(k){ state.b.pools[k]=deckFor(k); });
+  $('bfin').classList.remove('on');
   $('sc-adult').textContent='0';
   $('sc-child').textContent='0';
   nextBattle();
@@ -2661,6 +2710,7 @@ function battleResult(){
   $('bpromo-name').textContent=CONFIG.schoolName;
   $('bpromo-text').textContent=CONFIG.promoText;
   show('s-bresult');
+  lockResult('s-bresult',3000);
 }
 
 $('btn-bagain').addEventListener('click',function(){ setupHow(); show('s-how'); });
