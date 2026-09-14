@@ -49,7 +49,7 @@
     flex-direction:column;
     gap:16px;
   }
-  #s-play{position:relative}
+  #s-play,#s-geo{position:relative}
   .screen{display:none;flex:1;flex-direction:column;gap:16px}
   .screen.on{display:flex}
 
@@ -217,6 +217,53 @@
   .card.pop{animation:pop .22s ease}
   @keyframes pop{from{transform:scale(.96);opacity:.4}to{transform:scale(1);opacity:1}}
   @media (prefers-reduced-motion:reduce){.card.pop{animation:none}}
+  /* ---------------- 正解の演出 ---------------- */
+  .fx{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:35}
+  .fx i{
+    position:absolute;width:9px;height:13px;border-radius:2px;opacity:0;
+    will-change:transform,opacity;
+    animation:conf var(--t) cubic-bezier(.15,.6,.35,1) forwards;
+  }
+  @keyframes conf{
+    0%  {opacity:0;transform:translate(0,0) rotate(0deg) scale(.5)}
+    10% {opacity:1;transform:translate(calc(var(--dx)*.25),calc(var(--up)*.62)) rotate(calc(var(--rot)*.2)) scale(1)}
+    45% {opacity:1;transform:translate(calc(var(--dx)*.72),var(--up)) rotate(calc(var(--rot)*.55)) scale(1)}
+    100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--rot)) scale(.9)}
+  }
+  .fxstamp{
+    position:absolute;left:50%;top:27%;
+    transform:translate(-50%,-50%) scale(.4);
+    display:flex;flex-direction:column;align-items:center;gap:2px;
+    padding:12px 26px;border-radius:20px;
+    background:var(--leaf);color:#fff;opacity:0;white-space:nowrap;
+    box-shadow:0 12px 30px rgba(27,73,101,.30);
+  }
+  .fxstamp b{font-size:clamp(27px,5.8vh,44px);font-weight:900;letter-spacing:.02em;line-height:1}
+  .fxstamp span{font-size:clamp(13px,2.2vh,17px);font-weight:800;opacity:.95}
+  .fxstamp span:empty{display:none}
+  .fxstamp.gold{background:#E8A317}
+  .fxstamp.fire{background:#E0452F}
+  .fxstamp.on{animation:stamp .8s cubic-bezier(.2,1.25,.35,1) forwards}
+  @keyframes stamp{
+    0%  {opacity:0;transform:translate(-50%,-50%) scale(.35) rotate(-12deg)}
+    16% {opacity:1;transform:translate(-50%,-50%) scale(1.14) rotate(3deg)}
+    30% {opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-1.5deg)}
+    72% {opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-1.5deg)}
+    100%{opacity:0;transform:translate(-50%,-62%) scale(1.05) rotate(-1.5deg)}
+  }
+  .scorechip.bump{animation:bump .55s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes bump{
+    0%  {transform:scale(1);background:var(--sea);box-shadow:0 0 0 0 rgba(47,143,91,.55)}
+    30% {transform:scale(1.32);background:var(--leaf);box-shadow:0 0 0 10px rgba(47,143,91,0)}
+    100%{transform:scale(1);background:var(--sea);box-shadow:0 0 0 0 rgba(47,143,91,0)}
+  }
+  .card.slide{animation:slidein .3s cubic-bezier(.2,.9,.3,1)}
+  @keyframes slidein{from{transform:translateX(26px);opacity:0}to{transform:translateX(0);opacity:1}}
+  @media (prefers-reduced-motion:reduce){
+    .fx i{display:none}
+    .fxstamp.on{animation-duration:.5s}
+    .card.slide{animation:none}
+  }
   .regionchip{
     font-size:12px;font-weight:700;color:var(--sea);
     background:rgba(98,182,203,.2);border-radius:999px;padding:5px 13px;
@@ -486,6 +533,12 @@
   .mapflash.on{opacity:1}
   #card.veil{opacity:.07;transition:opacity .15s}
   .mapflash{width:min(86%,330px)}
+  .mapflash .mf-badge{
+    text-align:center;font-weight:900;font-size:15px;margin:0 auto 6px;
+    background:var(--leaf);color:#fff;border-radius:999px;padding:5px 16px;width:fit-content;
+  }
+  .mapflash .mf-badge.gold{background:#E8A317}
+  .mapflash .mf-badge.fire{background:#E0452F}
   .mapflash .mf-name{text-align:center;font-weight:900;font-size:17px;margin:2px 0 0;color:var(--ink)}
   .mapflash .mf-cap{text-align:center;font-size:12px;font-weight:700;margin:2px 0 6px;color:var(--sub)}
   .mapflash .mf-cap.diff{color:#C0392B}
@@ -735,6 +788,14 @@
     </div>
 
     <div class="settingrow">
+      <span>おと</span>
+      <div class="seg" id="seg-sound" role="group" aria-label="おと">
+        <button type="button" data-sd="1">あり</button>
+        <button type="button" data-sd="0">なし</button>
+      </div>
+    </div>
+
+    <div class="settingrow">
       <span>せいげん時間</span>
       <div class="seg" id="seg-time" role="group" aria-label="せいげん時間">
         <button type="button" data-t="60">60秒</button>
@@ -863,7 +924,12 @@
       <p class="solution" id="solution" hidden></p>
     </div>
 
+    <div class="fx" id="fx" aria-hidden="true">
+      <div class="fxstamp" id="fx-stamp"><b id="fx-main">せいかい！</b><span id="fx-sub"></span></div>
+    </div>
+
     <div class="mapflash" id="mapflash" aria-hidden="true">
+      <p class="mf-badge" id="mf-badge">せいかい！</p>
       <p class="mf-name" id="mf-name"></p>
       <p class="mf-cap" id="mf-cap" hidden></p>
       <div class="mf-box" id="mf-box"></div>
@@ -893,6 +959,10 @@
     <div class="geoq">
       <p class="geoq-sub" id="geo-sub"></p>
       <p class="geoq-name display" id="geo-name"></p>
+    </div>
+
+    <div class="fx" id="fx2" aria-hidden="true">
+      <div class="fxstamp" id="fx2-stamp"><b id="fx2-main">せいかい！</b><span id="fx2-sub"></span></div>
     </div>
 
     <div class="geowrap">
@@ -2351,6 +2421,34 @@ function shuffle(a){
 function store(key,val){
   try{ if(val===undefined) return localStorage.getItem(key); localStorage.setItem(key,val); }catch(e){ return null; }
 }
+/* --- 音（ファイルなし。その場で作る。設定でオフにできる） --- */
+let AC=null, SOUND=(store('oyako-sound')!=='0');
+function ac(){
+  if(!SOUND) return null;
+  try{
+    if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)();
+    if(AC.state==='suspended') AC.resume();
+    return AC;
+  }catch(e){ return null; }
+}
+function beep(freq,at,dur,vol){
+  const c=ac(); if(!c) return;
+  const t=c.currentTime+at;
+  const o=c.createOscillator(), g=c.createGain();
+  o.type='triangle'; o.frequency.setValueAtTime(freq,t);
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.exponentialRampToValueAtTime(vol||0.16,t+0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g); g.connect(c.destination);
+  o.start(t); o.stop(t+dur+0.02);
+}
+function sndOK(n){
+  if(n>=5){ [784,988,1175,1568].forEach(function(f,i){ beep(f,i*0.075,0.22,0.15); }); }
+  else if(n>=3){ beep(784,0,0.12,0.16); beep(1175,0.085,0.22,0.15); }
+  else{ beep(659,0,0.10,0.15); beep(988,0.075,0.18,0.14); }
+}
+function sndNG(){ beep(196,0,0.16,0.12); }
+function buzz(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
 
 /* --- タイトル画面の見た目 --- */
 $('brand-title').textContent=[CONFIG.schoolName,CONFIG.eventName].filter(Boolean).join('　');
@@ -2480,6 +2578,18 @@ function segPick(id,attr,cb){
 segPick('seg-subject','s',function(v){ state.bsubj=v; });
 segPick('seg-handi','h',function(v){ state.handi=Number(v); });
 segPick('seg-kana','kn',function(v){ state.kana=v; store('oyako-kana',v); });
+segPick('seg-sound','sd',function(v){
+  SOUND=(v==='1'); store('oyako-sound',v);
+  if(SOUND){ ac(); beep(880,0,0.1,0.12); }     /* 押した合図に 1音 */
+});
+(function(){
+  const on=SOUND?'1':'0';
+  $('seg-sound').querySelectorAll('button').forEach(function(b){
+    b.setAttribute('aria-pressed',String(b.dataset.sd===on));
+  });
+})();
+/* iPhone は 画面を1回さわるまで 音を鳴らせないので、最初のタップで用意しておく */
+document.addEventListener('pointerdown',function once(){ ac(); document.removeEventListener('pointerdown',once); });
 
 $('seg-level').addEventListener('click',function(e){
   const b=e.target.closest('button'); if(!b) return;
@@ -2527,7 +2637,8 @@ function startCountdown(){
   if(state.mode==='numcross'){ beginNum(); return; }
   const isGeo=(state.mode==='geopref'||state.mode==='geoflag');
   state.deck=(state.mode==='battle'||isGeo)?[]:buildDeck();
-  state.idx=0; state.score=0; state.got=[]; state.paused=false;
+  state.idx=0; state.score=0; state.got=[]; state.paused=false; streakReset();
+  fxClear('fx'); fxClear('fx2');
   const isB=(state.mode==='battle');
   $('count-orient').hidden=!isB;
   $('count-num').hidden=isB;
@@ -2691,10 +2802,12 @@ function checkMath(){
     state.mx.locked=true;
     state.score++; state.got.push(q);
     $('score').textContent=state.score;
+    celebrate('fx',$('btn-ok'),$('score').parentNode);
     setTimeout(function(){ if(state.mx.locked && $('s-play').classList.contains('on')) next(); },1200);
   }else{
     v.className='verdict ng';
     v.textContent='ざんねん。'+fmt(val)+' になったよ';
+    streakReset(); sndNG(); buzz(60);
   }
 }
 
@@ -2719,7 +2832,8 @@ $('btn-clear').addEventListener('click',clearExpr);
 function render(){
   const q=current();
   const card=$('card');
-  card.classList.remove('pop'); void card.offsetWidth; card.classList.add('pop');
+  card.classList.remove('pop','slide'); void card.offsetWidth;
+  card.classList.add(state.mode==='math'?'pop':'slide');
 
   if(state.mode==='math'){
     $('flagbox').hidden=true;
@@ -2822,10 +2936,12 @@ $('btn-ok').addEventListener('click',function(){
   const q=current();
   state.score++; state.got.push(q);
   $('score').textContent=state.score;
-  flashMap(q);          /* 正解した場所を0.9秒だけ地図で見せる */
+  const hasMap=mapHas(state.mode);
+  const w=celebrate('fx',$('btn-ok'),$('score').parentNode,!hasMap);
+  flashMap(q,w);        /* 正解した場所を0.9秒だけ地図で見せる（お祝いは この中のバッジで） */
   next();
 });
-$('btn-pass').addEventListener('click',function(){ hideFlash(); next(); });
+$('btn-pass').addEventListener('click',function(){ hideFlash(); streakReset(); next(); });
 $('btn-hint').addEventListener('click',function(){
   const sol=$('solution');
   if(sol.hidden){
@@ -2864,6 +2980,7 @@ function battleFinish(){
 function finish(){
   closeOverlay();
   hideFlash();
+  fxClear('fx'); fxClear('fx2'); streakReset();
   if(state.mode==='battle'){ battleFinish(); return; }
   const isGeo=(state.mode==='geopref'||state.mode==='geoflag');
   const isMath=(state.mode==='math');
@@ -3111,9 +3228,14 @@ function mapHas(mode){ return mode==='pref'||mode==='flag'; }
 
 /* A-1：せいかいの瞬間、0.9秒だけ地図を出す（タップはさえぎらない） */
 let mfTimer=null;
-function flashMap(q){
+function flashMap(q,w){
   if(!mapHas(state.mode) || !q || !q.mk) return;
   const el=$('mapflash');
+  const bd=$('mf-badge');
+  if(bd){
+    bd.className='mf-badge'+(w&&w.tone?' '+w.tone:'');
+    bd.textContent=(w&&w.sub)?(w.main+'　'+w.sub):(w?w.main:'せいかい！');
+  }
   el.classList.toggle('world',state.mode==='flag');
   $('mf-name').textContent=q.name;
   const cap=(state.mode==='pref')?capOf(q.mk):null;
@@ -3338,7 +3460,10 @@ function geoAnswer(pick){
     if(b.dataset.k===ans) b.classList.add('right');
     else if(b.dataset.k===pick) b.classList.add('wrong');
   });
-  if(ok){ g.score++; g.got.push(ans); }
+  if(ok){
+    g.score++; g.got.push(ans);
+    celebrate('fx2',null,$('geo-score').parentNode,false);
+  }else{ streakReset(); sndNG(); buzz(60); }
   state.score=g.score;
   $('geo-score').textContent=g.score;
   /* こたえ合わせでは 県庁所在地も見せる */
@@ -3360,7 +3485,7 @@ $('geo-choices').addEventListener('click',function(e){
 });
 $('btn-gpass').addEventListener('click',function(){
   const g=state.g; if(!g||g.locked) return;
-  g.locked=true;
+  g.locked=true; streakReset();
   $('geo-choices').querySelectorAll('.gchoice').forEach(function(b){
     b.disabled=true; if(b.dataset.k===g.ans) b.classList.add('right');
   });
@@ -3474,6 +3599,80 @@ function geoResultMap(){
   $('rm-note').innerHTML=geoIsWorld()?'':capListHTML(ks);
   $('rm-brand').textContent=CONFIG.schoolName;
 }
+
+/* ============================================================
+   正解の演出（紙ふぶき・スタンプ・れんぞく・音）
+   ── 「せいかい！」を押しても何も起きず次へ行くのは さびしい、という声から
+   ============================================================ */
+const FXCOL=['#2F8F5B','#E9B44C','#62B6CB','#E0452F','#1B4965','#F0B429','#8FC9E8'];
+let streak=0;
+
+
+/* --- 紙ふぶき＋スタンプ --- */
+function fxBurst(layerId,originEl,n,mainText,subText,tone,withStamp){
+  const fx=$(layerId); if(!fx) return;
+  const host=fx.getBoundingClientRect();
+  let ox=host.width/2, oy=host.height*0.62;
+  if(originEl){
+    const b=originEl.getBoundingClientRect();
+    ox=b.left-host.left+b.width/2;
+    oy=b.top-host.top+b.height*0.3;
+  }
+  const count=Math.min(34,14+n*4);
+  for(let i=0;i<count;i++){
+    const el=document.createElement('i');
+    const ang=(Math.random()*Math.PI*1.2)-Math.PI*0.1;   /* だいたい上向き */
+    const pow=90+Math.random()*150;
+    el.style.left=(ox+(Math.random()*70-35))+'px';
+    el.style.top=(oy+(Math.random()*16-8))+'px';
+    el.style.background=FXCOL[(Math.random()*FXCOL.length)|0];
+    el.style.setProperty('--dx',(Math.cos(ang)*pow*(Math.random()<.5?-1:1)).toFixed(0)+'px');
+    el.style.setProperty('--up',(-(60+Math.random()*130)).toFixed(0)+'px');
+    el.style.setProperty('--dy',(120+Math.random()*220).toFixed(0)+'px');
+    el.style.setProperty('--rot',((Math.random()*1080-540)|0)+'deg');
+    el.style.setProperty('--t',(0.9+Math.random()*0.5).toFixed(2)+'s');
+    if(Math.random()<0.35) el.style.borderRadius='50%';
+    fx.appendChild(el);
+    setTimeout(function(){ el.remove(); },1500);
+  }
+  const st=$(layerId+'-stamp'), mn=$(layerId+'-main'), sb=$(layerId+'-sub');
+  if(st && withStamp!==false){
+    st.className='fxstamp'+(tone?' '+tone:'');
+    mn.textContent=mainText;
+    sb.textContent=subText||'';
+    void st.offsetWidth;
+    st.classList.add('on');
+  }
+}
+function fxClear(layerId){
+  const fx=$(layerId); if(!fx) return;
+  fx.querySelectorAll('i').forEach(function(e){e.remove();});
+  const st=$(layerId+'-stamp'); if(st) st.classList.remove('on');
+}
+/* スコアを はずませて 光らせる */
+function fxPlus(layerId,chipEl){
+  if(!chipEl) return;
+  chipEl.classList.remove('bump'); void chipEl.offsetWidth; chipEl.classList.add('bump');
+}
+/* れんぞくに合わせて 見た目と音を強くする */
+function streakWord(n){
+  if(n>=8) return {main:'ノってる！！',sub:n+'れんぞく',tone:'fire'};
+  if(n>=5) return {main:'すごい！',sub:n+'れんぞく',tone:'fire'};
+  if(n>=3) return {main:'いいね！',sub:n+'れんぞく',tone:'gold'};
+  if(n===2) return {main:'せいかい！',sub:'2れんぞく',tone:''};
+  return {main:'せいかい！',sub:'',tone:''};
+}
+/* withStamp=false のときは 大きなスタンプを出さない（地図パネルとぶつかるため） */
+function celebrate(layerId,originEl,chipEl,withStamp){
+  streak++;
+  const w=streakWord(streak);
+  fxBurst(layerId,originEl,streak,w.main,w.sub,w.tone,withStamp!==false);
+  fxPlus(layerId,chipEl);
+  sndOK(streak);
+  buzz(streak>=5?[20,45,20]:16);
+  return w;
+}
+function streakReset(){ streak=0; }
 
 /* ============================================================
    はやおし親子バトル
