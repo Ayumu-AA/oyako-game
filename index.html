@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>親子ゲーム</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,8 +27,12 @@
     color-scheme:light;
   }
   *{box-sizing:border-box}
+  html{touch-action:manipulation}
   body{
     margin:0;
+    touch-action:manipulation;
+    overscroll-behavior:none;
+    -webkit-tap-highlight-color:transparent;
     background-color:var(--paper);
     background-image:
       repeating-linear-gradient(to right, var(--line) 0 1px, transparent 1px 44px),
@@ -38,6 +42,7 @@
     font-weight:500;
     -webkit-text-size-adjust:100%;
   }
+  button{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   ruby rt{font-size:.44em;font-weight:500;letter-spacing:.02em}
   .wrap{
     min-height:100svh;
@@ -397,6 +402,12 @@
   /* ---- はやおし親子バトル ---- */
   .settingrow.stack{flex-direction:column;align-items:stretch;gap:9px}
   .seg.wrap{flex-wrap:wrap}
+  #s-battle{
+    touch-action:none;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #s-battle .choice{touch-action:none}
   #s-battle.on{
     position:fixed;inset:0;z-index:5;
     background:var(--paper);
@@ -2449,6 +2460,33 @@ function sndOK(n){
 }
 function sndNG(){ beep(196,0,0.16,0.12); }
 function buzz(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
+
+/* --- 画面が勝手に拡大しないようにする ---
+   2人で同時に連打すると 指2本＝ピンチ と判定されて 画面がズームしてしまう。
+   ちずクイズの地図だけは 自前のピンチ処理があるので そこは通す。 */
+function inMap(t){ return !!(t && t.closest && t.closest('#geo-map,.mapsvg')); }
+(function(){
+  /* iOS Safari のピンチ拡大 */
+  ['gesturestart','gesturechange','gestureend'].forEach(function(t){
+    document.addEventListener(t,function(e){ e.preventDefault(); },{passive:false});
+  });
+  /* 指2本の動き（＝ピンチ）。地図の中は そのまま */
+  document.addEventListener('touchmove',function(e){
+    if(e.touches.length>1 && !inMap(e.target)) e.preventDefault();
+  },{passive:false});
+  /* ダブルタップ拡大よけ。押した場所が違えば連打なので 止めない
+     （同じボタンの連打は click を殺さないよう preventDefault しない） */
+  let lastEnd=0,lastX=0,lastY=0;
+  document.addEventListener('touchend',function(e){
+    const now=Date.now(), t=e.changedTouches&&e.changedTouches[0];
+    if(!t) return;
+    const near=Math.abs(t.clientX-lastX)<32 && Math.abs(t.clientY-lastY)<32;
+    if(now-lastEnd<320 && near && !e.target.closest('button,input,textarea,[contenteditable]')){
+      e.preventDefault();
+    }
+    lastEnd=now; lastX=t.clientX; lastY=t.clientY;
+  },{passive:false});
+})();
 
 /* --- タイトル画面の見た目 --- */
 $('brand-title').textContent=[CONFIG.schoolName,CONFIG.eventName].filter(Boolean).join('　');
