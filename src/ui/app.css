@@ -1,0 +1,916 @@
+/* 生成物: body.html の <style> をそのまま移した（見た目を変えないため）。整理は移行後に */
+  :root{
+    --ink:#16262E;
+    --muted:#6B7F88;
+    --paper:#EAF2F5;
+    --surface:#FFFFFF;
+    --sea:#1B4965;
+    --sky:#62B6CB;
+    --vermilion:#E0452F;
+    --gold:#E9B44C;
+    --leaf:#2F8F5B;
+    --line:rgba(27,73,101,.16);
+    --shadow:0 2px 0 rgba(27,73,101,.16), 0 10px 24px rgba(27,73,101,.10);
+    --r:18px;
+    color-scheme:light;
+  }
+  *{box-sizing:border-box}
+  html{touch-action:manipulation}
+  body{
+    margin:0;
+    touch-action:manipulation;
+    overscroll-behavior:none;
+    -webkit-tap-highlight-color:transparent;
+    background-color:var(--paper);
+    background-image:
+      repeating-linear-gradient(to right, var(--line) 0 1px, transparent 1px 44px),
+      repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px 44px);
+    color:var(--ink);
+    font-family:"Zen Maru Gothic",system-ui,-apple-system,"Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;
+    font-weight:500;
+    -webkit-text-size-adjust:100%;
+  }
+  button{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  ruby rt{font-size:.44em;font-weight:500;letter-spacing:.02em}
+  .wrap{
+    min-height:100svh;
+    max-width:520px;
+    margin:0 auto;
+    padding-inline:16px;
+    padding-block:16px 18px;
+    display:flex;
+    flex-direction:column;
+    gap:13px;
+  }
+  #s-play,#s-geo{position:relative}
+  .screen{display:none;flex:1;flex-direction:column;gap:16px}
+  .screen.on{display:flex}
+
+  /* ---- typography ---- */
+  .display{font-family:"Yusei Magic",system-ui,sans-serif;font-weight:400;letter-spacing:.01em}
+  .eyebrow{
+    font-size:12px;letter-spacing:.18em;color:var(--sea);
+    text-transform:none;font-weight:700;
+  }
+  h1{margin:0;font-size:clamp(26px,7.6vw,34px);line-height:1.2;text-wrap:balance}
+  .titlelede{display:grid;gap:6px}
+  .titlelede .lede{font-size:13.5px;line-height:1.6}
+  h2{margin:0;font-size:19px;line-height:1.4;text-wrap:balance}
+
+  /* ---- title screen ---- */
+  .brandmark{
+    display:flex;align-items:center;gap:10px;
+  }
+  .brandmark .pin{
+    width:30px;height:30px;border-radius:50%;
+    background:var(--vermilion);
+    box-shadow:inset 0 0 0 4px var(--surface), 0 0 0 1.5px var(--vermilion);
+    flex:none;
+  }
+  .brandmark span{font-size:13px;font-weight:700;color:var(--sea)}
+  .lede{margin:0;color:var(--muted);font-size:14.5px;line-height:1.75}
+
+  .modes{display:grid;gap:9px}
+  .mode{
+    display:flex;align-items:center;gap:12px;
+    width:100%;text-align:left;
+    background:var(--surface);
+    border:1.5px solid var(--line);
+    border-radius:16px;
+    padding:11px 13px;
+    box-shadow:var(--shadow);
+    cursor:pointer;
+    font:inherit;color:inherit;
+    transition:transform .12s ease, border-color .12s ease;
+  }
+  .mode:hover{border-color:var(--sky)}
+  .mode:active{transform:translateY(2px)}
+  .mode .icon{
+    width:48px;height:36px;flex:none;display:grid;place-items:center;
+  }
+  .mode .icon svg{display:block;width:100%;height:auto;border-radius:3px;border:1px solid var(--line)}
+  .mode b{display:block;font-size:16.5px;font-weight:900}
+  .mode small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+
+  .settingrow{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--surface);border:1.5px solid var(--line);
+    border-radius:14px;padding:12px 14px;
+  }
+  .settingrow >span{font-size:13.5px;font-weight:700}
+  .seg{display:flex;gap:6px}
+  .seg button{
+    font:inherit;font-weight:700;font-size:13px;
+    border:1.5px solid var(--line);background:transparent;color:var(--muted);
+    border-radius:999px;padding:6px 13px;cursor:pointer;
+    font-variant-numeric:tabular-nums;
+  }
+  .seg button[aria-pressed="true"]{background:var(--sea);border-color:var(--sea);color:#fff}
+
+  .best{font-size:12.5px;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+
+  /* ---- how to play ---- */
+  .steps{display:grid;gap:10px;counter-reset:s}
+  .step{
+    display:flex;gap:13px;align-items:flex-start;
+    background:var(--surface);border:1.5px solid var(--line);
+    border-radius:14px;padding:14px;
+  }
+  .step .num{
+    flex:none;width:26px;height:26px;border-radius:50%;
+    background:var(--sea);color:#fff;display:grid;place-items:center;
+    font-size:14px;font-weight:900;font-variant-numeric:tabular-nums;
+  }
+  .step p{margin:0;font-size:14.5px;line-height:1.65}
+  .step p b{color:var(--vermilion)}
+
+  .roles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .role{
+    background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r);
+    padding:16px 12px;text-align:center;cursor:pointer;font:inherit;color:inherit;
+    box-shadow:var(--shadow);
+  }
+  .role[aria-pressed="true"]{border-color:var(--vermilion);box-shadow:0 0 0 3px rgba(224,69,47,.15),var(--shadow)}
+  .role .face{font-size:30px;line-height:1}
+  .role b{display:block;margin-top:6px;font-size:16px;font-weight:900}
+  .role small{display:block;color:var(--muted);font-size:11.5px;margin-top:3px}
+
+  /* ---- buttons ---- */
+  .btn{
+    font:inherit;font-weight:900;font-size:18px;
+    border:none;border-radius:16px;padding:17px 20px;
+    cursor:pointer;width:100%;
+    box-shadow:0 3px 0 rgba(0,0,0,.18);
+    transition:transform .1s ease, box-shadow .1s ease;
+  }
+  .btn:active{transform:translateY(3px);box-shadow:0 0 0 rgba(0,0,0,.18)}
+  .btn-go{background:var(--vermilion);color:#fff}
+  .btn-ok{background:var(--leaf);color:#fff;font-size:22px;padding:22px 20px}
+  .btn-ghost{
+    background:transparent;color:var(--muted);
+    border:1.5px solid var(--line);box-shadow:none;font-size:15px;padding:14px 20px;
+  }
+  .btn-ghost:active{transform:translateY(2px)}
+  .btn-sea{background:var(--sea);color:#fff}
+  :where(button,a):focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+  .spacer{flex:1}
+
+  /* ---- play ---- */
+  .hud{display:flex;align-items:center;gap:12px}
+  .timerwrap{flex:1}
+  .timerbar{height:12px;border-radius:999px;background:rgba(27,73,101,.14);overflow:hidden}
+  .timerfill{height:100%;width:100%;background:var(--sky);border-radius:999px}
+  .timerfill.warn{background:var(--vermilion)}
+  .timertext{
+    font-variant-numeric:tabular-nums;font-weight:900;font-size:13px;color:var(--sea);
+    margin-top:4px;display:block;
+  }
+  .scorechip{
+    flex:none;background:var(--sea);color:#fff;border-radius:999px;
+    padding:8px 15px;font-weight:900;font-size:17px;font-variant-numeric:tabular-nums;
+  }
+  .iconbtn{
+    flex:none;width:46px;height:46px;border-radius:14px;
+    border:1.5px solid var(--line);background:var(--surface);
+    display:grid;place-items:center;cursor:pointer;padding:0;
+    box-shadow:0 2px 0 rgba(27,73,101,.10);
+  }
+  .iconbtn:active{transform:translateY(2px);box-shadow:none}
+  .iconbtn svg{width:18px;height:18px;fill:var(--sea)}
+
+  .overlay{
+    position:fixed;inset:0;z-index:20;
+    background:rgba(16,38,46,.62);
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;
+  }
+  .overlay[hidden]{display:none}
+  .sheet{
+    width:100%;max-width:360px;
+    background:var(--surface);border-radius:24px;padding:22px 18px;
+    box-shadow:0 18px 50px rgba(16,38,46,.35);
+    display:grid;gap:10px;text-align:center;
+  }
+  .sheet h2{margin:0 0 2px;font-size:24px}
+  .sheet p{margin:0 0 8px;color:var(--muted);font-size:13.5px;line-height:1.6}
+  .sheet .btn{font-size:17px;padding:15px 18px}
+  .sheet small{color:var(--muted);font-size:11.5px;display:block;margin-top:-2px}
+
+  .peek{
+    text-align:center;font-size:12px;font-weight:700;color:var(--vermilion);
+    background:rgba(224,69,47,.09);border-radius:999px;padding:7px 12px;
+  }
+  .card{
+    background:var(--surface);border:1.5px solid var(--line);border-radius:24px;
+    padding:22px 18px;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;align-items:center;gap:16px;
+    flex:1;justify-content:center;
+    text-align:center;
+  }
+  .card.hidden-answer{filter:blur(14px);opacity:.35}
+  .card.pop{animation:pop .22s ease}
+  @keyframes pop{from{transform:scale(.96);opacity:.4}to{transform:scale(1);opacity:1}}
+  @media (prefers-reduced-motion:reduce){.card.pop{animation:none}}
+  /* ---------------- 正解の演出 ---------------- */
+  .fx{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:35}
+  .fx i{
+    position:absolute;width:9px;height:13px;border-radius:2px;opacity:0;
+    will-change:transform,opacity;
+    animation:conf var(--t) cubic-bezier(.15,.6,.35,1) forwards;
+  }
+  @keyframes conf{
+    0%  {opacity:0;transform:translate(0,0) rotate(0deg) scale(.5)}
+    10% {opacity:1;transform:translate(calc(var(--dx)*.25),calc(var(--up)*.62)) rotate(calc(var(--rot)*.2)) scale(1)}
+    45% {opacity:1;transform:translate(calc(var(--dx)*.72),var(--up)) rotate(calc(var(--rot)*.55)) scale(1)}
+    100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--rot)) scale(.9)}
+  }
+  .fxstamp{
+    position:absolute;left:50%;top:27%;
+    transform:translate(-50%,-50%) scale(.4);
+    display:flex;flex-direction:column;align-items:center;gap:2px;
+    padding:12px 26px;border-radius:20px;
+    background:var(--leaf);color:#fff;opacity:0;white-space:nowrap;
+    box-shadow:0 12px 30px rgba(27,73,101,.30);
+  }
+  .fxstamp b{font-size:clamp(27px,5.8vh,44px);font-weight:900;letter-spacing:.02em;line-height:1}
+  .fxstamp span{font-size:clamp(13px,2.2vh,17px);font-weight:800;opacity:.95}
+  .fxstamp span:empty{display:none}
+  .fxstamp.gold{background:#E8A317}
+  .fxstamp.fire{background:#E0452F}
+  .fxstamp.on{animation:stamp .8s cubic-bezier(.2,1.25,.35,1) forwards}
+  @keyframes stamp{
+    0%  {opacity:0;transform:translate(-50%,-50%) scale(.35) rotate(-12deg)}
+    16% {opacity:1;transform:translate(-50%,-50%) scale(1.14) rotate(3deg)}
+    30% {opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-1.5deg)}
+    72% {opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-1.5deg)}
+    100%{opacity:0;transform:translate(-50%,-62%) scale(1.05) rotate(-1.5deg)}
+  }
+  .scorechip.bump{animation:bump .55s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes bump{
+    0%  {transform:scale(1);background:var(--sea);box-shadow:0 0 0 0 rgba(47,143,91,.55)}
+    30% {transform:scale(1.32);background:var(--leaf);box-shadow:0 0 0 10px rgba(47,143,91,0)}
+    100%{transform:scale(1);background:var(--sea);box-shadow:0 0 0 0 rgba(47,143,91,0)}
+  }
+  .card.slide{animation:slidein .3s cubic-bezier(.2,.9,.3,1)}
+  @keyframes slidein{from{transform:translateX(26px);opacity:0}to{transform:translateX(0);opacity:1}}
+  @media (prefers-reduced-motion:reduce){
+    .fx i{display:none}
+    .fxstamp.on{animation-duration:.5s}
+    .card.slide{animation:none}
+  }
+  .regionchip{
+    font-size:12px;font-weight:700;color:var(--sea);
+    background:rgba(98,182,203,.2);border-radius:999px;padding:5px 13px;
+  }
+  .answer{font-size:clamp(36px,12vw,52px);line-height:1.25;font-weight:400}
+  .flagbox{width:min(220px,64vw)}
+  .flagbox svg{display:block;width:100%;height:auto;border:1.5px solid var(--line);border-radius:4px}
+  .hintlabel{font-size:11.5px;letter-spacing:.16em;color:var(--muted);font-weight:700}
+  .hints{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  .hints li{
+    list-style:none;
+    background:var(--gold);color:#463206;
+    border-radius:999px;padding:9px 15px;font-size:15px;font-weight:700;
+  }
+  .hints{margin:0;padding:0}
+  .reading{font-size:16px;color:var(--muted);font-weight:700;letter-spacing:.06em;margin-top:-8px}
+  #mathpad{display:grid;gap:11px;width:100%}
+  .numtiles{display:flex;flex-wrap:wrap;gap:9px;justify-content:center}
+  .numtiles button{
+    width:clamp(50px,15vw,60px);aspect-ratio:1;border-radius:15px;border:none;
+    background:var(--sea);color:#fff;display:grid;place-items:center;cursor:pointer;
+    font-family:"Yusei Magic",system-ui,sans-serif;font-size:clamp(26px,8.5vw,34px);
+    font-variant-numeric:tabular-nums;padding:0;
+    box-shadow:0 3px 0 rgba(0,0,0,.2);
+  }
+  .numtiles button:active{transform:translateY(3px);box-shadow:none}
+  .numtiles button.used{background:var(--paper);color:var(--line);box-shadow:none;pointer-events:none}
+  .goal{font-size:15px;font-weight:700;margin:0}
+  .goal b{color:var(--vermilion);font-size:20px}
+  .mexpr{
+    min-height:58px;
+    background:var(--paper);border:1.5px dashed var(--line);border-radius:14px;
+    display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:4px;
+    padding:8px 10px;
+    font-family:"Yusei Magic",system-ui,sans-serif;font-size:clamp(22px,7vw,30px);
+    font-variant-numeric:tabular-nums;color:var(--ink);
+  }
+  .mexpr.empty{
+    font-family:inherit;font-size:13px;font-weight:500;color:var(--muted);
+  }
+  .ops{display:flex;flex-wrap:wrap;gap:7px;justify-content:center}
+  .ops button{
+    min-width:48px;height:44px;border-radius:12px;padding:0 10px;
+    border:1.5px solid var(--line);background:var(--surface);color:var(--sea);
+    font-size:21px;font-weight:900;cursor:pointer;font-family:inherit;
+  }
+  .ops button:active{background:var(--sky);color:#fff}
+  .edit{display:flex;gap:8px}
+  .edit button{
+    flex:1;font:inherit;font-size:13px;font-weight:700;padding:9px 6px;
+    border-radius:11px;border:1.5px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;
+  }
+  .verdict{
+    margin:0;border-radius:12px;padding:11px 14px;
+    font-size:18px;font-weight:900;line-height:1.4;
+  }
+  .verdict.ok{background:rgba(47,143,91,.15);color:var(--leaf)}
+  .verdict.ng{background:rgba(224,69,47,.12);color:var(--vermilion)}
+  .solution{
+    background:rgba(47,143,91,.12);color:var(--leaf);
+    border-radius:14px;padding:12px 14px;font-size:19px;font-weight:900;
+    font-variant-numeric:tabular-nums;line-height:1.5;word-break:break-all;
+  }
+  .playbtns{display:grid;gap:9px}
+
+  /* ---- countdown ---- */
+  .orient{flex:1;display:flex;flex-direction:column;gap:8px;min-height:0}
+  .orient .o{
+    flex:1;border-radius:18px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:4px;color:#fff;
+  }
+  .orient .o.adult{background:var(--sea);transform:rotate(180deg)}
+  .orient .o.child{background:var(--vermilion)}
+  .orient .o b{
+    font-family:"Yusei Magic",system-ui,sans-serif;font-weight:400;
+    font-size:clamp(28px,9vw,40px);line-height:1;
+  }
+  .orient .o small{font-size:12.5px;font-weight:700;opacity:.9}
+  .orient .mid{
+    flex:none;text-align:center;font-size:13px;font-weight:700;color:var(--sea);
+    display:flex;align-items:center;justify-content:center;gap:12px;
+  }
+  .orient .mid .n{
+    font-family:"Yusei Magic",system-ui,sans-serif;font-weight:400;
+    font-size:40px;color:var(--vermilion);line-height:1;
+  }
+  .count{
+    flex:1;display:grid;place-items:center;
+    font-size:clamp(90px,34vw,150px);color:var(--sea);line-height:1;
+  }
+
+  /* ---- result ---- */
+  .rankcard{
+    background:var(--surface);border:1.5px solid var(--line);border-radius:24px;
+    padding:24px 18px;box-shadow:var(--shadow);text-align:center;
+  }
+  .rankbadge{
+    display:inline-block;border-radius:999px;padding:6px 18px;
+    font-weight:900;font-size:14px;color:#fff;
+  }
+  .bignum{
+    font-size:clamp(60px,20vw,86px);line-height:1;margin:12px 0 2px;
+    font-variant-numeric:tabular-nums;color:var(--sea);
+  }
+  .bignum small{font-size:22px;margin-left:4px;color:var(--muted)}
+  .newbest{color:var(--vermilion);font-weight:900;font-size:13px;margin-top:6px}
+  /* くらい（ランク）の 表示 */
+  .rankbadge{font-size:16px;padding:7px 22px;letter-spacing:.04em}
+  .rankpace{margin:6px 0 8px;font-size:13px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+  .ranknext{
+    margin:10px auto 0;width:fit-content;
+    font-size:12.5px;font-weight:800;color:var(--sea);
+    background:rgba(98,182,203,.18);border-radius:999px;padding:6px 14px;
+  }
+  .ranknext[hidden]{display:none}
+  .ranksash{margin-top:14px;padding-top:14px;border-top:1.5px dashed var(--line)}
+  .ranksash .rankpace{margin:8px 0 0}
+  .hee{
+    background:var(--sea);color:#fff;border-radius:20px;padding:18px;
+  }
+  .hee .eyebrow{color:var(--gold)}
+  .hee p{margin:8px 0 0;font-size:16.5px;line-height:1.6;font-weight:700}
+  .hee .hee-name{font-size:26px;font-weight:400;margin-top:10px;line-height:1.2}
+  .recap{
+    background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:14px;
+  }
+  .recap h3{margin:0 0 9px;font-size:12px;letter-spacing:.14em;color:var(--muted)}
+  .recap ul{margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+  .recap li{
+    list-style:none;font-size:13px;font-weight:700;
+    background:rgba(47,143,91,.12);color:var(--leaf);
+    border-radius:999px;padding:5px 11px;
+  }
+  .promo{
+    border:1.5px dashed var(--sea);border-radius:16px;padding:16px;text-align:center;
+    background:rgba(98,182,203,.10);
+  }
+  .promo b{display:block;font-size:16px;font-weight:900;color:var(--sea)}
+  .promo p{margin:6px 0 12px;font-size:13px;color:var(--muted);line-height:1.6}
+  .foot{text-align:center;font-size:11.5px;color:var(--muted)}
+
+
+  /* ---- あそびかた画面（1画面に おさめる） ---- */
+  #s-how{gap:13px}
+  .howhead{display:flex;align-items:center;gap:10px}
+  .howttl{flex:1;min-width:0}
+  .howttl .eyebrow{margin:0 0 4px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .howttl h2{font-size:19px;line-height:1.25}
+  .lvchip{
+    font-size:10.5px;font-weight:800;letter-spacing:.04em;
+    background:var(--gold);color:#463206;border-radius:999px;padding:3px 9px;
+  }
+  .howlede{
+    margin:0;font-size:13.5px;line-height:1.6;color:var(--muted);
+    background:var(--surface);border:1.5px solid var(--line);border-radius:14px;
+    padding:11px 13px;
+  }
+  .howlede b{color:var(--vermilion);font-weight:800}
+  /* 上のすき間は 下より せまく。えらぶところが やや上に 来るほうが 読みやすい */
+  #s-how .spacer.top{flex:.45}
+  .rulesbtn{
+    flex:none;font:inherit;font-weight:800;font-size:12.5px;white-space:nowrap;
+    padding:9px 14px 9px 10px;border-radius:999px;
+    border:1.5px solid var(--sea);background:var(--surface);color:var(--sea);
+    cursor:pointer;display:flex;align-items:center;gap:6px;
+    box-shadow:0 2px 0 rgba(27,73,101,.14);
+  }
+  .rulesbtn .qm{
+    width:17px;height:17px;border-radius:50%;flex:none;
+    background:var(--sea);color:#fff;font-size:12px;font-weight:900;
+    display:grid;place-items:center;line-height:1;
+  }
+  .rulesbtn:active{background:var(--sea);color:#fff;transform:translateY(2px);box-shadow:none}
+  .rulesbtn:active .qm{background:#fff;color:var(--sea)}
+
+  /* 選たくは タイル状。選んだものが ひと目で わかるように 強く 色を変える */
+  .pickrow{display:grid;gap:7px}
+  .pickrow[hidden]{display:none}
+  .picklabel{font-size:11.5px;font-weight:800;letter-spacing:.1em;color:var(--muted)}
+  .pickgrid{display:grid;gap:6px}
+  .pickgrid.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .pickgrid.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .pickgrid.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pickgrid button{
+    font:inherit;font-weight:700;font-size:13px;line-height:1.2;
+    min-width:0;min-height:46px;padding:7px 3px;
+    border:2px solid var(--line);border-radius:13px;
+    background:var(--surface);color:var(--muted);cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    transition:background .12s ease, color .12s ease, border-color .12s ease;
+  }
+  .pickgrid button b{font-weight:900;font-size:13.5px}
+  .pickgrid button small{font-size:9.5px;font-weight:700;opacity:.75;white-space:nowrap}
+  .pickgrid button[aria-pressed="true"]{
+    background:var(--sea);border-color:var(--sea);color:#fff;
+    box-shadow:0 0 0 3px rgba(98,182,203,.4);
+  }
+  .pickgrid button[aria-pressed="true"] small{opacity:.92}
+  .pickgrid button:active{transform:translateY(1px)}
+
+  .roles{margin:0}
+  .role{padding:12px 10px}
+  .role .face{font-size:26px}
+  .role b{margin-top:4px;font-size:15px}
+
+  /* ルールの シート */
+  .rulesheet{max-width:400px;text-align:left;max-height:84svh;overflow:auto;gap:12px}
+  .rulesheet h2{text-align:center;font-size:22px}
+  .rulesmode{
+    margin:-4px 0 0;text-align:center;font-size:12.5px;font-weight:800;color:var(--sea);
+  }
+  .rulesheet .steps{gap:9px}
+  .rulesheet .step{padding:12px}
+  .rulesheet .step p{font-size:14px}
+
+
+  .setsheet{max-width:360px;text-align:left;gap:14px}
+  .setnote{margin:0;font-size:12.5px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+  /* まちがい直しは わき役なので カードを 小さく */
+  .mode.miss{border-color:var(--gold);background:#FFFBF0;padding:8px 12px;gap:10px}
+  .mode.miss .icon{width:34px;height:26px}
+  .mode.miss b{font-size:14.5px}
+  .mode.miss small{font-size:11px;margin-top:1px}
+  .setsheet h2{text-align:center}
+  /* グループ画面も 1画面に。カードは 2列のタイル */
+  #s-sub{gap:11px}
+  #s-sub .lede{font-size:13.5px;line-height:1.6}
+  #s-sub h1{font-size:clamp(23px,6.6vw,30px)}
+  #sub-modes{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #sub-modes .mode{
+    flex-direction:column;align-items:center;text-align:center;
+    gap:5px;padding:11px 7px;
+  }
+  #sub-modes .mode .icon{width:52px;height:34px}
+  #sub-modes .mode b{font-size:15px}
+  #sub-modes .mode small{font-size:10.5px;margin-top:1px;white-space:nowrap}
+  #sub-note:empty{display:none}
+
+
+  /* せの低い スマホ（iPhone SE など）は もう少し 詰める */
+  @media (max-height:710px){
+    .wrap{padding-block:9px 10px;gap:9px}
+    h1{font-size:24px}
+    .titlelede{gap:3px}
+    .titlelede .lede{font-size:12px;line-height:1.5}
+    .modes{gap:6px}
+    .mode{padding:8px 11px;gap:9px}
+    .mode .icon{width:38px;height:28px}
+    .mode b{font-size:15px}
+    .mode small{font-size:10.5px}
+    .mode.miss{padding:5px 11px}
+    .mode.miss .icon{width:28px;height:21px}
+    .mode.miss b{font-size:13.5px}
+    .picklabel{font-size:11px}
+    .brandmark .pin{width:26px;height:26px}
+    .rulesbtn{padding:7px 12px 7px 9px;font-size:12px}
+    .foot{font-size:10px}
+    .howttl h2{font-size:17px}
+    #s-title .modes{gap:5px}
+    #s-title .titlelede .lede{font-size:11.5px}
+    .pickgrid button{min-height:38px}
+    .howlede{padding:9px 12px;font-size:12.5px}
+    #sub-modes .mode{padding:9px 6px}
+    #sub-modes .mode .icon{width:46px;height:30px}
+  }
+
+  /* ---- はやおし親子バトル ---- */
+    #s-battle{
+    touch-action:none;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #s-battle .choice{touch-action:none}
+  #s-battle.on{
+    position:fixed;inset:0;z-index:5;
+    background:var(--paper);
+    padding:8px;gap:8px;
+    display:flex;flex-direction:column;
+  }
+  .side{
+    flex:1;min-height:0;
+    background:var(--surface);border:1.5px solid var(--line);border-radius:20px;
+    padding:10px;display:flex;flex-direction:column;gap:8px;
+    align-items:center;justify-content:center;
+    position:relative;overflow:hidden;
+  }
+  .side[data-side="adult"]{transform:rotate(180deg)}
+  .side.flash{background:#DFF2E6;border-color:var(--leaf)}
+  .sidetag{
+    position:absolute;top:7px;left:12px;
+    font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:.1em;
+  }
+  .qart{width:min(84px,20vh);flex:none}
+  .qart svg,.qart img{display:block;width:100%;height:auto;border-radius:4px}
+  .qart svg{border:1px solid var(--line)}
+  .qtext{
+    margin:0;text-align:center;font-weight:900;line-height:1.3;
+    font-size:clamp(16px,4.6vh,24px);
+  }
+  .qtext.num{font-family:"Yusei Magic",system-ui,sans-serif;font-weight:400;font-size:clamp(26px,7vh,40px);font-variant-numeric:tabular-nums}
+  .choices{
+    display:grid;gap:7px;width:100%;
+    grid-template-columns:repeat(2,1fr);
+  }
+  .choices.one{grid-template-columns:1fr}
+  .choice{
+    font:inherit;font-weight:700;font-size:clamp(13px,2.5vh,17px);
+    padding:clamp(8px,1.6vh,14px) 6px;
+    border:1.5px solid var(--line);border-radius:12px;
+    background:var(--paper);color:var(--ink);cursor:pointer;
+    min-height:0;
+  }
+  .choice:active{background:var(--sky);color:#fff}
+  .side.locked .choice{opacity:.35;pointer-events:none}
+  .lockmsg{
+    display:none;position:absolute;inset:0;
+    background:rgba(224,69,47,.92);color:#fff;
+    align-items:center;justify-content:center;
+    font-size:26px;font-weight:900;
+  }
+  .side.locked .lockmsg{display:flex}
+  /* けいさんは 自分で 数字を 入力する */
+  .numwrap{width:100%;display:flex;flex-direction:column;gap:6px}
+  .numwrap[hidden]{display:none}
+  .numin{
+    min-height:clamp(38px,6.2vh,54px);
+    background:var(--paper);border:2px dashed var(--line);border-radius:12px;
+    display:flex;align-items:center;justify-content:center;gap:2px;
+    font-family:"Yusei Magic",system-ui,sans-serif;
+    font-size:clamp(24px,5.4vh,38px);color:var(--ink);
+    font-variant-numeric:tabular-nums;letter-spacing:.06em;
+  }
+  .numin.filled{border-style:solid;border-color:var(--sky);background:#fff}
+  .numcaret{
+    width:3px;height:.9em;background:var(--sky);border-radius:2px;
+    animation:caret 1s steps(1,end) infinite;
+  }
+  @keyframes caret{0%,50%{opacity:1}51%,100%{opacity:0}}
+  .numpad{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+  .numkey{
+    font-family:"Yusei Magic",system-ui,sans-serif;
+    font-size:clamp(17px,3.4vh,26px);font-variant-numeric:tabular-nums;
+    min-height:clamp(34px,5.4vh,48px);padding:0;
+    border:1.5px solid var(--line);border-radius:10px;
+    background:var(--surface);color:var(--ink);cursor:pointer;
+    touch-action:none;
+  }
+  .numkey:active{background:var(--sea);color:#fff;border-color:var(--sea)}
+  .numkey.del{grid-column:span 5;font-family:inherit;font-size:clamp(12px,2.2vh,15px);font-weight:800;color:var(--muted)}
+  /* おとなのハンデ：少しのあいだ 押せない */
+  /* 問題文は 読めるように、かぶせるのは テンキーの上だけ */
+  .numwrap{position:relative}
+  .waitmsg{
+    display:none;position:absolute;inset:0;z-index:5;border-radius:12px;
+    background:rgba(27,73,101,.78);color:#fff;
+    align-items:center;justify-content:center;
+    font-size:clamp(17px,3.2vh,24px);font-weight:900;letter-spacing:.08em;
+  }
+  .side.waiting .waitmsg{display:flex}
+  .side.waiting .numpad,.side.waiting .numin{pointer-events:none}
+  /* 終了オーバーレイ：時間切れ直後の連打を すべて受けとめる */
+  .bfin{
+    display:none;position:absolute;inset:0;z-index:40;
+    background:#1B4965;color:#fff;
+    flex-direction:column;
+  }
+  .bfin.on{display:flex}
+  .bfin .half{
+    flex:1;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:6px;text-align:center;
+  }
+  .bfin .half.up{transform:rotate(180deg)}
+  .bfin .big{font-size:clamp(26px,5.2vh,40px);font-weight:900;letter-spacing:.04em}
+  .bfin .sub{font-size:clamp(13px,2.2vh,16px);opacity:.85}
+  /* ---------------- ちずクイズ ---------------- */
+  #s-geo.on{display:flex}
+  #s-geo{gap:8px}
+  .geowrap{position:relative;flex:1 1 auto;min-height:0;display:flex}
+  .greset{
+    position:absolute;right:8px;bottom:8px;z-index:5;
+    font:inherit;font-weight:800;font-size:12px;padding:9px 12px;border-radius:12px;
+    border:1.5px solid var(--line);background:rgba(255,255,255,.94);color:var(--ink);
+    cursor:pointer;box-shadow:0 2px 6px rgba(27,73,101,.14);
+  }
+  .greset:active{background:var(--sea);color:#fff}
+  /* 4たくのボタン。指で押しやすい大きさを最優先 */
+  .gchoices{
+    flex:none;display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  }
+  .gchoice{
+    font:inherit;font-weight:800;font-size:clamp(15px,2.4vh,19px);
+    min-height:clamp(52px,7.4vh,68px);padding:8px 6px;
+    border:2px solid var(--line);border-radius:14px;
+    background:var(--paper);color:var(--ink);cursor:pointer;
+    box-shadow:0 2px 0 rgba(27,73,101,.10);
+  }
+  .gchoice:active{background:var(--sky);color:#fff;border-color:var(--sky)}
+  .gchoice:disabled{cursor:default}
+  .gchoice.right{background:var(--leaf);color:#fff;border-color:var(--leaf)}
+  .gchoice.wrong{background:#E0452F;color:#fff;border-color:#E0452F}
+  .geoq{background:var(--paper);border-radius:14px;padding:8px 12px 10px;text-align:center;border:1px solid var(--line);flex:none}
+  .geoq-sub{margin:0;font-size:12px;color:var(--sub);font-weight:700;letter-spacing:.04em}
+  .geoq-name{margin:0;font-size:0;line-height:0}
+  .geoq{padding:10px 12px}
+  .geoq-sub{font-size:clamp(14px,2.5vh,18px);color:var(--ink)}
+  .geomap{position:relative;flex:1 1 auto;min-width:0;min-height:0;background:#8FC9E8;border-radius:14px;border:1px solid var(--line);overflow:hidden}
+  #geo-map .mapsvg{position:absolute;left:6px;top:6px;right:6px;bottom:6px;width:auto;height:auto}
+  .geobar{
+    flex:none;background:var(--paper);border:1px solid var(--line);border-radius:12px;
+    padding:10px 12px;text-align:center;font-weight:800;font-size:15px;color:var(--sub);
+    transition:background .15s,color .15s;
+  }
+  .geobar.sel{background:#1B4965;color:#fff;border-color:#1B4965}
+  .geobar.ok{background:var(--leaf);color:#fff;border-color:var(--leaf)}
+  .geobar.near{background:#E9B44C;color:#3B2A08;border-color:#E9B44C}
+  .geobar.ng{background:#E0452F;color:#fff;border-color:#E0452F}
+  /* ---------------- 地図 ---------------- */
+  .mapsvg{display:block;width:100%;height:100%;touch-action:manipulation}
+  #geo-map{touch-action:none;-webkit-user-select:none;user-select:none}
+  /* 地図の色：陸は みどり、海は あお（地図帳に近づける） */
+  .mapsvg{--sea:#8FC9E8;--landa:#AFCF88;--landb:#C6D9A8;--mapline:#3F6B4E}
+  .mapsvg .pf,.mapsvg .cty{fill:var(--landa);stroke:var(--mapline);stroke-width:.9;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+  .mapsvg .sea{fill:var(--sea)}
+  .mapsvg .land{fill:var(--landb);stroke:#fff;stroke-width:.6;vector-effect:non-scaling-stroke}
+  .mapsvg .pf.got,.mapsvg .cty.got{fill:#F0B429}
+  .mapsvg .pf.hit,.mapsvg .cty.hit{fill:#E0452F}
+  .mapsvg .pf.near,.mapsvg .cty.near{fill:#F0A58F}
+  .mapsvg .pf.sel,.mapsvg .cty.sel{fill:#1B4965}
+  .mapsvg .pf.off{fill:#CBD8BE;stroke:#8FA684}
+  .mapsvg .insetbox{fill:var(--sea);stroke:#2F6B86;stroke-width:1;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
+  .mapsvg .inslabel{fill:#1B4965;font-weight:700}
+  /* 県庁所在地 */
+  .mapsvg .capdot{fill:#fff;stroke:#2C4A36;stroke-width:1.1;vector-effect:non-scaling-stroke}
+  .mapsvg .capdot.on{fill:#fff;stroke:#1B4965;stroke-width:1.8}
+  .mapsvg .capcore{fill:#1B4965}
+  .mapsvg .findring{fill:none;stroke:#C91F0B;stroke-width:2.6;stroke-dasharray:5 4;opacity:.95;vector-effect:non-scaling-stroke}
+  .mapsvg .caplab{font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:3.4px;stroke-linejoin:round;fill:#2B3A32}
+  .mapsvg .caplab.diff{fill:#C0392B}   /* 県名と ちがう 県庁所在地 */
+  /* 正解した瞬間に0.9秒だけ出る地図 */
+  .mapflash{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:min(78%,300px);background:var(--paper);border-radius:16px;
+    box-shadow:0 10px 30px rgba(27,73,101,.28);padding:10px 10px 6px;
+    pointer-events:none;opacity:0;transition:opacity .16s;z-index:30;
+  }
+  .mapflash.on{opacity:1}
+  #card.veil{opacity:.07;transition:opacity .15s}
+  .mapflash{width:min(86%,330px)}
+  .mapflash .mf-badge{
+    text-align:center;font-weight:900;font-size:15px;margin:0 auto 6px;
+    background:var(--leaf);color:#fff;border-radius:999px;padding:5px 16px;width:fit-content;
+  }
+  .mapflash .mf-badge.gold{background:#E8A317}
+  .mapflash .mf-badge.fire{background:#E0452F}
+  .mapflash .mf-name{text-align:center;font-weight:900;font-size:17px;margin:2px 0 0;color:var(--ink)}
+  .mapflash .mf-cap{text-align:center;font-size:12px;font-weight:700;margin:2px 0 6px;color:var(--sub)}
+  .mapflash .mf-cap.diff{color:#C0392B}
+  .mapflash .mf-box{aspect-ratio:56/74;overflow:hidden}
+  .mapflash.world .mf-box{aspect-ratio:72/38}
+  /* 結果画面の地図 */
+  .resmap{position:relative;background:var(--paper);border-radius:16px;padding:12px 12px 8px;margin:0 0 12px;border:1px solid var(--line)}
+  .resmap .rm-head{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+  .resmap .rm-head b{font-size:15px}
+  .resmap .rm-head span{font-size:13px;color:var(--sub)}
+  .resmap .rm-box{aspect-ratio:56/74}
+  .resmap.world .rm-box{aspect-ratio:72/38}
+  .resmap .rm-note{font-size:12px;color:var(--sub);margin:6px 2px 0;line-height:1.6}
+  .resmap .rm-note b{color:#C0392B}
+  .resmap .rm-note .rm-hint{font-size:11px;color:var(--sub);font-weight:700}
+  .resmap .rm-brand{text-align:right;font-size:11px;color:var(--sub);margin:0 2px 0;font-weight:700}
+  /* 結果画面：出たての数秒はボタンを押せなくする */
+  .reslock .btn{opacity:.35;pointer-events:none}
+  .mid{
+    flex:none;display:flex;align-items:center;gap:10px;
+    padding:0 4px;
+  }
+  .mscore{
+    background:var(--sea);color:#fff;border-radius:999px;
+    padding:6px 14px;font-weight:900;font-size:18px;font-variant-numeric:tabular-nums;
+    min-width:54px;text-align:center;
+  }
+  .mscore small{display:block;font-size:9px;font-weight:700;opacity:.75;letter-spacing:.08em}
+  .mtimer{flex:1;height:10px;border-radius:999px;background:rgba(27,73,101,.16);overflow:hidden}
+  .mtimer div{height:100%;width:100%;background:var(--sky)}
+  .mtimer div.warn{background:var(--vermilion)}
+  .mid .iconbtn{width:38px;height:38px;border-radius:11px}
+  .mid .iconbtn svg{width:14px;height:14px}
+
+  /* ---- 親子クロスワード ---- */
+  #s-cross.on{
+    position:fixed;inset:0;z-index:5;background:var(--paper);
+    padding:8px;display:flex;flex-direction:column;gap:8px;
+  }
+  .cwhud{display:flex;align-items:center;gap:9px;flex:none}
+  .cwstat{
+    background:var(--surface);border:1.5px solid var(--line);border-radius:12px;
+    padding:6px 12px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;
+  }
+  .cwstat b{color:var(--sea);font-size:16px}
+  /* 役割の強調 */
+  .rolesplit{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .rolesplit .rs{
+    border-radius:16px;padding:14px 10px;text-align:center;color:#fff;
+    box-shadow:var(--shadow);
+  }
+  .rolesplit .rs.yoko{background:var(--vermilion)}
+  .rolesplit .rs.tate{background:var(--sea)}
+  .rolesplit .rs b{display:block;font-size:15px;font-weight:900;letter-spacing:.04em}
+  .rolesplit .rs .who{
+    display:block;margin-top:6px;font-size:22px;
+    font-family:"Yusei Magic",system-ui,sans-serif;font-weight:400;
+  }
+  .rolesplit .rs .arrow{display:block;font-size:17px;opacity:.8;margin-top:2px}
+
+  .rolebar{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .rolebar span{
+    border-radius:10px;padding:6px 8px;text-align:center;color:#fff;
+    font-size:12.5px;font-weight:900;letter-spacing:.02em;
+  }
+  .rolebar .yoko{background:var(--vermilion)}
+  .rolebar .tate{background:var(--sea)}
+
+  /* 語のはじまるマスに 向きの色をつける */
+  .cwcell.sa::before{
+    content:'';position:absolute;left:0;top:5px;bottom:5px;width:4px;
+    background:var(--vermilion);border-radius:0 3px 3px 0;
+  }
+  .cwcell.sd::after{
+    content:'';position:absolute;top:0;left:5px;right:5px;height:4px;
+    background:var(--sea);border-radius:0 0 3px 3px;
+  }
+  .cwcell.inword.wa{background:#FDECE8}
+  .cwcell.inword.wd{background:#E4F0F6}
+  .cwcell.sel{background:var(--gold);border-color:#C9961F}
+
+  .cwscroll{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:2px}
+  .cwgrid{display:grid;gap:3px;justify-content:center;flex:none}
+  .cwcell{
+    width:var(--cw,42px);height:var(--cw,42px);padding:0;
+    border:1.5px solid var(--line);border-radius:5px;background:var(--surface);
+    position:relative;display:grid;place-items:center;cursor:pointer;
+    font-family:inherit;font-size:calc(var(--cw,42px)*0.52);font-weight:700;color:var(--ink);
+  }
+  .cwcell.black{background:transparent;border-color:transparent;pointer-events:none}
+  .cwcell.inword{background:#FFF6E0}
+  .cwcell.sel{background:var(--gold);border-color:#C9961F}
+  .cwcell .no{
+    position:absolute;top:0;left:2px;font-size:9px;font-weight:700;color:var(--muted);line-height:1.2;
+  }
+  .cluetoggle{
+    flex:none;width:100%;font:inherit;font-size:13px;font-weight:700;
+    padding:9px 12px;border-radius:11px;border:1.5px dashed var(--line);
+    background:transparent;color:var(--muted);cursor:pointer;
+  }
+  .clues{display:grid;gap:10px;flex:none}
+  .clues[hidden]{display:none}
+  .cluegrp{display:grid;gap:5px}
+  .cluehead{font-size:11.5px;font-weight:900;letter-spacing:.12em;margin:0}
+  .cluehead.yoko{color:var(--vermilion)}
+  .cluehead.tate{color:var(--sea)}
+  .clue{
+    display:flex;gap:8px;align-items:baseline;width:100%;text-align:left;
+    font:inherit;font-size:13px;font-weight:500;color:var(--ink);
+    padding:7px 10px;border-radius:10px;border:1.5px solid var(--line);
+    background:var(--surface);cursor:pointer;
+  }
+  .clue b{flex:none;width:18px;font-weight:900;color:var(--muted);font-variant-numeric:tabular-nums}
+  .clue.sel{border-color:var(--gold);background:#FFF8E8}
+  .clue.ok{color:var(--leaf);opacity:.75}
+  .clue.ok b{color:var(--leaf)}
+  .cwnow{flex:none;display:grid;gap:5px}
+  .cwnow button{
+    display:flex;gap:9px;align-items:center;width:100%;text-align:left;
+    font:inherit;font-size:13.5px;font-weight:500;color:var(--ink);
+    padding:9px 11px;border-radius:12px;border:1.5px solid var(--line);
+    background:var(--surface);cursor:pointer;
+  }
+  .cwnow button .tag{
+    flex:none;font-size:11px;font-weight:900;border-radius:999px;
+    padding:3px 9px;color:#fff;font-variant-numeric:tabular-nums;
+  }
+  .cwnow button .tag.yoko{background:var(--vermilion)}
+  .cwnow button .tag.tate{background:var(--sea)}
+  .cwnow button.sel{border-color:var(--gold);background:#FFF8E8}
+  .cwnow button.ok .txt{color:var(--leaf)}
+  .cwnow .none{
+    font-size:12.5px;color:var(--muted);text-align:center;padding:9px;
+  }
+  .cwpad{flex:none;display:grid;gap:5px}
+  .kbd{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
+  .kbd button{
+    aspect-ratio:1;padding:0;border:1.5px solid var(--line);border-radius:7px;
+    background:var(--surface);color:var(--ink);
+    font:inherit;font-size:clamp(13px,3.6vw,16px);font-weight:700;cursor:pointer;
+  }
+  .kbd button:active{background:var(--sky);color:#fff}
+  .kbd button.blank{visibility:hidden}
+  .kbd2{display:flex;gap:5px}
+  .kbd2 button{
+    flex:1;padding:9px 3px;white-space:nowrap;border:1.5px solid var(--line);border-radius:9px;
+    background:var(--surface);color:var(--sea);font:inherit;font-size:13px;font-weight:700;cursor:pointer;
+  }
+  .kbd2 button.wide{flex:1.4;color:var(--muted)}
+
+  /* ---- けいさんクロス（1人用） ---- */
+  #s-numcross.on{
+    position:fixed;inset:0;z-index:5;background:var(--paper);
+    padding:8px;display:flex;flex-direction:column;gap:10px;
+  }
+  .ncwrap{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;justify-content:center;gap:12px}
+  .ncgrid{
+    display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.6fr) minmax(0,1.25fr) minmax(0,.6fr) minmax(0,1.25fr);
+    gap:5px;align-items:center;justify-items:center;
+    width:min(100%,360px);margin:0 auto;
+  }
+  .ncop{
+    font-size:clamp(16px,5vw,21px);font-weight:900;color:var(--sea);
+  }
+  .ncblank{width:100%}
+  .nccell{
+    width:100%;min-width:0;aspect-ratio:1.15;padding:0;border-radius:12px;
+    border:1.5px solid var(--line);background:var(--surface);
+    display:grid;place-items:center;cursor:default;
+    font-family:"Yusei Magic",system-ui,sans-serif;
+    font-size:clamp(18px,6vw,26px);color:var(--ink);
+    font-variant-numeric:tabular-nums;
+  }
+  .nccell.fixed{background:#E3EEF3;color:var(--sea);border-color:transparent}
+  .nccell.open{cursor:pointer;border-style:dashed;border-color:var(--sky)}
+  .nccell.sel{background:var(--gold);border-color:#C9961F;border-style:solid}
+  .nccell.good{background:rgba(47,143,91,.16);border-color:var(--leaf);color:var(--leaf)}
+  .nccell.bad{background:rgba(224,69,47,.14);border-color:var(--vermilion);color:var(--vermilion)}
+  .ncmsg{
+    flex:none;text-align:center;font-size:13.5px;font-weight:700;
+    border-radius:12px;padding:10px;color:var(--muted);
+  }
+  .ncmsg.ng{background:rgba(224,69,47,.12);color:var(--vermilion)}
+  .ncpad{flex:none;min-width:0}
+  .ncnum{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;width:100%}
+  .ncnum button{
+    min-width:0;height:clamp(42px,6.4vh,54px);
+    padding:0;border:1.5px solid var(--line);border-radius:11px;
+    background:var(--surface);color:var(--ink);cursor:pointer;
+    font-family:"Yusei Magic",system-ui,sans-serif;font-size:clamp(18px,5.5vw,24px);
+    font-variant-numeric:tabular-nums;
+  }
+  .ncnum button:active{background:var(--sky);color:#fff}
+
+  .vs{
+    display:flex;align-items:center;justify-content:center;gap:14px;
+    font-variant-numeric:tabular-nums;
+  }
+  .vs .n{font-size:clamp(44px,15vw,64px);line-height:1;color:var(--sea)}
+  .vs .dash{font-size:26px;color:var(--muted);align-self:flex-start;margin-top:14px}
+  .vs .who{font-size:12px;font-weight:700;color:var(--muted);display:block;text-align:center;margin-top:4px}
