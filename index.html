@@ -4533,6 +4533,28 @@ function drawBScore(){
     $('sc-'+side).textContent=state.goal? (b.score[side]+'/'+state.goal) : b.score[side];
   });
 }
+/* まちがいの選たく肢は、こたえと 同じ種類から えらぶ。
+   れきしなら 人物の問題は 人物だけ、できごとの問題は できごとだけ に なる。
+   同じ種類が 足りないときだけ、近い種類 → ぜんぶ の順に 広げる。 */
+const TAG_GROUP={
+  rekishi:{ '人物':'人', 'できごと':'こと', '時代':'こと', 'たてもの':'もの', 'いせき':'もの', 'むかしのどうぐ':'どうぐ' },
+  kokugo :{ 'ことわざ':'ことわざ', '慣用句':'ことわざ', '四字熟語':'四字熟語' }
+};
+const POOL_BY_TAG=['rekishi','kokugo','rika','eigo'];   /* 都道府県・国旗は 今までどおり ぜんぶから */
+function tagGroup(key,tag){ const g=TAG_GROUP[key]; return (g && g[tag]) || tag; }
+function battlePool(key,deck,q){
+  const others=deck.filter(function(x){ return x.name!==q.name; });
+  if(POOL_BY_TAG.indexOf(key)<0) return shuffle(others.map(function(x){ return x.name; }));
+  const same=[],near=[],rest=[];
+  others.forEach(function(x){
+    if(x.tag===q.tag) same.push(x);
+    else if(tagGroup(key,x.tag)===tagGroup(key,q.tag)) near.push(x);
+    else rest.push(x);
+  });
+  /* pickOpts は 前から取るので、同じ種類 → 近い種類 → その他 の順に ならべる */
+  return shuffle(same).concat(shuffle(near),shuffle(rest)).map(function(x){ return x.name; });
+}
+
 function makeBattleQ(){
   const keys=(state.bsubj==='mix')?BSUBJ_ALL:[state.bsubj];
   const key=keys[Math.floor(Math.random()*keys.length)];
@@ -4545,11 +4567,12 @@ function makeBattleQ(){
   if(key==='flag'){ text='この国旗{こっき}はどこ？'; art=q.art; }
   else if(key==='eigo'){ text='これを英語{えいご}で？'; art=q.art; }
   else{ text=pickN(q.hints,2).join('・'); }
-  const pool=deck.filter(function(x){return x.name!==q.name;}).map(function(x){return x.name;});
+  const pool=battlePool(key,deck,q);
   /* 選たく肢の 読み（ふりがな用）。デッキが 持っている yomi を そのまま使う */
   const ymap={};
   deck.forEach(function(x){ ymap[x.name]=x.yomi; });
-  return {art:art,text:text,num:false,answer:q.name,pool:shuffle(pool),fact:q.fact,yomi:ymap,sub:key};
+  /* pool は battlePool() が「同じ種類 → 近い種類 → その他」の順に ならべてあるので ここで 混ぜない */
+  return {art:art,text:text,num:false,answer:q.name,pool:pool,fact:q.fact,yomi:ymap,sub:key};
 }
 
 function pickOpts(q,n){
