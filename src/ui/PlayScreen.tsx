@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deckFor, hints3 } from '../game/decks';
 import { checkMath, type Token } from '../game/math10';
 import { plain, nameHTML } from '../game/furigana';
-import { artHTML } from '../game/art';
+import { artHTML, preloadArt } from '../game/art';
 import { markSeen, markHit, markMiss } from '../game/records';
 import { capOf, capSameName, jpSVG, wSVG } from '../game/geo';
 import { isMathQ, type DeckItem, type Level, type MathQ, type Mode, type RelayQ } from '../game/types';
@@ -47,6 +47,7 @@ export function PlayScreen({ mode, level, seconds, role, onFinish, onRestart, on
   const q = deck[idx % Math.max(1, deck.length)];
 
   useEffect(() => { if (mode === 'miss' && !deck.length) onEmpty(); }, [mode, deck, onEmpty]);
+  useEffect(() => { preloadArt(deck.map((q) => (isMathQ(q) ? null : q.art))); }, [deck]);
 
   const stopTimer = () => { if (timer.current) { clearInterval(timer.current); timer.current = null; } };
   const finish = useCallback(() => {

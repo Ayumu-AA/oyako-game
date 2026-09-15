@@ -76,14 +76,15 @@ export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared }
   const [rec, setRec] = useState({ miss: 0, seen: 0 });
   const [sure, setSure] = useState<0 | 1 | 2>(0);
   const closeBtn = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose); onCloseRef.current = onClose;
   useEffect(() => {
     if (!open) return;
     setRec({ miss: missCount(), seen: seenCount() }); setSure(0);
     closeBtn.current?.focus();
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCloseRef.current(); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  }, [open]);
   const clearLabel = sure === 0 ? 'まちがい帳と 出題きろくを 消す' : sure === 1 ? '本当に 消す？（もう一度 おす）' : '消しました';
   return (
     <div className="overlay" id="set-ov" hidden={!open} role="dialog" aria-modal="true" aria-labelledby="set-title" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>

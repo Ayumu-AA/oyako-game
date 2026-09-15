@@ -1,5 +1,6 @@
 /* はやおし親子バトル の 純ロジック（問題づくり・選たく肢・得点）。タイマーと描画は UI 側 */
 import { relayDeck } from './decks';
+import { preloadArt } from './art';
 import { markSeen, seenAt, markHit, markMiss } from './records';
 import { shuffle, pickN, randInt, rng } from './util';
 import type { BattleQ, Level, RelayQ, Side, Subject } from './types';
@@ -77,6 +78,7 @@ export class BattleSession {
   constructor(opts: BattleOpts) {
     this.opts = opts;
     for (const k of ['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo'] as Subject[]) this.pools[k] = relayDeck(k, opts.level);
+    if (opts.bsubj === 'mix' || opts.bsubj === 'eigo') preloadArt((this.pools.eigo || []).map((q) => q.art));
   }
 
   /* 同じ問題が つづけて 出ないように えらぶ。

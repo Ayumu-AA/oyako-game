@@ -51,9 +51,12 @@ export const CONFIG = {
 
 ### 英語モードの絵
 
-`src/data/images.ts` の `IMAGES` にキーを足すと、その単語が出題に加わる。
+`public/eigo/<キー>.webp` を置いて、`src/data/images.ts` の `IMAGE_KEYS` にキーを足すと、その単語が出題に加わる。
 
-## 記録
+## 記録と通信
 
-まちがい帳・出題きろく・ベストは端末内（localStorage）。キーは v1 と同じなので引きつがれる。
-ランキング（Supabase）は v2 の次の段階で入れる。
+- まちがい帳・出題きろくは まず端末内（localStorage、キーは v1 と同じ）に書き、送信キュー（`oyako-queue`）経由で Supabase の `question_stats` に送る。通信がなくてもゲームは止まらず、つながったときに流れる
+- 起動時に匿名ログイン（`signInAnonymously`）し、サーバーの記録を取りこんで 新しいほうを採用する。端末の記録が消えてもサーバーから戻る
+- Service Worker（vite-plugin-pwa）が build 資産と えいごの絵を先読みするので、一度開けば 機内モードでも遊べる。manifest は出さない（ホーム画面追加の誘導をしないため）
+- 接続先は `src/lib/config.ts`。publishable key はブラウザに置いてよい鍵。secret key は絶対に書かない
+- ランキング（`scores`）と名前入力は次の段階

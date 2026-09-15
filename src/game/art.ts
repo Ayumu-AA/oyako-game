@@ -17,6 +17,19 @@ export function hasArt(key: string | undefined): boolean {
   return !!((IMAGES as Record<string, string>)[key] || (ART as Record<string, string>)[key]);
 }
 
+/** 絵を先に読みこんでおく（出題の瞬間に 絵が 遅れて出ないように） */
+const PRELOADED = new Set<string>();
+export function preloadArt(arts: (Art | null | undefined)[]) {
+  if (typeof Image === 'undefined') return;
+  for (const a of arts) {
+    if (!a || a.t !== 'icon') continue;
+    const src = (IMAGES as Record<string, string>)[a.k];
+    if (!src || PRELOADED.has(src)) continue;
+    PRELOADED.add(src);
+    const im = new Image(); im.decoding = 'async'; im.src = src;
+  }
+}
+
 export function artHTML(art: Art | null | undefined): string {
   if (!art) return '';
   return art.t === 'flag' ? flagSVG(art.k) : artSVG(art.k);

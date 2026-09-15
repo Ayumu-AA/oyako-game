@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { missCount } from '../game/records';
 import { store } from '../lib/storage';
+import { startSync } from '../lib/sync';
 import type { Mode } from '../game/types';
 import { TitleScreen, SettingsOverlay, SubScreen, HowScreen, CountScreen } from './menus';
 import { PlayScreen } from './PlayScreen';
@@ -27,6 +28,8 @@ export default function App() {
   const change = useCallback((p: Partial<Settings>) => setS((x) => ({ ...x, ...p })), []);
   const go = useCallback((sc: Screen) => { setScreen(sc); window.scrollTo(0, 0); if (sc === 'title') setMissN(missCount()); }, []);
   useEffect(() => { window.scrollTo(0, 0); }, [screen]);
+  /* サーバーの記録を 取りこむ（取りこめたら まちがい帳の数を 出しなおす） */
+  useEffect(() => { startSync(() => setMissN(missCount())); }, []);
 
   const openHow = (m: Mode) => { setMode(m); go('how'); };
   const onGroup = (g: Group | 'battle' | 'cross') => {
