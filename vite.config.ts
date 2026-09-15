@@ -24,5 +24,8 @@ export default defineConfig({
     }),
   ],
   base: '/oyako-game/',
-  build: { chunkSizeWarningLimit: 2000 },
+  build: {
+    chunkSizeWarningLimit: 2000,
+    rollupOptions: { input: { main: 'index.html', board: 'board.html' } },   /* board.html = ブース掲示用 */
+  },
 });

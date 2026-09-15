@@ -6,6 +6,7 @@
 import { store } from './storage';
 import { ensureUser, getClient } from './supabase';
 import { onRecordChange, mergeRemote, allStats, type StatRow } from '../game/records';
+import { getNick, setNickLocal } from './nickname';
 
 export const QUEUE_KEY = 'oyako-queue';
 export const QUEUE_MAX = 500;
@@ -13,7 +14,10 @@ export const QUEUE_MAX = 500;
 export interface ScoreRow {
   event_code: string; mode: string; level: 1 | 2; seconds: number; score: number; rank_i: number; nickname: string;
 }
-export type QueueOp = { k: 'stat'; row: StatRow } | { k: 'score'; row: ScoreRow; id: string };
+export type QueueOp =
+  | { k: 'stat'; row: StatRow }
+  | { k: 'score'; row: ScoreRow; id: string }
+  | { k: 'profile'; nickname: string; level: 1 | 2 };
 
 function loadQ(): QueueOp[] { try { return JSON.parse(store(QUEUE_KEY) || '[]') || []; } catch { return []; } }
 function saveQ(q: QueueOp[]) { try { store(QUEUE_KEY, JSON.stringify(q)); } catch { /* 容量切れ */ } }
@@ -22,6 +26,7 @@ export function queueLength(): number { return loadQ().length; }
 export function enqueue(op: QueueOp) {
   let q = loadQ();
   if (op.k === 'stat') q = q.filter((x) => !(x.k === 'stat' && x.row.sub === op.row.sub && x.row.name === op.row.name));   /* 同じ問題は 最新だけ */
+  if (op.k === 'profile') q = q.filter((x) => x.k !== 'profile');   /* 名前も 最新だけ */
   q.push(op);
   if (q.length > QUEUE_MAX) q = q.slice(q.length - QUEUE_MAX);
   saveQ(q);
@@ -49,7 +54,15 @@ export function flush(): Promise<boolean> {
       const q = loadQ(); if (!q.length) return true;
       const stats = q.filter((x): x is Extract<QueueOp, { k: 'stat' }> => x.k === 'stat');
       const scores = q.filter((x): x is Extract<QueueOp, { k: 'score' }> => x.k === 'score');
+      const profs = q.filter((x): x is Extract<QueueOp, { k: 'profile' }> => x.k === 'profile');
       const sentStat = new Set<string>(), sentScore = new Set<string>();
+      let sentProfile = false;
+      /* 名前は 先に 送る（点数の 行が 名前を 持つので） */
+      if (profs.length) {
+        const pr = profs[profs.length - 1];
+        const { error } = await c.from('profiles').upsert({ id: uid, nickname: pr.nickname, level: pr.level }, { onConflict: 'id' });
+        if (!error) sentProfile = true;
+      }
       if (stats.length) {
         const rows = stats.map((s) => ({
           user_id: uid, subject: s.row.sub, name: s.row.name,
@@ -62,7 +75,7 @@ export function flush(): Promise<boolean> {
         const { error } = await c.from('scores').insert({ user_id: uid, ...s.row });
         if (!error || /duplicate|23505/.test(error.message)) sentScore.add(s.id);
       }
-      const rest = loadQ().filter((x) => x.k === 'stat' ? !sentStat.has(x.row.sub + ':' + x.row.name) : !sentScore.has(x.id));
+      const rest = loadQ().filter((x) => x.k === 'stat' ? !sentStat.has(x.row.sub + ':' + x.row.name) : x.k === 'score' ? !sentScore.has(x.id) : !sentProfile);
       saveQ(rest);
       return rest.length === 0;
     } catch { return false; }
@@ -102,9 +115,29 @@ export async function pullRecords(): Promise<number> {
   } catch { return 0; }
 }
 
+/** 1プレイの点数を 送る（名前が あるときだけ 呼ぶ） */
+export function enqueueScore(row: ScoreRow) {
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  enqueue({ k: 'score', row, id });
+}
+export function enqueueProfile(nickname: string, level: 1 | 2) { enqueue({ k: 'profile', nickname, level }); }
+
+/** サーバーに 名前が あれば 取りこむ（端末に 無いとき だけ）。戻り値は 取りこんだ 名前 */
+export async function pullProfile(): Promise<string | null> {
+  try {
+    if (getNick()) return null;
+    const c = getClient(); if (!c) return null;
+    const uid = await ensureUser(); if (!uid) return null;
+    const { data } = await c.from('profiles').select('nickname').eq('id', uid).maybeSingle();
+    const n = data?.nickname as string | undefined;
+    if (n && !getNick()) { setNickLocal(n); return n; }
+    return null;
+  } catch { return null; }
+}
+
 let started = false;
 /** アプリ起動時に 1回。記録が 変わるたび キューに積み、つながったら 流す */
-export function startSync(onPulled?: (n: number) => void) {
+export function startSync(onPulled?: (n: number) => void, onNick?: (nick: string) => void) {
   if (started) return; started = true;
   onRecordChange((row) => enqueue({ k: 'stat', row }));
   if (typeof window !== 'undefined') {
@@ -114,6 +147,8 @@ export function startSync(onPulled?: (n: number) => void) {
   void (async () => {
     const n = await pullRecords();
     if (n && onPulled) onPulled(n);
+    const nick = await pullProfile();
+    if (nick && onNick) onNick(nick);
     await flush();
   })();
 }

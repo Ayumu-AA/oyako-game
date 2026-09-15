@@ -8,7 +8,8 @@ export default defineConfig({
   testDir: './tests',
   testMatch: /.*\.spec\.ts/,
   timeout: 60_000,
-  retries: 0,
+  retries: 1,        /* バトルの テンキーは 時間に敏感で、CPU が 混むと まれに 落ちる */
+  workers: 2,
   use: {
     baseURL: 'http://localhost:4173/oyako-game/',
     viewport: { width: 390, height: 844 },

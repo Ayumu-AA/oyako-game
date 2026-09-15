@@ -24,6 +24,7 @@ src/
   ui/     React の画面（12画面）と app.css
   data/   問題・ヒント・地図・国旗・えいごの絵（tools/extract.py が v1 から切り出した生成物）
   lib/    端末まわり（保存・音・演出・ズーム防止）
+board.html          ブース掲示用ページ（別エントリ）
 legacy/index.html   v1（1ファイル版）。参照用
 ```
 
@@ -59,4 +60,6 @@ export const CONFIG = {
 - 起動時に匿名ログイン（`signInAnonymously`）し、サーバーの記録を取りこんで 新しいほうを採用する。端末の記録が消えてもサーバーから戻る
 - Service Worker（vite-plugin-pwa）が build 資産と えいごの絵を先読みするので、一度開けば 機内モードでも遊べる。manifest は出さない（ホーム画面追加の誘導をしないため）
 - 接続先は `src/lib/config.ts`。publishable key はブラウザに置いてよい鍵。secret key は絶対に書かない
-- ランキング（`scores`）と名前入力は次の段階
+- **ランキング**：結果画面の「ランキングを 見る」／タイトル右上の「ランキング」。ゲーム×学年ごとに上位10＋自分の順位。名前はひらがな2〜6文字（NGワードあり、「ほんとうの なまえは いれないでね」を常時表示）。名前は `profiles` に保存され、次回から入力不要（せっていで変更）
+- イベントコードは URL の `?e=T2026-12` で渡す（QR に埋めこむ）。無ければ `home`。一度渡すと端末に残る
+- **ブース掲示用**：`board.html?e=T2026-12`。全ゲームの上位5を8秒ごとに切りかえ、新しい点数が入った瞬間に Realtime で反映（`scores` を `supabase_realtime` publication に入れておくこと）

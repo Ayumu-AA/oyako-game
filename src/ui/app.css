@@ -914,3 +914,34 @@
   .vs .n{font-size:clamp(44px,15vw,64px);line-height:1;color:var(--sea)}
   .vs .dash{font-size:26px;color:var(--muted);align-self:flex-start;margin-top:14px}
   .vs .who{font-size:12px;font-weight:700;color:var(--muted);display:block;text-align:center;margin-top:4px}
+
+  /* ---- ランキング（v2） ---- */
+  .namesheet .namewarn{color:var(--vermilion);font-weight:700;font-size:14px;margin:0 0 6px}
+  .namesheet{grid-template-columns:minmax(0,1fr)}
+  .namein{display:flex;gap:8px;align-items:stretch;min-width:0}
+  .namein input{
+    flex:1 1 0;width:0;min-width:0;font:inherit;font-size:24px;font-weight:700;letter-spacing:.08em;text-align:center;
+    padding:12px 10px;border:2px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);
+  }
+  .namein input:focus{outline:none;border-color:var(--sky)}
+  .namedice{font-size:24px;width:56px;border:2px solid var(--line);border-radius:14px;background:var(--surface);cursor:pointer}
+  .namehint{font-size:12.5px;color:var(--muted);margin:0 0 4px!important;text-align:center}
+  .namehint.ng{color:var(--vermilion);font-weight:700}
+  .ranklist{background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:6px 10px;box-shadow:var(--shadow)}
+  .rankmsg{margin:12px 4px;color:var(--muted);font-size:13.5px;text-align:center;line-height:1.6}
+  .ranktbl{list-style:none;margin:0;padding:0}
+  .rankrow{display:grid;grid-template-columns:30px 1fr auto auto;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--line);font-size:15px}
+  .rankrow:last-child{border-bottom:none}
+  .rankrow .rno{font-family:"Yusei Magic",system-ui,sans-serif;font-size:18px;color:var(--muted);text-align:center}
+  .rankrow.top1 .rno{color:#C9961F}.rankrow.top2 .rno{color:#8C9AA3}.rankrow.top3 .rno{color:#B0703C}
+  .rankrow .rname{font-weight:900;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rankrow .rbadge{font-size:11px;font-weight:700;color:#fff;border-radius:999px;padding:3px 8px;white-space:nowrap}
+  .rankrow .rscore{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap;font-size:13.5px}
+  .rankrow.me{background:#FFF6DC;border-radius:10px;margin:2px -4px;padding-inline:8px}
+  .rankrow.apart{border-top:2px dashed var(--line);margin-top:6px}
+  .ranknote{margin:6px 4px 4px;color:var(--muted);font-size:11.5px;text-align:right}
+  #s-rank .rm-brand{text-align:center;font-size:12px;font-weight:700;color:var(--sea);margin:0}
+  .btn-rank{background:#C9961F;color:#fff}
+  #s-title .howhead .brandmark{flex:1;min-width:0}
+  #s-title .brandmark span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  @media (max-width:380px){ #s-title .brandmark span{display:none} }   /* 塾名は 下の presented by に ある */

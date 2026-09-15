@@ -1,0 +1,50 @@
+/* 掲示用ページ。遠くからでも 読めるように 大きく */
+:root{
+  --ink:#16262E;--muted:#6B7F88;--paper:#EAF2F5;--surface:#FFFFFF;--sea:#1B4965;--sky:#62B6CB;
+  --vermilion:#E0452F;--gold:#E9B44C;--leaf:#2F8F5B;--line:rgba(27,73,101,.16);
+  --shadow:0 2px 0 rgba(27,73,101,.16), 0 10px 24px rgba(27,73,101,.10);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{
+  background-color:var(--paper);
+  background-image:repeating-linear-gradient(to right,var(--line) 0 1px,transparent 1px 44px),repeating-linear-gradient(to bottom,var(--line) 0 1px,transparent 1px 44px);
+  color:var(--ink);font-family:"Zen Maru Gothic",system-ui,-apple-system,"Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;font-weight:500;
+  min-height:100svh;
+}
+.display{font-family:"Yusei Magic",system-ui,sans-serif;font-weight:400}
+.board{height:100svh;overflow:hidden;display:flex;flex-direction:column;padding:clamp(12px,2vw,28px);gap:clamp(10px,1.6vw,20px);max-width:1100px;margin:0 auto}
+.bhead{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.bbrand{display:flex;align-items:center;gap:10px;font-weight:900;color:var(--sea);font-size:clamp(15px,2vw,22px)}
+.bbrand .pin{width:30px;height:30px;border-radius:50%;background:var(--vermilion);box-shadow:inset 0 0 0 4px var(--surface),0 0 0 1.5px var(--vermilion)}
+.bhead h1{margin:0;font-size:clamp(22px,3.4vw,40px);flex:1;text-align:center}
+.bev{font-weight:900;background:var(--gold);color:var(--ink);border-radius:999px;padding:6px 16px;font-size:clamp(13px,1.6vw,18px)}
+.bmain{flex:1;min-height:0;background:var(--surface);border:2px solid var(--line);border-radius:28px;box-shadow:var(--shadow);padding:clamp(14px,2.4vw,30px);display:flex;flex-direction:column;gap:12px;animation:bin .5s ease}
+@keyframes bin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.bmain.empty{align-items:center;justify-content:center;color:var(--muted);text-align:center}
+.bmain.empty p{margin:6px 0;font-size:clamp(18px,3vw,34px)}
+.btitle{display:flex;align-items:center;gap:14px}
+.blv{font-weight:900;color:#fff;background:var(--sea);border-radius:999px;padding:6px 16px;font-size:clamp(13px,1.7vw,20px)}
+.btitle h2{margin:0;font-size:clamp(22px,min(4.2vw,6vh),50px)}
+.brows{list-style:none;margin:0;padding:0;display:grid;gap:clamp(4px,1vh,12px);flex:1;min-height:0;grid-auto-rows:minmax(0,1fr)}
+.brow{display:grid;grid-template-columns:clamp(44px,6vw,70px) 1fr auto auto;align-items:center;gap:clamp(10px,2vw,24px);padding:0 clamp(10px,2vw,22px);min-height:0;border:2px solid var(--line);border-radius:18px;background:#FBFDFE}
+.brow.top1{background:#FFF6DC;border-color:#E9B44C}
+.brow.top2{background:#F3F5F7;border-color:#C5CED4}
+.brow.top3{background:#FBEFE6;border-color:#D9A06E}
+.bno{font-family:"Yusei Magic",system-ui,sans-serif;font-size:clamp(22px,min(4.4vw,7vh),52px);color:var(--muted);text-align:center;line-height:1}
+.top1 .bno{color:#C9961F}.top2 .bno{color:#8C9AA3}.top3 .bno{color:#B0703C}
+.bname{font-weight:900;font-size:clamp(20px,min(4vw,6.5vh),46px);letter-spacing:.04em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bbadge{color:#fff;font-weight:700;border-radius:999px;padding:6px 14px;font-size:clamp(12px,1.6vw,18px);white-space:nowrap}
+.bscore{font-variant-numeric:tabular-nums;font-weight:900;font-size:clamp(22px,min(4.2vw,6.8vh),48px);white-space:nowrap;color:var(--sea)}
+.bscore small{font-size:.45em;margin-left:2px;color:var(--muted)}
+.bscore em{font-style:normal;font-size:.42em;color:var(--muted);margin-left:10px;font-weight:700}
+.bdots{display:flex;gap:6px;justify-content:center;margin-top:auto;padding-top:6px}
+.bdots i{width:10px;height:10px;border-radius:50%;background:var(--line);display:block;position:relative;overflow:hidden}
+.bdots i.on{width:34px;border-radius:5px;background:var(--line)}
+.bdots i.on::after{content:"";position:absolute;inset:0;background:var(--sea);transform-origin:left;animation:bfill linear forwards}
+@keyframes bfill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.bfoot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;color:var(--muted);font-size:clamp(12px,1.5vw,17px);font-weight:700}
+.burl{font-family:ui-monospace,Menlo,monospace;color:var(--sea)}
+.btoast{position:fixed;left:50%;bottom:clamp(20px,4vh,40px);transform:translateX(-50%);background:var(--vermilion);color:#fff;font-weight:900;font-size:clamp(18px,2.6vw,30px);padding:14px 26px;border-radius:999px;box-shadow:0 10px 30px rgba(224,69,47,.4);animation:tpop .4s ease, tout .5s ease 5.5s forwards;white-space:nowrap;max-width:94vw;overflow:hidden;text-overflow:ellipsis}
+@keyframes tpop{from{opacity:0;transform:translate(-50%,20px) scale(.9)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@keyframes tout{to{opacity:0}}

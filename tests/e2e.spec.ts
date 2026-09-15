@@ -78,8 +78,40 @@ test('結果画面：ランクと じこベスト（60秒）', async ({ page }) 
   await expect(page.locator('#btn-again')).toBeDisabled();
   await expect(page.locator('#btn-again')).toHaveText('もういちど', { timeout: 4000 });
   expect(await page.evaluate(() => localStorage.getItem('oyako-rika-2-60'))).toBe('4');
-  await page.click('#btn-again');
-  await expect(page.locator('#best-line')).toHaveText('この端末のベスト　60秒で 4もん');
+  /* ランキング：名前が 無いので 先に 決める → 今回の点数が 送信キューに 入る */
+  await page.click('#btn-rank');
+  await expect(page.locator('#name-ov')).toBeVisible();
+  await page.fill('#nick-input', 'てすと'); await page.click('#btn-nick-ok');
+  await expect(page.locator('#s-rank')).toBeVisible();
+  await expect(page.locator('#rank-title')).toHaveText('りか');
+  const q = await page.evaluate(() => JSON.parse(localStorage.getItem('oyako-queue') || '[]'));
+  const sc = q.find((x: { k: string }) => x.k === 'score');
+  expect(sc.row).toMatchObject({ mode: 'rika', level: 2, seconds: 60, score: 4, rank_i: 2, nickname: 'てすと', event_code: 'home' });
+  expect(q.some((x: { k: string }) => x.k === 'profile')).toBe(true);
+  await page.click('#btn-rank-back');
+  await expect(page.locator('#s-title')).toBeVisible();
+});
+
+test('ランキング：タイトルから 入って 名前を 決める・NGワード・オフライン表示', async ({ page }) => {
+  await open(page);
+  await page.click('#btn-rank-title');
+  await expect(page.locator('#s-rank')).toBeVisible();
+  await page.click('#seg-rank-mode button[data-v="battle"]');
+  await expect(page.locator('#rank-title')).toHaveText('はやおし親子バトル');
+  await page.click('#btn-rank-name');
+  await page.fill('#nick-input', 'ばかもの'); await page.click('#btn-nick-ok');
+  await expect(page.locator('#nick-hint')).toHaveText('そのことばは つかえないよ');
+  await page.fill('#nick-input', 'あ'); await page.click('#btn-nick-ok');
+  await expect(page.locator('#nick-hint')).toHaveText('2もじ いじょうに してね');
+  await page.fill('#nick-input', 'パンダ'); await page.click('#btn-nick-ok');
+  await expect(page.locator('#name-ov')).toBeHidden();
+  await expect(page.locator('#btn-rank-name')).toHaveText(/ぱんだ/);
+  expect(await page.evaluate(() => localStorage.getItem('oyako-nick'))).toBe('ぱんだ');
+  /* この環境からは Supabase に つながらない → 8秒で あきらめて 案内を 出す */
+  await expect(page.locator('#rank-offline')).toHaveText('つながると 出ます', { timeout: 15000 });
+  /* せってい からも 名前を 変えられる */
+  await page.click('#btn-rank-back'); await page.click('#btn-settings');
+  await expect(page.locator('#btn-set-name')).toHaveText('ぱんだ　（かえる）');
 });
 
 test('10を作る：式を組んで 判定', async ({ page }) => {

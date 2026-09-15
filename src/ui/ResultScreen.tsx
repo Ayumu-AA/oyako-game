@@ -7,7 +7,7 @@ import { capListHTML, geoNameOf, jpSVG, wSVG, type Marks } from '../game/geo';
 import { Hee, Promo, Raw, useResultLock } from './parts';
 import { isGeo, type PlayResult } from './state';
 
-export function ResultScreen({ r, onAgain, onMiss, onTitle }: { r: PlayResult; onAgain: () => void; onMiss: () => void; onTitle: () => void }) {
+export function ResultScreen({ r, onAgain, onMiss, onTitle, onRank }: { r: PlayResult; onAgain: () => void; onMiss: () => void; onTitle: () => void; onRank?: () => void }) {
   const geo = isGeo(r.mode), isMath = r.mode === 'math';
   const kind = isMath ? 'math' : 'relay';
   const n = r.score, sec = r.seconds;
@@ -53,6 +53,7 @@ export function ResultScreen({ r, onAgain, onMiss, onTitle }: { r: PlayResult; o
       <Promo />
 
       <button className="btn btn-go" id="btn-again" onClick={onAgain} disabled={lock > 0}>{lock > 0 ? 'けっかを 見てね… ' + lock : 'もういちど'}</button>
+      {onRank && <button className="btn btn-rank" id="btn-rank" onClick={onRank} disabled={lock > 0}>ランキングを 見る</button>}
       <button className="btn btn-sea" id="btn-miss" hidden={missN === 0} onClick={onMiss}>まちがえた問題を もう一回</button>
       <button className="btn btn-ghost" data-back="s-title" onClick={onTitle}>さいしょの画面へ</button>
     </section>

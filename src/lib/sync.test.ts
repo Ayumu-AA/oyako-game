@@ -2,20 +2,21 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setKV, memoryKV, store } from './storage';
 import { setClient, type Client } from './supabase';
-import { enqueue, flush, pullRecords, queueLength, startSync, QUEUE_KEY } from './sync';
+import { enqueue, flush, pullRecords, queueLength, startSync, enqueueScore, enqueueProfile, QUEUE_KEY } from './sync';
 import { reloadRecords, markMiss, markHit, markSeen, missCount, statOf, mergeRemote, seenAt } from '../game/records';
 
 /* ---- 偽 Supabase ---- */
 type Row = Record<string, unknown>;
 function fakeClient(opts: { uid?: string | null; failNet?: boolean } = {}) {
   const uid = opts.uid === undefined ? 'u-1' : opts.uid;
-  const tables: Record<string, Row[]> = { question_stats: [], scores: [] };
+  const tables: Record<string, Row[]> = { question_stats: [], scores: [], profiles: [] };
   const netErr = () => { throw new Error('network'); };
   const from = (t: string) => ({
-    upsert: async (rows: Row[]) => {
+    upsert: async (rowsIn: Row | Row[]) => {
       if (opts.failNet) netErr();
+      const rows = Array.isArray(rowsIn) ? rowsIn : [rowsIn];
       for (const r of rows) {
-        const i = tables[t].findIndex((x) => x.user_id === r.user_id && x.subject === r.subject && x.name === r.name);
+        const i = tables[t].findIndex((x) => t === 'profiles' ? x.id === r.id : (x.user_id === r.user_id && x.subject === r.subject && x.name === r.name));
         if (i >= 0) tables[t][i] = r; else tables[t].push(r);
       }
       return { error: null };
@@ -60,6 +61,17 @@ describe('送信キュー', () => {
     enqueue({ k: 'score', id: 's1', row: { event_code: 'home', mode: 'pref', level: 2, seconds: 90, score: 5, rank_i: 2, nickname: 'てすと' } });
     expect(await flush()).toBe(false);
     expect(queueLength()).toBe(1);
+  });
+  it('名前は 最新だけ 残り、点数より 先に 送られる', async () => {
+    const f = fakeClient();
+    setClient(f.c);
+    enqueueScore({ event_code: 'home', mode: 'pref', level: 2, seconds: 90, score: 5, rank_i: 2, nickname: 'たろう' });
+    enqueueProfile('たろう', 2); enqueueProfile('じろう', 2);
+    expect(queueLength()).toBe(2);
+    expect(await flush()).toBe(true);
+    expect(f.tables.profiles).toEqual([{ id: 'u-1', nickname: 'じろう', level: 2 }]);
+    expect(f.tables.scores.length).toBe(1);
+    expect(f.tables.scores[0]).toMatchObject({ user_id: 'u-1', nickname: 'たろう', score: 5 });
   });
   it('記録が 変わると キューに 積まれる', () => {
     setClient(fakeClient().c);

@@ -4,7 +4,7 @@ import type { Level, Mode } from '../game/types';
 import type { BattleSubj } from '../game/battle';
 
 export type Group = 'relay' | 'geo' | 'solo';
-export type Screen = 'title' | 'sub' | 'how' | 'count' | 'play' | 'geo' | 'battle' | 'cross' | 'numcross' | 'result' | 'bresult' | 'cresult';
+export type Screen = 'title' | 'sub' | 'how' | 'count' | 'play' | 'geo' | 'battle' | 'cross' | 'numcross' | 'result' | 'bresult' | 'cresult' | 'rank';
 
 export interface Settings {
   level: Level;

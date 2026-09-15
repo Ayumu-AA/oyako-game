@@ -15,8 +15,8 @@ const ICONS = ICON as Record<string, string>;
 const GI = GROUP_ICON as Record<string, string>;
 
 /* ===== タイトル ===== */
-export function TitleScreen({ level, onLevel, onGroup, onMode, onSettings, missN }: {
-  level: Level; onLevel: (l: Level) => void; onGroup: (g: Group | 'battle' | 'cross') => void; onMode: (m: Mode) => void; onSettings: () => void; missN: number;
+export function TitleScreen({ level, onLevel, onGroup, onMode, onSettings, onRank, missN }: {
+  level: Level; onLevel: (l: Level) => void; onGroup: (g: Group | 'battle' | 'cross') => void; onMode: (m: Mode) => void; onSettings: () => void; onRank: () => void; missN: number;
 }) {
   return (
     <section className="screen on" id="s-title">
@@ -25,6 +25,9 @@ export function TitleScreen({ level, onLevel, onGroup, onMode, onSettings, missN
           <div className="pin" aria-hidden="true"></div>
           <span id="brand-title">{[CONFIG.schoolName, CONFIG.eventName].filter(Boolean).join('　')}</span>
         </div>
+        <button type="button" className="rulesbtn" id="btn-rank-title" onClick={onRank}>
+          <span className="qm" aria-hidden="true">👑</span>ランキング
+        </button>
         <button type="button" className="rulesbtn" id="btn-settings" onClick={onSettings}>
           <span className="qm" aria-hidden="true">⚙</span>せってい
         </button>
@@ -71,7 +74,7 @@ export function TitleScreen({ level, onLevel, onGroup, onMode, onSettings, missN
 }
 
 /* ===== せってい ===== */
-export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared }: { open: boolean; seconds: number; onSeconds: (s: number) => void; onClose: () => void; onCleared: () => void }) {
+export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared, nick, onName }: { open: boolean; seconds: number; onSeconds: (s: number) => void; onClose: () => void; onCleared: () => void; nick: string | null; onName: () => void }) {
   const [snd, setSnd] = useState(soundOn());
   const [rec, setRec] = useState({ miss: 0, seen: 0 });
   const [sure, setSure] = useState<0 | 1 | 2>(0);
@@ -94,6 +97,10 @@ export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared }
           options={[{ v: '1', b: 'あり' }, { v: '0', b: 'なし' }]} />
         <PickGrid id="seg-time" label="せいげん時間" cols={3} value={seconds} onPick={onSeconds}
           options={[{ v: 60, b: '60秒' }, { v: 90, b: '90秒' }, { v: 120, b: '120秒' }]} />
+        <div className="pickrow">
+          <span className="picklabel">ランキングの なまえ</span>
+          <button type="button" className="btn btn-ghost" id="btn-set-name" style={{ fontSize: 14, padding: '11px 14px' }} onClick={onName}>{nick ? nick + '　（かえる）' : 'なまえを きめる'}</button>
+        </div>
         <div className="pickrow">
           <span className="picklabel">きろく（この端末だけ）</span>
           <p className="setnote" id="set-rec">まちがい帳 {rec.miss}もん ／ 出題きろく {rec.seen}もん</p>

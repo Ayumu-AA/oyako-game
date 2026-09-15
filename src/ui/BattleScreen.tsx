@@ -190,7 +190,7 @@ function ChoiceBtn({ a, html, onClick }: { a: string; html: string; onClick: () 
 }
 
 /* ===== 結果 ===== */
-export function BResultScreen({ r, onAgain, onTitle }: { r: BattleResult; onAgain: () => void; onTitle: () => void }) {
+export function BResultScreen({ r, onAgain, onTitle, onRank }: { r: BattleResult; onAgain: () => void; onTitle: () => void; onRank?: () => void }) {
   const a = r.adult, c = r.child;
   const win = a > c ? { t: 'おとなの かち', bg: '#1B4965', m: 'さすが。つぎはハンデを増やしてみよう。' }
     : c > a ? { t: 'こどもの かち', bg: '#E0452F', m: 'はやい！おとなに勝ったね。' }
@@ -219,6 +219,7 @@ export function BResultScreen({ r, onAgain, onTitle }: { r: BattleResult; onAgai
         : <Hee prefix="b" name="はやおしのコツ" text="あせってまちがえると1.5秒お休み。あわてず確実にいくほうが速いことが多い。" />}
       <Promo prefix="b" />
       <button className="btn btn-go" id="btn-bagain" onClick={onAgain} disabled={lock > 0}>{lock > 0 ? 'けっかを 見てね… ' + lock : 'もういちど'}</button>
+      {onRank && <button className="btn btn-rank" id="btn-brank-view" onClick={onRank} disabled={lock > 0}>ランキングを 見る</button>}
       <button className="btn btn-ghost" data-back="s-title" onClick={onTitle}>さいしょの画面へ</button>
     </section>
   );
