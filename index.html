@@ -4496,11 +4496,13 @@ function calcQuestion(){
     else if(r<0.75){ b=2+Math.floor(Math.random()*8); ans=2+Math.floor(Math.random()*8); a=b*ans; text=a+' ÷ '+b; }
     else{ a=12+Math.floor(Math.random()*78); b=12+Math.floor(Math.random()*78); text=a+' + '+b; ans=a+b; }
   }
-  const pool=[];
-  while(pool.length<8){
-    const d=ans+(Math.floor(Math.random()*13)-6);
-    if(d>=0 && d!==ans && pool.indexOf(String(d))<0) pool.push(String(d));
-  }
+  /* まちがいの選たく肢。こたえが 0や1 だと 下に ずらせる数が 足りないので
+     上へ のばして かならず 8個 そろえる（前は ここで 無限ループして 画面が 固まった） */
+  const cand=[];
+  for(let d=Math.max(0,ans-6); d<=ans+6; d++) if(d!==ans) cand.push(String(d));
+  let up=ans+7;
+  while(cand.length<8){ cand.push(String(up)); up++; }
+  const pool=shuffle(cand).slice(0,8);
   return {art:null,text:text,num:true,answer:String(ans),pool:pool,fact:null};
 }
 
@@ -4636,7 +4638,7 @@ function nextBattle(){
           +(y?furiName(o,y):furi(o))+'</button>';
       }).join('');
     }
-    root.classList.remove('flash','waiting');
+    root.classList.remove('flash','waiting','locked');
   });
   /* けいさんは 選たく肢が ないので、ハンデは
      「おとなだけ しばらく テンキーを 押せない」にする */
@@ -4698,8 +4700,20 @@ function drawNumIn(side){
   root.querySelector('.numval').textContent=v;
   root.querySelector('.numin').classList.toggle('filled',!!v);
 }
-$('s-battle').addEventListener('click',function(e){
-  const k=e.target.closest('.numkey'); if(!k) return;
+/* テンキーは pointerdown で受ける。
+   click だと 端末によって タッチ1回で 2回 発火することがあり、
+   1回押しただけで 2文字 入って しまう（＝かならず まちがえる）。
+   pointerdown＋preventDefault なら そのあとの click は 出ない。 */
+let lastKeyAt=0, lastKeyEl=null;
+function onNumKey(e){
+  const k=e.target.closest ? e.target.closest('.numkey') : null;
+  if(!k) return;
+  if(e.cancelable) e.preventDefault();
+  /* 保険：同じキーの 60ミリ秒いないの 二重入力は 捨てる */
+  const now=(e.timeStamp||Date.now());
+  if(k===lastKeyEl && now-lastKeyAt<60) return;
+  lastKeyAt=now; lastKeyEl=k;
+
   const root=k.closest('.side'); const side=root.dataset.side;
   const b=state.b;
   if(!b || !b.q || !b.q.num || b.done || state.paused) return;
@@ -4716,10 +4730,16 @@ $('s-battle').addEventListener('click',function(e){
   b.input[side]=cur;
   drawNumIn(side);
   /* 桁数が そろったら その場で 判定する */
-  if(v!=='del' && cur.length===ans.length){
+  if(v!=='del' && cur.length>=ans.length){
     if(cur===ans) battleCorrect(side,root); else battleWrong(side,root);
   }
-});
+}
+if(window.PointerEvent){
+  $('s-battle').addEventListener('pointerdown',onNumKey,{passive:false});
+}else{
+  $('s-battle').addEventListener('touchstart',onNumKey,{passive:false});
+  $('s-battle').addEventListener('click',onNumKey);
+}
 
 $('btn-bpause').addEventListener('click',function(){ pauseGame(); });
 
