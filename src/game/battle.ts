@@ -1,5 +1,6 @@
 /* はやおし親子バトル の 純ロジック（問題づくり・選たく肢・得点）。タイマーと描画は UI 側 */
 import { relayDeck } from './decks';
+import { KOKUGO_REI } from '../data/kokugo_rei';
 import { preloadArt } from './art';
 import { markSeen, seenAt, markHit, markMiss } from './records';
 import { shuffle, pickN, randInt, rng } from './util';
@@ -107,14 +108,20 @@ export class BattleSession {
     if (!deck || !deck.length) return calcQuestion(this.opts.level);
     const q = this.pickFromDeck(key, deck);
     markSeen(key, q.name);
-    let text: string, art = null;
+    let text: string, art = null, disp: Record<string, string> | undefined;
     if (key === 'flag') { text = 'この国旗{こっき}はどこ？'; art = q.art; }
     else if (key === 'eigo') { text = 'これを英語{えいご}で？'; art = q.art; }
+    else if (key === 'kokugo' && KOKUGO_REI[q.name]) {
+      /* ことば：問題は そのことばを 使った 例文、選たく肢は 意味。記録は 名前で つける */
+      text = KOKUGO_REI[q.name].rei;
+      disp = {};
+      deck.forEach((x) => { const r = KOKUGO_REI[x.name]; if (r) disp![x.name] = r.imi; });
+    }
     else { text = pickN(q.hints, 2).join('・'); }
     const pool = battlePool(key, deck, q);
     const ymap: Record<string, string> = {};
     deck.forEach((x) => { ymap[x.name] = x.yomi; });
-    return { art, text, num: false, answer: q.name, pool, fact: q.fact, yomi: ymap, sub: key };
+    return { art, text, num: false, answer: q.name, pool, fact: q.fact, yomi: ymap, sub: key, disp };
   }
 
   /** つぎの問題へ。両側の選たく肢も ここで決める */

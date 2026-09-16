@@ -201,6 +201,85 @@ test('はやおしバトル：4たくは 同じ種類の 選たく肢（れき�
   expect(both).toBe(1);
 });
 
+test('はやおしバトル：ことばは 例文が 問題・意味が 選たく肢。こどもが 上・おとなが 下。まちがえた問題を もう一回', async ({ page }) => {
+  const errs = noErrors(page);
+  await open(page);
+  await page.click('[data-group="battle"]');
+  await page.click('#seg-subject button[data-v="kokugo"]');
+  await page.click('#seg-goal button[data-v="5"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  /* ならび：こども（回転）→ まん中 → おとな（そのまま） */
+  const order = await page.evaluate(() => [...document.querySelectorAll('#s-battle > .side, #s-battle > .mid')].map((e) => e.id || e.className));
+  expect(order).toEqual(['side-child', 'mid', 'side-adult']);
+  const rot = await page.evaluate(() => ({
+    child: getComputedStyle(document.getElementById('side-child')!).transform,
+    adult: getComputedStyle(document.getElementById('side-adult')!).transform,
+    chip: getComputedStyle(document.getElementById('sc-child')!.parentElement!).transform,
+    chipA: getComputedStyle(document.getElementById('sc-adult')!.parentElement!).transform,
+  }));
+  expect(rot.child).toBe('matrix(-1, 0, 0, -1, 0, 0)'); expect(rot.chip).toBe('matrix(-1, 0, 0, -1, 0, 0)');
+  expect(rot.adult).toBe('none'); expect(rot.chipA).toBe('none');
+  /* 問題は「」つきの 例文、選たく肢は 意味（ことば そのものは 出ない） */
+  await expect(page.locator('#side-adult .qtext')).toHaveClass(/long/);
+  expect(await page.locator('#side-adult .qtext').innerText()).toMatch(/「.+」/);
+  const seen = await page.evaluate(() => [...document.querySelectorAll('#side-adult .choice')].map((b) => ({ a: (b as HTMLElement).dataset.a!, t: (b as HTMLElement).innerText })));
+  expect(seen.length).toBe(4);
+  for (const c of seen) { expect(c.t).not.toBe(c.a); expect(c.t.length).toBeGreaterThan(3); }
+  /* こどもが わざと まちがえる → まちがい帳に 入る → 結果画面に「まちがえた問題を もう一回」 */
+  const ans = await page.evaluate(() => {
+    /* こたえは 例文の「」の中の ことば（活用あり）。ふりがな（rt）を 外して 先頭2文字で さがす */
+    const qn = document.querySelector('#side-child .qtext')!.cloneNode(true) as HTMLElement;
+    qn.querySelectorAll('rt').forEach((e) => e.remove());
+    const segs = (qn.textContent || '').split('「').slice(1);   /* 「」は 例文の中に 2つ以上 あることもある */
+    const c = [...document.querySelectorAll('#side-child .choice')].map((b) => (b as HTMLElement).dataset.a!);
+    const ans = c.find((o) => segs.some((g) => g.startsWith(o.slice(0, 2))))!;
+    return { ans, wrong: c.find((o) => o !== ans)! };
+  });
+  expect(ans.ans).toBeTruthy(); expect(ans.wrong).toBeTruthy();
+  await page.click(`#side-adult .choice[data-a="${ans.ans}"]`);
+  await expect(page.locator('#sc-adult')).toHaveText('1/5');
+  await expect(page.locator('#side-adult')).not.toHaveClass(/flash/);   /* つぎの問題 */
+  const wrong2 = await page.evaluate(() => {
+    const qn = document.querySelector('#side-child .qtext')!.cloneNode(true) as HTMLElement;
+    qn.querySelectorAll('rt').forEach((e) => e.remove());
+    const segs = (qn.textContent || '').split('「').slice(1);
+    const c = [...document.querySelectorAll('#side-child .choice')].map((b) => (b as HTMLElement).dataset.a!);
+    return c.find((o) => !segs.some((g) => g.startsWith(o.slice(0, 2))))!;
+  });
+  await page.click(`#side-child .choice[data-a="${wrong2}"]`);   /* こどもが まちがえる（おとなは 答えない → まちがい帳に 残る） */
+  await expect(page.locator('#side-child')).toHaveClass(/locked/);
+  await page.click('#btn-bpause');
+  await page.click('#btn-quit');
+  await expect(page.locator('#s-title')).toBeVisible();
+  const miss = JSON.parse(await page.evaluate(() => localStorage.getItem('oyako-miss') || '{}')) as Record<string, { n: number }>;
+  expect(Object.keys(miss).filter((k) => k.startsWith('kokugo:') && miss[k].n > 0).length).toBe(1);
+  /* 結果画面の ボタン（まちがい帳に 1つ あるので 出る） */
+  await page.click('[data-group="battle"]');
+  await page.click('#seg-subject button[data-v="calc"]');
+  await page.click('#seg-goal button[data-v="5"]'); await page.click('#seg-handi button[data-v="0"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  let prevText: string | null = null;
+  for (let n = 0; n < 5; n++) {
+    if (prevText !== null) await expect(page.locator('#side-child .qtext')).not.toHaveText(prevText);
+    const text = await page.locator('#side-child .qtext').innerText();
+    prevText = text;
+    const m = /(\d+)\s*([+−×÷])\s*(\d+)/.exec(text)!;
+    const a = Number(m[1]), b = Number(m[3]);
+    const v = m[2] === '+' ? a + b : m[2] === '−' ? a - b : m[2] === '×' ? a * b : a / b;
+    for (const ch of String(v)) await numkey(page, 'child', ch);
+    await expect(page.locator('#sc-child')).toHaveText((n + 1) + '/5');
+  }
+  await expect(page.locator('#s-bresult')).toBeVisible({ timeout: 6000 });
+  await expect(page.locator('#btn-bmiss')).toBeVisible();
+  await expect(page.locator('#btn-bmiss')).toBeEnabled({ timeout: 5000 });
+  await page.click('#btn-bmiss');
+  await expect(page.locator('#s-how')).toBeVisible();
+  await expect(page.locator('#how-title')).toHaveText(/まちがい/);
+  expect(errs).toEqual([]);
+});
+
 test('ちずクイズ：4たく・パス・県庁所在地', async ({ page }) => {
   await open(page);
   await page.click('[data-group="geo"]'); await page.click('[data-mode="geopref"]'); await page.click('#btn-start');
@@ -248,6 +327,59 @@ test('クロスワード：ここを開く で 全部うめると 完成', async
   expect(Number(await page.evaluate(() => localStorage.getItem('oyako-cross-2')))).toBeGreaterThan(0);
   await page.click('#btn-cagain');
   await expect(page.locator('#s-cross')).toBeVisible();
+});
+
+test('クロスワード：さいしょから やりなおす は 同じ問題・フリック入力', async ({ page }) => {
+  const errs = noErrors(page);
+  await open(page);
+  await page.click('[data-group="cross"]');
+  await page.click('#seg-kana button[data-v="F"]');
+  expect(await page.evaluate(() => localStorage.getItem('oyako-kana'))).toBe('F');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-cross')).toBeVisible();
+  await expect(page.locator('#flick .fkey')).toHaveCount(12);
+  await expect(page.locator('#kbd')).toHaveCount(0);
+  const clue0 = await page.locator('#cwnow button.sel .txt').innerText();
+  const first = page.locator('#cwgrid .cwcell.inword .ch >> nth=0');
+  /* おしただけ → か。 うえに フリック → く。 ゛゜小 → ぐ → く */
+  const key = page.locator('#flick .fkey[data-k="か"]');
+  const box = (await key.boundingBox())!;
+  const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+  const flick = async (dx: number, dy: number) => {
+    await key.dispatchEvent('pointerdown', { bubbles: true, cancelable: true, pointerId: 1, clientX: cx, clientY: cy, isPrimary: true });
+    if (dx || dy) {
+      await key.dispatchEvent('pointermove', { bubbles: true, pointerId: 1, clientX: cx + dx / 2, clientY: cy + dy / 2 });
+      await expect(page.locator('#flick .flpop')).toBeVisible();
+      await key.dispatchEvent('pointermove', { bubbles: true, pointerId: 1, clientX: cx + dx, clientY: cy + dy });
+    }
+    await key.dispatchEvent('pointerup', { bubbles: true, cancelable: true, pointerId: 1, clientX: cx + dx, clientY: cy + dy });
+  };
+  await flick(0, 0);
+  await expect(first).toHaveText('か');
+  await page.click('.kbd2 button[data-k="del"]');
+  await expect(first).toHaveText('');
+  await flick(0, -40);
+  await expect(first).toHaveText('く');
+  await expect(page.locator('#flick .flpop')).toHaveCount(0);
+  await flick(0, 0);   // 2マス目に か
+  /* いまの か を ゛゜小 で まわす */
+  const mod = page.locator('#flick .fkey.mod');
+  const mb = (await mod.boundingBox())!;
+  const tapMod = async () => {
+    await mod.dispatchEvent('pointerdown', { bubbles: true, cancelable: true, pointerId: 1, clientX: mb.x + 10, clientY: mb.y + 10 });
+    await mod.dispatchEvent('pointerup', { bubbles: true, cancelable: true, pointerId: 1, clientX: mb.x + 10, clientY: mb.y + 10 });
+  };
+  await tapMod();
+  await expect(page.locator('#cwgrid .cwcell.inword .ch >> nth=1')).toHaveText('が');
+  await tapMod();
+  await expect(page.locator('#cwgrid .cwcell.inword .ch >> nth=1')).toHaveText('か');
+  /* さいしょから やりなおす → 同じカギ・マスは 空 */
+  await page.click('#btn-cpause');
+  await page.click('#btn-restart');
+  await expect(page.locator('#s-cross')).toBeVisible();
+  await expect(page.locator('#cwnow button.sel .txt')).toHaveText(clue0);
+  await expect(first).toHaveText('');
+  expect(errs).toEqual([]);
 });
 
 test('けいさんクロス：こたえあわせ', async ({ page }) => {

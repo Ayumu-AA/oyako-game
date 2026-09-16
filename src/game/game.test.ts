@@ -7,7 +7,9 @@ import { plain, furi, furiName } from './furigana';
 import { calcQuestion, BattleSession, battlePool, pickOpts } from './battle';
 import { relayDeck, deckFor, hints3, missDeck } from './decks';
 import { polyOf, inPoly, geoChoices, geoGroupOf, geoDeck, jpSVG, wSVG, jpFullVB, geoQuestion } from './geo';
-import { newCross, cwCells, cwInput, cwHint, cwAllOk, cwLeft, cwTapCell, cwModify, cwDelete } from './cross';
+import { newCross, cwCells, cwInput, cwHint, cwAllOk, cwLeft, cwTapCell, cwModify, cwDelete, cycleKana, cwCycle } from './cross';
+import { KOKUGO_REI } from '../data/kokugo_rei';
+import { FLICK } from '../data/cross';
 import { makeNum, ncRank, NC_KEYS, newNum, ncKey, ncAllOk, ncLeft } from './numcross';
 
 beforeEach(() => { setKV(memoryKV()); reloadRecords(); });
@@ -113,6 +115,29 @@ describe('battle', () => {
     expect(pool.slice(0, same).every((n) => names.get(n) === '人物')).toBe(true);
     expect(pickOpts({ art: null, text: '', num: false, answer: q.name, pool, fact: null }, 4).length).toBe(4);
   });
+  it('ことばは 例文が 問題・意味が 選たく肢。記録は 名前', () => {
+    for (const lv of [1, 2] as const) {
+      const deck = relayDeck('kokugo', lv);
+      deck.forEach((q) => {
+        const r = KOKUGO_REI[q.name];
+        expect(r, q.name).toBeDefined();
+        expect(plain(r.rei)).toContain('「' + plain(q.name).slice(0, 2));    // 例文の中に そのことばが「」つきで 入っている（活用あり）
+        expect(/[一-鿿](?![^{]*\})/.test(r.rei.replace(/[一-鿿]+\{[^}]*\}/g, ''))).toBe(false);   // 漢字は みんな ふりがなつき
+        expect(/[一-鿿](?![^{]*\})/.test(r.imi.replace(/[一-鿿]+\{[^}]*\}/g, ''))).toBe(false);
+      });
+    }
+    const s = new BattleSession({ level: 2, bsubj: 'kokugo', handi: 1, goal: 0 });
+    for (let i = 0; i < 10; i++) {
+      const { q, opts } = s.next();
+      expect(q.disp).toBeDefined();
+      expect(q.text).toBe(KOKUGO_REI[q.answer].rei);
+      expect(q.disp![q.answer]).toBe(KOKUGO_REI[q.answer].imi);
+      opts.adult.forEach((o) => expect(q.disp![o]).toBeTruthy());
+      expect(new Set(opts.adult.map((o) => q.disp![o])).size).toBe(opts.adult.length);   // 意味が かぶらない
+    }
+    s.correct('child');
+    expect(seenAt('kokugo', s.q!.answer)).toBeGreaterThan(0);
+  });
   it('テンキーは 桁数が そろった瞬間に 判定', () => {
     const s = new BattleSession({ level: 2, bsubj: 'calc', handi: 1, goal: 10 });
     const { q } = s.next();
@@ -183,6 +208,25 @@ describe('cross', () => {
   });
   it('同じ問題が つづかない', () => {
     for (let i = 0; i < 20; i++) { const a = newCross(1, null); const b = newCross(1, a.idx); if (a.idx === b.idx) expect(true).toBe(false); }
+  });
+  it('さいしょから やりなおす は 同じ問題', () => {
+    for (let i = 0; i < 10; i++) { const a = newCross(2, null); const b = newCross(2, a.idx, a.idx); expect(b.idx).toBe(a.idx); expect(cwLeft(b)).toBeGreaterThan(0); }
+    expect(newCross(1, null, 9999).idx).toBeLessThan(100);   // 範囲外は ふつうに えらぶ
+  });
+  it('フリック：゛゜小 は 順に まわる', () => {
+    expect(cycleKana('は')).toBe('ば'); expect(cycleKana('ば')).toBe('ぱ'); expect(cycleKana('ぱ')).toBe('は');
+    expect(cycleKana('か')).toBe('が'); expect(cycleKana('が')).toBe('か');
+    expect(cycleKana('つ')).toBe('づ'); expect(cycleKana('づ')).toBe('っ'); expect(cycleKana('っ')).toBe('つ');
+    expect(cycleKana('あ')).toBe('ぁ'); expect(cycleKana('ぁ')).toBe('あ');
+    expect(cycleKana('ん')).toBe('ん'); expect(cycleKana('ー')).toBe('ー');
+    const cw = newCross(1, null);
+    cwInput(cw, 'は'); cwCycle(cw); cwCycle(cw);
+    const w = cw.puz.w[0];
+    expect(cw.letters[w.r + '_' + w.c]).toBe('ぱ');
+    /* フリックの表は 3×4、50音が ぜんぶ 入っている */
+    expect(FLICK.length).toBe(12);
+    const all = FLICK.flatMap((k) => k).filter(Boolean).join('');
+    for (const ch of 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんー') expect(all, ch).toContain(ch);
   });
 });
 

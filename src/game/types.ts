@@ -44,6 +44,7 @@ export interface BattleQ {
   fact: string | null;
   yomi?: Record<string, string>;
   sub?: Subject;
+  disp?: Record<string, string>;   // 選たく肢の 表示（ことば：名前 → 意味）。answer/pool は 名前のまま
 }
 
 export type Side = 'adult' | 'child';

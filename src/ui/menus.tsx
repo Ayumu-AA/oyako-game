@@ -202,8 +202,8 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
         {isBattle && <PickGrid id="seg-handi" label="おとなの ハンデ" cols={3} value={s.handi} onPick={(v) => onChange({ handi: v })}
           options={[{ v: 0, b: 'なし', s: '3たく・3たく' }, { v: 1, b: 'ふつう', s: '子2・親4' }, { v: 2, b: 'たっぷり', s: '子2・親6' }]} />}
 
-        {isCross && <PickGrid id="seg-kana" label="50音の ならび" cols={2} value={s.kana} onPick={(v) => { onChange({ kana: v }); store('oyako-kana', v); }}
-          options={[{ v: 'R' as const, b: 'みぎから', s: '教科書の 五十音表と 同じ' }, { v: 'L' as const, b: 'ひだりから', s: 'あ か さ た な…' }]} />}
+        {isCross && <PickGrid id="seg-kana" label="もじの 入れかた" cols={3} value={s.kana} onPick={(v) => { onChange({ kana: v }); store('oyako-kana', v); }}
+          options={[{ v: 'R' as const, b: 'みぎから', s: '五十音表と 同じ' }, { v: 'L' as const, b: 'ひだりから', s: 'あ か さ た な…' }, { v: 'F' as const, b: 'フリック', s: 'スマホと 同じ' }]} />}
 
         <div className="pickrow" id="row-role" hidden={!showRole}>
           <span className="picklabel" id="role-label">スマホを持つのは？（ヒントを出す人）</span>
@@ -259,9 +259,9 @@ export function CountScreen({ mode, role, onDone }: { mode: Mode; role: 'child' 
   return (
     <section className="screen on" id="s-count">
       <div className="orient" id="count-orient" hidden={!isB}>
-        <div className="o adult"><b>おとな</b><small>こちら側に すわる</small></div>
-        <div className="mid"><span>スマホを 机に置いて 向かい合ってね</span><span className="n" id="count-num2">{n}</span></div>
         <div className="o child"><b>こども</b><small>こちら側に すわる</small></div>
+        <div className="mid"><span>スマホを 机に置いて 向かい合ってね</span><span className="n" id="count-num2">{n}</span></div>
+        <div className="o adult"><b>おとな</b><small>こちら側に すわる</small></div>
       </div>
       <div className="count display" id="count-num" hidden={isB}>{n}</div>
       <p className="best" id="count-note" hidden={isB}>{note}</p>

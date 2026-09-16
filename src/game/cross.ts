@@ -23,11 +23,12 @@ export interface CwState {
   hints: number;
 }
 
-/** 新しい盤面。直前と同じ問題は さける */
-export function newCross(level: Level, prevIdx: number | null): CwState {
+/** 新しい盤面。直前と同じ問題は さける。forceIdx を渡すと その問題（「さいしょから やりなおす」用） */
+export function newCross(level: Level, prevIdx: number | null, forceIdx: number | null = null): CwState {
   const list = PUZ[level] || PUZ[1];
   let idx = Math.floor(rng() * list.length);
-  if (prevIdx !== null && prevIdx === idx && list.length > 1) idx = (idx + 1) % list.length;
+  if (forceIdx !== null && forceIdx >= 0 && forceIdx < list.length) idx = forceIdx;
+  else if (prevIdx !== null && prevIdx === idx && list.length > 1) idx = (idx + 1) % list.length;
   const puz = list[idx];
   const R = puz.g.length, C = puz.g[0].length;
   const nums: Record<string, number> = {}; let n = 0;
@@ -98,6 +99,29 @@ export function cwModify(cw: CwState, kind: '゛' | '゜' | '小') {
   Object.keys(map).forEach((k) => { rev[map[k]] = k; });
   const nv = map[cur] || rev[cur] || null;
   if (nv) cw.letters[cwKey(p[0], p[1])] = nv;
+}
+/** フリック入力の「゛゜小」キー：は → ば → ぱ → は、か → が → か、つ → づ → っ → つ のように 順に まわす */
+export function cycleKana(ch: string): string {
+  const daku = DAKU as Record<string, string>, han = HANDAKU as Record<string, string>, sm = SMALL as Record<string, string>;
+  const base = (x: string) => {
+    for (const m of [daku, han, sm]) for (const k of Object.keys(m)) if (m[k] === x) return k;
+    return x;
+  };
+  const b = base(ch);
+  const ring = [b]; if (daku[b]) ring.push(daku[b]); if (han[b]) ring.push(han[b]); if (sm[b]) ring.push(sm[b]);
+  if (ring.length === 1) return ch;
+  return ring[(ring.indexOf(ch) + 1) % ring.length];
+}
+export function cwCycle(cw: CwState) {
+  const cells = cwCells(cw.puz.w[cw.sel.i]);
+  let p = cw.last;
+  if (!p || !cw.letters[cwKey(p[0], p[1])]) {
+    p = cells[cw.sel.pos];
+    if (!cw.letters[cwKey(p[0], p[1])] && cw.sel.pos > 0) p = cells[cw.sel.pos - 1];
+  }
+  const cur = cw.letters[cwKey(p[0], p[1])];
+  if (!cur) return;
+  cw.letters[cwKey(p[0], p[1])] = cycleKana(cur);
 }
 export function cwDelete(cw: CwState) {
   const cells = cwCells(cw.puz.w[cw.sel.i]);

@@ -4,6 +4,7 @@ import { BattleSession, BATTLE_CAP, NUMKEYS } from '../game/battle';
 import { furi, furiName } from '../game/furigana';
 import { artHTML } from '../game/art';
 import { rankOf, rankNext, rankLine } from '../game/rank';
+import { missCount } from '../game/records';
 import type { BattleQ, Level, Side } from '../game/types';
 import type { BattleSubj } from '../game/battle';
 import { Hee, PauseButton, PauseOverlay, Promo, Raw, usePauseKeys, useResultLock } from './parts';
@@ -142,14 +143,15 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, onFinish, onR
 
   return (
     <section className="screen on" id="s-battle" ref={root}>
-      <BattleSide side="adult" q={q} u={ui.adult} onChoice={onChoice} />
+      {/* こどもが 上（180度回転）、おとなが 下（スマホを持つ人。まん中の 時間・一時停止も おとな向き） */}
+      <BattleSide side="child" q={q} u={ui.child} onChoice={onChoice} />
       <div className="mid">
-        <span className="mscore"><span id="sc-adult">{score.adult}</span><small>おとな</small></span>
+        <span className="mscore flip"><span id="sc-child">{score.child}</span><small>こども</small></span>
         <div className="mtimer"><div id="btimer" className={left <= 10000 ? 'warn' : ''} style={{ width: (ratio * 100).toFixed(1) + '%' }}></div></div>
-        <span className="mscore"><span id="sc-child">{score.child}</span><small>こども</small></span>
+        <span className="mscore"><span id="sc-adult">{score.adult}</span><small>おとな</small></span>
         <PauseButton id="btn-bpause" onClick={pause} />
       </div>
-      <BattleSide side="child" q={q} u={ui.child} onChoice={onChoice} />
+      <BattleSide side="adult" q={q} u={ui.adult} onChoice={onChoice} />
       <div className={'bfin' + (fin ? ' on' : '')} id="bfin" aria-hidden="true">
         <div className="half up"><span className="big">しゅうりょう！</span><span className="sub">手を とめて けっかを 見よう</span></div>
         <div className="half"><span className="big">しゅうりょう！</span><span className="sub">手を とめて けっかを 見よう</span></div>
@@ -166,7 +168,7 @@ function BattleSide({ side, q, u, onChoice }: { side: Side; q: BattleQ | null; u
     <div className={cls} data-side={side} id={'side-' + side}>
       <span className="sidetag">{side === 'adult' ? 'おとな' : 'こども'}</span>
       {q && q.art ? <Raw as="div" className="qart" html={artHTML(q.art)} /> : <div className="qart" hidden></div>}
-      {q && q.num ? <p className="qtext num">{q.text}</p> : <Raw as="p" className="qtext" html={q ? furi(q.text) : ''} />}
+      {q && q.num ? <p className="qtext num">{q.text}</p> : <Raw as="p" className={'qtext' + (q && q.disp ? ' long' : '')} html={q ? furi(q.text) : ''} />}
       <div className="numwrap" hidden={!num}>
         <div className={'numin' + (u.input ? ' filled' : '')}><span className="numval">{u.input}</span><span className="numcaret"></span></div>
         <div className="numpad">
@@ -177,21 +179,23 @@ function BattleSide({ side, q, u, onChoice }: { side: Side; q: BattleQ | null; u
       </div>
       <div className={'choices' + (u.opts.length <= 2 ? ' one' : '')} hidden={num}>
         {!num && u.opts.map((o) => {
+          const d = q && q.disp && q.disp[o];
           const y = q && q.yomi && q.yomi[o];
-          return <ChoiceBtn key={o} a={o} html={y ? furiName(o, y) : furi(o)} onClick={() => onChoice(side, o)} />;
+          return <ChoiceBtn key={o} a={o} imi={!!d} html={d ? furi(d) : y ? furiName(o, y) : furi(o)} onClick={() => onChoice(side, o)} />;
         })}
       </div>
       <div className="lockmsg">おてつき！</div>
     </div>
   );
 }
-function ChoiceBtn({ a, html, onClick }: { a: string; html: string; onClick: () => void }) {
-  return <button type="button" className="choice" data-a={a} onClick={onClick} dangerouslySetInnerHTML={{ __html: html }} />;
+function ChoiceBtn({ a, html, imi, onClick }: { a: string; html: string; imi?: boolean; onClick: () => void }) {
+  return <button type="button" className={'choice' + (imi ? ' imi' : '')} data-a={a} onClick={onClick} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
 /* ===== 結果 ===== */
-export function BResultScreen({ r, onAgain, onTitle, onRank }: { r: BattleResult; onAgain: () => void; onTitle: () => void; onRank?: () => void }) {
+export function BResultScreen({ r, onAgain, onMiss, onTitle, onRank }: { r: BattleResult; onAgain: () => void; onMiss: () => void; onTitle: () => void; onRank?: () => void }) {
   const a = r.adult, c = r.child;
+  const missN = missCount();
   const win = a > c ? { t: 'おとなの かち', bg: '#1B4965', m: 'さすが。つぎはハンデを増やしてみよう。' }
     : c > a ? { t: 'こどもの かち', bg: '#E0452F', m: 'はやい！おとなに勝ったね。' }
       : { t: 'ひきわけ', bg: '#7E93A0', m: 'いい勝負。もう一回やって決着をつけよう。' };
@@ -220,6 +224,7 @@ export function BResultScreen({ r, onAgain, onTitle, onRank }: { r: BattleResult
       <Promo prefix="b" />
       <button className="btn btn-go" id="btn-bagain" onClick={onAgain} disabled={lock > 0}>{lock > 0 ? 'けっかを 見てね… ' + lock : 'もういちど'}</button>
       {onRank && <button className="btn btn-rank" id="btn-brank-view" onClick={onRank} disabled={lock > 0}>ランキングを 見る</button>}
+      <button className="btn btn-sea" id="btn-bmiss" hidden={missN === 0} onClick={onMiss} disabled={lock > 0}>まちがえた問題を もう一回</button>
       <button className="btn btn-ghost" data-back="s-title" onClick={onTitle}>さいしょの画面へ</button>
     </section>
   );

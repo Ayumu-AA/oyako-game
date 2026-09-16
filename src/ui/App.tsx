@@ -27,7 +27,9 @@ export default function App() {
   const [pr, setPr] = useState<PlayResult | null>(null);
   const [br, setBr] = useState<BattleResult | null>(null);
   const [cr, setCr] = useState<CrossResult | null>(null);
-  const [cwIdx, setCwIdx] = useState<number | null>(null);
+  const [cwIdx, setCwIdx] = useState<number | null>(null);      // 前回 とき終えた 問題（つぎは 別の問題）
+  const [cwForce, setCwForce] = useState<number | null>(null);  // 「さいしょから やりなおす」は 同じ問題
+  const cwCur = useRef<number | null>(null);                    // いま 出ている 問題
   const [missN, setMissN] = useState(missCount());
   const [nick, setNick] = useState<string | null>(getNick());
   const [nameOpen, setNameOpen] = useState(false);
@@ -66,10 +68,10 @@ export default function App() {
     const g = groupOfMode(mode);
     if (!g) go('title'); else { setGroup(g); go('sub'); }
   };
-  const start = () => {
+  const start = (same = false) => {
     if (mode === 'miss' && missCount() === 0) { go('title'); return; }
     setRound((r) => r + 1);
-    if (mode === 'cross') { go('cross'); return; }
+    if (mode === 'cross') { setCwForce(same ? cwCur.current : null); go('cross'); return; }
     if (mode === 'numcross') { go('numcross'); return; }
     go('count');
   };
@@ -79,7 +81,7 @@ export default function App() {
     else if (mode === 'battle') go('battle');
     else go('play');
   };
-  const restart = () => { setRound((r) => r + 1); start(); };
+  const restart = () => { setRound((r) => r + 1); start(true); };
   const quit = () => go('title');
 
   const finishPlay = (r: Omit<PlayResult, 'newBest'>) => {
@@ -106,15 +108,15 @@ export default function App() {
         <SettingsOverlay open={setOpen} seconds={s.seconds} onSeconds={(v) => change({ seconds: v })} onClose={() => setSetOpen(false)} onCleared={() => setMissN(0)} nick={nick} onName={() => askName(() => undefined)} />
       </>}
       {screen === 'sub' && <SubScreen group={group} onMode={openHow} onBack={() => go('title')} />}
-      {screen === 'how' && <HowScreen mode={mode} s={s} onChange={change} onStart={start} onBack={backFromHow} />}
+      {screen === 'how' && <HowScreen mode={mode} s={s} onChange={change} onStart={() => start()} onBack={backFromHow} />}
       {screen === 'count' && <CountScreen mode={mode} role={s.role} onDone={afterCount} />}
       {screen === 'play' && <PlayScreen key={round} mode={mode} level={s.level} seconds={s.seconds} role={s.role} onFinish={finishPlay} onRestart={restart} onQuit={quit} onEmpty={() => go('title')} />}
       {screen === 'geo' && <GeoScreen key={round} mode={mode} level={s.level} seconds={s.seconds} onFinish={finishPlay} onRestart={restart} onQuit={quit} />}
       {screen === 'battle' && <BattleScreen key={round} level={s.level} seconds={s.seconds} bsubj={s.bsubj} handi={s.handi} goal={s.goal} onFinish={finishBattle} onRestart={restart} onQuit={quit} />}
-      {screen === 'cross' && <CrossScreen key={round} level={s.level} kana={s.kana} prevIdx={cwIdx} onFinish={(r) => { setCr(r); if (r.idx !== undefined) setCwIdx(r.idx); go('cresult'); }} onRestart={restart} onQuit={quit} />}
+      {screen === 'cross' && <CrossScreen key={round} level={s.level} kana={s.kana} prevIdx={cwIdx} forceIdx={cwForce} onIdx={(i) => { cwCur.current = i; }} onFinish={(r) => { setCr(r); if (r.idx !== undefined) setCwIdx(r.idx); go('cresult'); }} onRestart={restart} onQuit={quit} />}
       {screen === 'numcross' && <NumCrossScreen key={round} level={s.level} onFinish={(r) => { setCr(r); go('cresult'); }} onRestart={restart} onQuit={quit} />}
       {screen === 'result' && pr && <ResultScreen r={pr} onAgain={() => go('how')} onMiss={() => { if (missCount()) openHow('miss'); }} onTitle={() => go('title')} onRank={rankable(pr.mode) ? () => rankFromResult(pr.mode) : undefined} />}
-      {screen === 'bresult' && br && <BResultScreen r={br} onAgain={() => go('how')} onTitle={() => go('title')} onRank={() => rankFromResult('battle')} />}
+      {screen === 'bresult' && br && <BResultScreen r={br} onAgain={() => go('how')} onMiss={() => { if (missCount()) openHow('miss'); }} onTitle={() => go('title')} onRank={() => rankFromResult('battle')} />}
       {screen === 'rank' && <RankingScreen mode0={rankMode} level0={s.level} nick={nick} onBack={() => go('title')} onName={() => askName(() => undefined)} />}
       <NameSheet open={nameOpen} level={s.level} onDone={onNamed} onCancel={() => { setNameOpen(false); nameThen.current = null; }} />
       {screen === 'cresult' && cr && <CResultScreen r={cr} onAgain={() => { setRound((r) => r + 1); go(mode === 'numcross' ? 'numcross' : 'cross'); }} onTitle={() => go('title')} />}

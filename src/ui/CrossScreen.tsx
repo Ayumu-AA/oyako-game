@@ -1,7 +1,8 @@
 /* 親子クロスワード ／ けいさんクロス（1人用） ／ 完成画面 */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { KBD } from '../data/cross';
-import { newCross, cwCells, cwKey, cwLeft, cwAllOk, wordsAt, wordOk, cwSelectWord, cwSelectWordKeepPos, cwTapCell, cwInput, cwModify, cwDelete, cwHint, type CwState } from '../game/cross';
+import { newCross, cwCells, cwKey, cwLeft, cwAllOk, wordsAt, wordOk, cwSelectWord, cwSelectWordKeepPos, cwTapCell, cwInput, cwModify, cwCycle, cwDelete, cwHint, type CwState } from '../game/cross';
+import { FlickPad } from './FlickPad';
 import { newNum, ncLeft, ncMarks, ncAllOk, ncKey, NC_KEYS, NC_POS, type NcState, type NcKey } from '../game/numcross';
 import { fmtTime } from '../game/util';
 import { store } from '../lib/storage';
@@ -25,8 +26,10 @@ function useElapsed() {
 
 const KB = KBD as string[][];
 
-export function CrossScreen({ level, kana, prevIdx, onFinish, onRestart, onQuit }: { level: Level; kana: 'R' | 'L'; prevIdx: number | null; onFinish: (r: CrossResult) => void; onRestart: () => void; onQuit: () => void }) {
-  const [cw] = useState<CwState>(() => newCross(level, prevIdx));
+export function CrossScreen({ level, kana, prevIdx, forceIdx = null, onIdx, onFinish, onRestart, onQuit }: { level: Level; kana: 'R' | 'L' | 'F'; prevIdx: number | null; forceIdx?: number | null; onIdx?: (idx: number) => void; onFinish: (r: CrossResult) => void; onRestart: () => void; onQuit: () => void }) {
+  const [cw] = useState<CwState>(() => newCross(level, prevIdx, forceIdx));
+  const onIdxRef = useRef(onIdx); onIdxRef.current = onIdx;
+  useEffect(() => { if (onIdxRef.current) onIdxRef.current(cw.idx); }, [cw]);   /* App が「さいしょから やりなおす」で 同じ問題を 出すため */
   const [, bump] = useState(0);
   const redraw = () => bump((x) => x + 1);
   const [clues, setClues] = useState(false);
@@ -117,12 +120,14 @@ export function CrossScreen({ level, kana, prevIdx, onFinish, onRestart, onQuit 
         })}
       </div>
       <div className="cwpad">
-        <div className="kbd" id="kbd">
-          {KB.map((row0, ri) => (kana === 'R' ? row0.slice().reverse() : row0).map((k, ci) => (
-            k ? <button type="button" key={ri + '_' + ci} data-k={k} onClick={() => { cwInput(cw, k); after(); }}>{k}</button>
-              : <button className="blank" tabIndex={-1} key={ri + '_' + ci}></button>
-          )))}
-        </div>
+        {kana === 'F' ? <FlickPad onChar={(k) => { cwInput(cw, k); after(); }} onCycle={() => { cwCycle(cw); after(); }} /> : (
+          <div className="kbd" id="kbd">
+            {KB.map((row0, ri) => (kana === 'R' ? row0.slice().reverse() : row0).map((k, ci) => (
+              k ? <button type="button" key={ri + '_' + ci} data-k={k} onClick={() => { cwInput(cw, k); after(); }}>{k}</button>
+                : <button className="blank" tabIndex={-1} key={ri + '_' + ci}></button>
+            )))}
+          </div>
+        )}
         <div className="kbd2">
           <button type="button" data-k="゛" onClick={() => { cwModify(cw, '゛'); after(); }}>てんてん</button>
           <button type="button" data-k="゜" onClick={() => { cwModify(cw, '゜'); after(); }}>まる</button>

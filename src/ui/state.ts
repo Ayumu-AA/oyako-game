@@ -13,7 +13,7 @@ export interface Settings {
   bsubj: BattleSubj;
   handi: number;
   goal: number;              // 0 = じかん
-  kana: 'R' | 'L';
+  kana: 'R' | 'L' | 'F';       // 50音の ならび：みぎから／ひだりから／フリック
 }
 
 export function loadSettings(): Settings {
@@ -22,7 +22,7 @@ export function loadSettings(): Settings {
   return {
     level: 2, seconds: 90, role: 'child', bsubj: 'mix', handi: 1,
     goal: (g !== null && g !== '') ? Number(g) : 10,
-    kana: (k === 'R' || k === 'L') ? k : 'R',
+    kana: (k === 'R' || k === 'L' || k === 'F') ? k : 'R',
   };
 }
 
