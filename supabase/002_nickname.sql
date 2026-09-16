@@ -70,12 +70,13 @@ create trigger scores_before_trg before insert on public.scores
 -- いま 入っている 名前に NGワードを 適用しなおす（Dashboard から 呼ぶ。アプリからは 呼べない）
 create or replace function public.ng_apply() returns integer
 language plpgsql security definer set search_path = public as $$
-declare n integer;
+declare a integer; b integer;
 begin
   update public.profiles set nickname = 'ななしさん' where public.nick_is_ng(nickname);   -- trigger が scores にも 流す
-  get diagnostics n = row_count;
+  get diagnostics a = row_count;
   update public.scores set nickname = 'ななしさん' where public.nick_is_ng(nickname);     -- profiles が 無い 行の ぶん
-  return n;
+  get diagnostics b = row_count;
+  return a + b;   -- 直した 合計。profiles の ぶんだけ 返すと 0 に 見えて「効いていない」と 誤解する
 end $$;
 revoke execute on function public.ng_apply() from public, anon, authenticated;
 
