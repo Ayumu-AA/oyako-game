@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>親子ゲーム ブース用ポスター</title>
+<style>
+  @page { size: A4 portrait; margin: 0; }
+  *{ box-sizing:border-box; margin:0; padding:0 }
+  :root{
+    --ink:#16262E; --muted:#6B7F88; --paper:#EAF2F5; --surface:#fff;
+    --sea:#1B4965; --sky:#62B6CB; --vermilion:#E0452F; --gold:#E9B44C; --leaf:#2F8F5B;
+  }
+  html,body{ width:210mm; height:297mm }
+  body{
+    font-family:"Noto Sans CJK JP","Hiragino Sans","Yu Gothic",sans-serif;
+    color:var(--ink); background:#fff;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  .page{ width:210mm; height:297mm; padding:12mm 13mm 12mm; overflow:hidden; display:flex; flex-direction:column; position:relative }
+  .hd{ text-align:center }
+  .eyebrow{ font-size:14pt; font-weight:700; color:var(--sea); letter-spacing:.14em }
+  h1{ font-size:40pt; font-weight:900; line-height:1.12; color:var(--sea); margin-top:3mm; letter-spacing:.01em }
+  h1 .vm{ color:var(--vermilion) }
+  .lede{ margin-top:4mm; font-size:15pt; font-weight:700; color:var(--ink) }
+  .lede b{ color:var(--vermilion) }
+  /* QR */
+  .qrwrap{ margin:6mm auto 0; display:flex; flex-direction:column; align-items:center }
+  .qrbox{
+    width:68mm; height:68mm; padding:4mm; background:#fff;
+    border:2.5mm solid var(--sea); border-radius:7mm;
+    display:grid; place-items:center;
+  }
+  .qrbox svg{ width:100%; height:100% }
+  .scan{ margin-top:4mm; font-size:17pt; font-weight:900; color:var(--sea) }
+  .scan small{ display:block; font-size:10.5pt; font-weight:700; color:var(--muted); margin-top:1.5mm; letter-spacing:.02em }
+  /* ステップ */
+  .steps{ margin-top:7mm; display:grid; grid-template-columns:repeat(3,1fr); gap:4mm }
+  .step{ background:var(--paper); border-radius:5mm; padding:4mm 3mm; text-align:center }
+  .n{
+    width:11mm; height:11mm; margin:0 auto 2.5mm; border-radius:50%;
+    background:var(--sea); color:#fff; font-size:16pt; font-weight:900;
+    display:grid; place-items:center;
+  }
+  .step b{ display:block; font-size:12.5pt; font-weight:900; line-height:1.35 }
+  .step small{ display:block; margin-top:1.5mm; font-size:9.5pt; color:var(--muted); font-weight:700; line-height:1.45 }
+  /* 中身 */
+  .games{ margin-top:6mm; background:#fff; border:1.2mm solid var(--gold); border-radius:5mm; padding:5mm 6mm }
+  .games .t{ font-size:11pt; font-weight:900; color:var(--gold); letter-spacing:.1em; text-align:center }
+  .games .list{ margin-top:3mm; display:grid; grid-template-columns:1fr 1fr; gap:3mm 6mm }
+  .games .list div{ line-height:1.35 }
+  .games .list span{ display:block; color:var(--vermilion); font-weight:900; font-size:12pt }
+  .games .list em{ display:block; font-style:normal; font-size:9.5pt; font-weight:700; color:var(--muted); margin-top:.8mm }
+  /* 足もと */
+  .foot{ margin-top:auto; padding-top:6mm; display:flex; align-items:flex-end; justify-content:space-between; gap:6mm }
+  .brand b{ display:block; font-size:16pt; font-weight:900; color:var(--sea) }
+  .brand small{ display:block; margin-top:1.5mm; font-size:10pt; color:var(--muted); font-weight:700 }
+  .note{ text-align:right; font-size:9.5pt; color:var(--muted); font-weight:700; line-height:1.6 }
+  .band{ position:absolute; left:0; right:0; bottom:0; height:6mm; background:linear-gradient(90deg,var(--sea) 0 34%,var(--sky) 34% 67%,var(--vermilion) 67% 100%) }
+</style></head>
+<body><div class="page">
+  <div class="hd">
+    <p class="eyebrow">スマホで あそぶ 親子クイズ</p>
+    <h1>おやこで<br><span class="vm">しょうぶ</span>！</h1>
+    <p class="lede">アプリを 入れなくても、<b>QRを よみこむだけ</b>で すぐ あそべます</p>
+  </div>
+
+  <div class="qrwrap">
+    <div class="qrbox"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 450" class="segno"><path transform="scale(10)" class="qrline" stroke="#1b4965" d="M2 2.5h7m1 0h1m2 0h1m2 0h1m3 0h1m2 0h2m1 0h2m2 0h1m3 0h1m1 0h7m-41 1h1m5 0h1m2 0h2m1 0h2m3 0h3m1 0h1m1 0h1m5 0h1m2 0h1m1 0h1m5 0h1m-41 1h1m1 0h3m1 0h1m1 0h2m4 0h3m1 0h3m5 0h1m2 0h4m1 0h1m1 0h3m1 0h1m-41 1h1m1 0h3m1 0h1m2 0h2m2 0h1m1 0h2m3 0h4m2 0h1m4 0h2m1 0h1m1 0h3m1 0h1m-41 1h1m1 0h3m1 0h1m1 0h1m1 0h4m2 0h1m1 0h1m2 0h2m3 0h1m1 0h1m1 0h2m2 0h1m1 0h3m1 0h1m-41 1h1m5 0h1m4 0h1m1 0h1m1 0h1m2 0h2m3 0h2m3 0h1m1 0h1m3 0h1m5 0h1m-41 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-33 1h1m2 0h1m2 0h1m1 0h2m4 0h1m1 0h2m1 0h2m2 0h1m-27 1h2m3 0h5m2 0h1m1 0h1m2 0h3m4 0h1m4 0h1m1 0h1m1 0h1m1 0h1m-41 1h1m1 0h4m3 0h2m1 0h1m1 0h1m1 0h2m2 0h2m1 0h1m1 0h5m1 0h1m3 0h2m2 0h1m-39 1h1m1 0h1m1 0h2m1 0h1m1 0h1m2 0h5m1 0h1m4 0h1m1 0h4m2 0h2m1 0h1m3 0h1m-40 1h2m1 0h3m2 0h2m3 0h2m2 0h3m1 0h2m1 0h1m3 0h1m1 0h3m1 0h4m2 0h1m-39 1h2m1 0h2m2 0h1m1 0h1m5 0h2m4 0h2m2 0h2m4 0h2m4 0h2m-40 1h1m3 0h1m1 0h2m3 0h2m3 0h1m2 0h1m1 0h1m1 0h2m2 0h3m4 0h2m3 0h1m-41 1h1m1 0h2m1 0h2m1 0h1m5 0h1m2 0h1m3 0h1m3 0h1m3 0h1m2 0h2m1 0h3m-38 1h3m1 0h1m2 0h1m1 0h1m1 0h6m1 0h2m2 0h1m1 0h2m1 0h1m4 0h2m4 0h3m-40 1h2m2 0h2m2 0h2m3 0h1m1 0h2m3 0h1m2 0h1m1 0h1m1 0h2m3 0h1m1 0h1m2 0h2m-39 1h2m4 0h1m3 0h1m1 0h1m1 0h1m3 0h3m1 0h3m1 0h1m2 0h2m1 0h4m1 0h1m1 0h1m-41 1h2m1 0h5m6 0h1m2 0h1m5 0h2m2 0h5m2 0h3m3 0h1m-41 1h2m1 0h3m1 0h1m2 0h1m1 0h1m3 0h4m2 0h1m1 0h3m1 0h1m3 0h1m3 0h2m1 0h1m-36 1h1m1 0h1m1 0h3m1 0h1m2 0h3m2 0h2m2 0h2m1 0h1m2 0h1m4 0h1m2 0h2m-39 1h2m2 0h1m1 0h1m2 0h1m1 0h2m1 0h1m1 0h2m1 0h2m2 0h4m1 0h1m1 0h1m4 0h3m-38 1h1m4 0h1m5 0h1m1 0h4m1 0h2m2 0h2m1 0h3m1 0h1m1 0h2m1 0h2m1 0h1m-38 1h3m1 0h1m1 0h1m1 0h1m1 0h2m1 0h1m3 0h1m1 0h1m1 0h1m1 0h1m2 0h2m3 0h2m2 0h1m2 0h1m-40 1h1m1 0h5m2 0h8m4 0h1m3 0h2m4 0h2m1 0h2m1 0h1m1 0h2m-41 1h1m2 0h1m1 0h1m2 0h2m2 0h2m4 0h2m2 0h8m1 0h1m2 0h4m1 0h2m-39 1h1m3 0h4m1 0h1m1 0h2m2 0h1m2 0h1m1 0h1m1 0h2m1 0h2m1 0h1m1 0h2m1 0h2m2 0h1m-37 1h3m1 0h3m3 0h2m1 0h1m1 0h3m2 0h4m4 0h1m2 0h2m1 0h2m1 0h1m-41 1h3m3 0h1m2 0h4m1 0h1m1 0h3m1 0h1m2 0h1m1 0h1m2 0h2m1 0h1m1 0h1m3 0h3m-40 1h1m3 0h2m2 0h1m1 0h2m1 0h1m2 0h2m2 0h4m1 0h1m4 0h1m1 0h1m2 0h4m1 0h1m-41 1h3m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m3 0h1m1 0h1m1 0h1m1 0h1m2 0h1m1 0h1m2 0h2m3 0h1m2 0h1m-41 1h1m1 0h1m1 0h1m3 0h1m2 0h2m1 0h2m1 0h3m1 0h5m5 0h2m1 0h4m1 0h1m-40 1h1m3 0h4m1 0h3m1 0h2m2 0h1m2 0h4m2 0h11m1 0h3m-33 1h1m8 0h3m2 0h2m1 0h1m3 0h1m2 0h1m3 0h2m-38 1h7m2 0h4m3 0h2m1 0h1m3 0h1m2 0h4m1 0h2m1 0h1m1 0h3m-39 1h1m5 0h1m1 0h1m1 0h4m7 0h2m1 0h1m3 0h5m3 0h1m2 0h1m-40 1h1m1 0h3m1 0h1m3 0h1m1 0h3m2 0h1m3 0h1m1 0h4m1 0h2m1 0h7m-38 1h1m1 0h3m1 0h1m3 0h1m3 0h2m8 0h2m1 0h1m2 0h2m3 0h1m1 0h4m-41 1h1m1 0h3m1 0h1m5 0h2m1 0h1m2 0h3m1 0h4m1 0h2m2 0h7m1 0h1m-40 1h1m5 0h1m2 0h1m1 0h10m4 0h3m3 0h1m4 0h1m1 0h1m1 0h1m-41 1h7m2 0h2m1 0h1m2 0h2m1 0h2m1 0h1m3 0h2m2 0h1m1 0h1m1 0h1m1 0h4"/></svg></div>
+    <p class="scan">カメラで ここを よみこむ
+      <small>スマホの カメラを 向けるだけ／ダウンロード不要・むりょう</small></p>
+  </div>
+
+  <div class="steps">
+    <div class="step"><div class="n">1</div><b>よみこむ</b><small>カメラを QRに 向けて<br>出てきた リンクを タップ</small></div>
+    <div class="step"><div class="n">2</div><b>えらんで あそぶ</b><small>がくねんと ゲームを<br>えらぶだけ</small></div>
+    <div class="step"><div class="n">3</div><b>先生に 見せる</b><small>けっかの 画面を<br>受付で 見せてね</small></div>
+  </div>
+
+  <div class="games">
+    <p class="t">あそべる ゲーム</p>
+    <div class="list">
+      <div><span>親子ヒントリレー</span><em>ヒントを 出して あてっこ</em></div>
+      <div><span>はやおし親子バトル</span><em>向かい合って 対戦</em></div>
+      <div><span>親子クロスワード</span><em>ヨコは こども・タテは おとな</em></div>
+      <div><span>ちずクイズ</span><em>地図の 赤いところは どこ？</em></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="brand"><b>プラウ経験型教育塾</b><small>おうちに 帰ってからも 同じ QRで あそべます</small></div>
+    <p class="note">ランキングに のります<br>なまえは ひらがなの ニックネームで</p>
+  </div>
+  <div class="band"></div>
+</div></body></html>

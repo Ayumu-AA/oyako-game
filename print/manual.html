@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><title>親子ゲーム 当日の運用メモ</title>
+<style>
+  @page { size:A4 portrait; margin:0 }
+  *{ box-sizing:border-box; margin:0; padding:0 }
+  :root{ --ink:#16262E; --muted:#6B7F88; --paper:#EAF2F5; --sea:#1B4965; --sky:#62B6CB; --vermilion:#E0452F; --gold:#E9B44C; --leaf:#2F8F5B }
+  body{ font-family:"Noto Sans CJK JP",sans-serif; color:var(--ink); background:#fff; font-size:10pt; line-height:1.6;
+        -webkit-print-color-adjust:exact; print-color-adjust:exact }
+  .page{ width:210mm; height:297mm; padding:14mm 15mm; overflow:hidden; page-break-after:always; position:relative }
+  .page:last-child{ page-break-after:auto }
+  .ttl{ border-bottom:1.2mm solid var(--sea); padding-bottom:3mm; display:flex; align-items:baseline; justify-content:space-between }
+  .ttl h1{ font-size:20pt; font-weight:900; color:var(--sea) }
+  .ttl span{ font-size:9pt; font-weight:700; color:var(--muted) }
+  h2{ margin-top:6mm; font-size:12.5pt; font-weight:900; color:var(--sea);
+      border-left:1.6mm solid var(--gold); padding-left:3mm }
+  .flow{ margin-top:4mm; display:grid; gap:2.5mm }
+  .fl{ display:flex; gap:3.5mm; align-items:flex-start }
+  .fl .n{ width:7.5mm; height:7.5mm; flex:none; border-radius:50%; background:var(--sea); color:#fff;
+          font-size:10pt; font-weight:900; display:grid; place-items:center; margin-top:.4mm }
+  .fl b{ font-size:11pt; font-weight:900 }
+  .fl p{ font-size:9.5pt; color:var(--muted); font-weight:700 }
+  .fl .say{ color:var(--vermilion); font-weight:900 }
+  table{ width:100%; border-collapse:collapse; margin-top:3.5mm; font-size:9.5pt }
+  th,td{ border:.3mm solid #C9D6DD; padding:2.2mm 3mm; text-align:left; vertical-align:top }
+  th{ background:var(--paper); font-weight:900; color:var(--sea); white-space:nowrap }
+  td.k{ width:44mm; font-weight:900 }
+  code{ font-family:"DejaVu Sans Mono",monospace; font-size:8.5pt; background:#F2F6F8;
+        border:.2mm solid #D5E0E6; border-radius:1mm; padding:.3mm 1.2mm; word-break:break-all }
+  .box{ margin-top:4mm; background:var(--paper); border-radius:3mm; padding:4mm 5mm }
+  .box b{ color:var(--sea) }
+  .warn{ background:#FDEEEB; border-left:1.6mm solid var(--vermilion) }
+  .warn b{ color:var(--vermilion) }
+  ul{ margin:1.5mm 0 0 5mm }
+  li{ margin-top:1.2mm }
+  .ck li{ list-style:none; margin-left:-5mm; padding-left:7mm; position:relative }
+  .ck li::before{ content:""; position:absolute; left:0; top:1.2mm; width:4mm; height:4mm;
+                  border:.4mm solid var(--sea); border-radius:1mm }
+  .foot{ position:absolute; left:15mm; right:15mm; bottom:10mm; display:flex; justify-content:space-between;
+         font-size:8.5pt; color:var(--muted); font-weight:700; border-top:.3mm solid #D5E0E6; padding-top:2.5mm }
+</style></head><body>
+<div class="page">
+  <div class="ttl"><h1>当日の すすめ方</h1><span>親子ゲーム ／ ブース担当の方へ</span></div>
+
+  <h2>1組あたり 5〜10分。この順番で回します</h2>
+  <div class="flow">
+    <div class="fl"><div class="n">1</div><div><b>声をかける</b>
+      <p class="say">「スマホで親子対戦できます。1回90秒です」</p></div></div>
+    <div class="fl"><div class="n">2</div><div><b>ポスターのQRを読んでもらう</b>
+      <p>おうちの方のスマホのカメラを向けるだけ。アプリのダウンロードは不要。<br>
+         うまく読めないときは、こちらのスマホで読んで画面を見せる。</p></div></div>
+    <div class="fl"><div class="n">3</div><div><b>がくねんとゲームを選ぶ</b>
+      <p>低学年 → <b>親子ヒントリレー（都道府県・国旗）</b>／高学年 → <b>はやおし親子バトル</b><br>
+         迷ったら「ミックス」でOK。待ちが出ているときは短い「はやおしバトル 5もん先取」。</p></div></div>
+    <div class="fl"><div class="n">4</div><div><b>遊ぶ（90秒）</b>
+      <p>はやおしバトルは <b>スマホを机に置いて向かい合う</b>。<b>こどもが画面の上の側</b>にすわる。<br>
+         声が出るほど、次の親子が寄ってきます。盛り上げてOK。</p></div></div>
+    <div class="fl"><div class="n">5</div><div><b>結果画面を見せてもらう → 参加賞をわたす</b>
+      <p class="say">「よくできました。これ、おうちでも同じQRで遊べます」</p></div></div>
+    <div class="fl"><div class="n">6</div><div><b>持ち帰りカードをわたす</b>
+      <p>参加賞といっしょに1枚。カードのQRからも同じゲームが開きます。</p></div></div>
+  </div>
+
+  <h2>掲示用ランキング（別の画面）</h2>
+  <div class="box">
+    <p>ノートPCかタブレットで <code>https://ayumu-aa.github.io/oyako-game/board.html?e=T2026-12</code> を開いて、
+       ブースに向けて置いておきます。新しい点数が入ると、その瞬間に名前が出ます。</p>
+    <p style="margin-top:2mm"><b>スリープ設定を切っておくこと。</b>電源につないだままにする。</p>
+  </div>
+
+  <h2>気をつけること</h2>
+  <div class="box warn">
+    <p><b>1台のスマホを何組にも貸すときは、名前を入れないでください。</b><br>
+       同じ端末は「同じ人」として記録されるため、あとの組が名前を入れると、前の組の点数の名前まで
+       変わってしまいます。貸出用の端末では <b>「ランキングを見る」を押さない</b>で、その場の勝ち負けだけ楽しむ形に。</p>
+    <p style="margin-top:2.5mm"><b>本名は入れない。</b>名前の画面に「ほんとうの なまえは いれないでね」と出ます。
+       ひらがな2〜6文字のニックネームです。サイコロのボタンで候補も出ます。</p>
+  </div>
+
+  <div class="foot"><span>プラウ経験型教育塾</span><span>親子ゲーム 運用メモ　1 / 3</span></div>
+</div>
+
+<div class="page">
+  <div class="ttl"><h1>困ったとき</h1><span>運営者用</span></div>
+
+  <h2>その場で直せること</h2>
+  <table>
+    <tr><th>こうなったら</th><th>こうする</th></tr>
+    <tr><td class="k">画面が白いまま／古い画面が出る</td>
+        <td>ページを2回リロード。新しい版は1回目の裏で読みこまれ、2回目で切りかわります。</td></tr>
+    <tr><td class="k">ランキングが出ない</td>
+        <td>8秒で「つながると出ます」に変わります。<b>ゲームは止まりません</b>。点数は端末にたまっていて、つながった時に自動で送られます。そのまま進めてOK。</td></tr>
+    <tr><td class="k">電波が届かない</td>
+        <td>一度開いた端末は、そのまま遊べます（機内モードでも動く作り）。記録はあとから上がります。</td></tr>
+    <tr><td class="k">掲示の画面が止まった</td>
+        <td>ブラウザのリロード。それでもだめなら一度閉じて開き直す。</td></tr>
+    <tr><td class="k">名前をまちがえた／変えたい</td>
+        <td>タイトル画面の右上「せってい」→ なまえ を変える。過去の点数の名前も全部そろいます。</td></tr>
+  </table>
+
+  <h2>変な名前が掲示に出たとき</h2>
+  <div class="box">
+    <p>Supabase の画面 → SQL Editor を開いて、次の1行を貼って Run。すぐ消えます。</p>
+    <p style="margin-top:2mm"><code>update public.profiles set nickname = 'ななしさん' where nickname = 'ここに その名前';</code></p>
+    <p style="margin-top:3mm">同じような言葉を今後ぜんぶ禁止にするなら、2行貼って Run：</p>
+    <p style="margin-top:2mm"><code>insert into public.ng_words(word) values ('ことば') on conflict do nothing;</code><br>
+       <code>select public.ng_apply();</code></p>
+    <p style="margin-top:2mm">アプリの入れ直しは要りません。次から入力の時点ではじかれ、すでに入っている名前も置きかわります。</p>
+  </div>
+
+  <div class="foot"><span>プラウ経験型教育塾</span><span>親子ゲーム 運用メモ　2 / 3</span></div>
+</div>
+
+<div class="page">
+  <div class="ttl"><h1>前日の準備</h1><span>運営者用</span></div>
+
+  <h2>前日に かならず やること</h2>
+  <div class="box">
+    <ul class="ck">
+      <li><b>Supabase を起こす。</b>7日間さわらないと寝てしまいます。画面を開いて、寝ていたら「Restore」。
+          そのあと実際に1プレイして、掲示に出るところまで確認。</li>
+      <li><b>Pro プランに切りかえる</b>（当日の人数に備えて。終わったら戻す）。</li>
+      <li>ポスターを印刷して貼る。持ち帰りカードを人数分＋予備。</li>
+      <li>自分のスマホでポスターのQRを実際に読んで、開くところまで試す。</li>
+      <li>掲示用のPC／タブレットを充電し、スリープを切って、board の画面を開いておく。</li>
+      <li>テスト用に入れた点数を消す：<code>delete from public.scores where event_code = 'TEST';</code></li>
+    </ul>
+  </div>
+
+  <h2>覚えておく場所</h2>
+  <table>
+    <tr><td class="k">ゲーム（当日のQRの先）</td><td><code>https://ayumu-aa.github.io/oyako-game/?e=T2026-12</code></td></tr>
+    <tr><td class="k">掲示用ランキング</td><td><code>https://ayumu-aa.github.io/oyako-game/board.html?e=T2026-12</code></td></tr>
+    <tr><td class="k">おうち用（持ち帰りカード）</td><td><code>https://ayumu-aa.github.io/oyako-game/</code></td></tr>
+    <tr><td class="k">サーバーの管理画面</td><td><code>https://supabase.com/dashboard/project/wfixrtlthirberxzpsjc</code></td></tr>
+  </table>
+
+  <div class="foot"><span>プラウ経験型教育塾</span><span>親子ゲーム 運用メモ　3 / 3</span></div>
+</div>
+</body></html>
