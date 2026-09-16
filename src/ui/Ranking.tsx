@@ -118,7 +118,7 @@ export function RankingScreen({ mode0, level0, nick, onBack, onName }: { mode0: 
             )}
           </ol>
         )}
-        {t && t.total > 0 && <p className="ranknote">{t.total}回 あそばれました</p>}
+        {t && t.total > 0 && <p className="ranknote">{t.total}人が あそびました</p>}
       </div>
       <p className="rm-brand">{CONFIG.schoolName}</p>
       <div className="spacer"></div>

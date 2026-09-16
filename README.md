@@ -63,6 +63,7 @@ export const CONFIG = {
 - **ランキング**：結果画面の「ランキングを 見る」／タイトル右上の「ランキング」。ゲーム×学年ごとに上位10＋自分の順位。名前はひらがな2〜6文字（NGワードあり、「ほんとうの なまえは いれないでね」を常時表示）。名前は `profiles` に保存され、次回から入力不要（せっていで変更）。**名前を変えると、その人の過去の点数の名前も全部変わる**（`profiles` の trigger が `scores` を書きかえる）
 - **NGワード**：アプリ内の表（`src/lib/nickname.ts` の `NG_WORDS`）と、サーバーの `ng_words` 表の両方で部分一致（カタカナ・のばし棒・小書きで ごまかしても同じ語として見る）。サーバー側にも同じ判定があり、すりぬけた名前は `ななしさん` に置きかわる。イベント中に言葉を足すときは Dashboard の SQL Editor で
   `insert into public.ng_words(word) values ('ことば'); select public.ng_apply();`（アプリの再デプロイ不要。すでに入っている名前にも効く）。特定の人の名前を直すなら `update public.profiles set nickname='ななしさん' where nickname='よくないなまえ';`
-- スキーマは `supabase/001_init.sql` → `supabase/002_nickname.sql` の順に SQL Editor で実行
+- **1人1行**：ランキングと掲示が読むのは `scores` ではなく `best_scores` view（`supabase/003_best_scores.sql`）。`scores` は1プレイ1行のまま残し、view が「人ごとのベスト1行」だけを返す。これがないと、同じ人が10回遊ぶと上位10枠をひとりで占める。自分の順位も「自分より上の【人】の数＋1」になる
+- スキーマは `supabase/001_init.sql` → `002_nickname.sql` → `003_best_scores.sql` の順に SQL Editor で実行
 - イベントコードは URL の `?e=T2026-12` で渡す（QR に埋めこむ）。無ければ `home`。一度渡すと端末に残る
 - **ブース掲示用**：`board.html?e=T2026-12`。全ゲームの上位5を8秒ごとに切りかえ、新しい点数が入った瞬間に Realtime で反映（`scores` を `supabase_realtime` publication に入れておくこと）
