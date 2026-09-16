@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { checkNick, suggestNick, NICK_MAX, normNick, setExtraNg, NG_WORDS } from './nickname';
+import { checkNick, suggestNick, NICK_MAX, normNick, setExtraNg, NG_WORDS, setTakenNames, loadTakenNames, isTaken, takenCount } from './nickname';
 import { setKV, memoryKV } from './storage';
 import { beforeEach } from 'vitest';
 
-beforeEach(() => { setKV(memoryKV()); setExtraNg([]); });
+beforeEach(() => { setKV(memoryKV()); setExtraNg([]); setTakenNames([]); });
 
 describe('なまえ', () => {
   it('ひらがな 2〜6文字だけ 通る', () => {
@@ -48,5 +48,23 @@ describe('なまえ', () => {
   });
   it('候補は いつも 通る', () => {
     for (let i = 0; i < 50; i++) { const s = suggestNick(); expect(checkNick(s).ok).toBe(true); expect(s.length).toBeLessThanOrEqual(NICK_MAX); }
+  });
+  it('つかわれている名前は さける・控えは 端末に 残る', () => {
+    const first = suggestNick();
+    setTakenNames([first], 'T2026-12');
+    expect(isTaken(first)).toBe(true);
+    for (let i = 0; i < 30; i++) expect(suggestNick()).not.toBe(first);   // 候補は かぶりを よける
+    setTakenNames([]);                                                    // いったん 忘れる
+    expect(isTaken(first)).toBe(false);
+    loadTakenNames('T2026-12');                                           // 控えから 戻る
+    expect(isTaken(first)).toBe(true);
+    expect(takenCount()).toBe(1);
+    loadTakenNames('べつのイベント');
+    expect(isTaken(first)).toBe(false);                                   // イベントが 変われば 別
+  });
+  it('候補は 千通り以上ある（当日 50組 来ても かぶりにくい）', () => {
+    const seen = new Set<string>();
+    for (let i = 0; i < 4000; i++) seen.add(suggestNick());
+    expect(seen.size).toBeGreaterThan(600);
   });
 });

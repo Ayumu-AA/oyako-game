@@ -7,6 +7,7 @@ import { rng } from '../game/util';
 
 export const NICK_KEY = 'oyako-nick';
 export const NG_KEY = 'oyako-ng';          /* サーバーの NGワード（JSON 配列）の 控え */
+export const NAMES_KEY = 'oyako-names';    /* そのイベントで つかわれている 名前の 控え（oyako-names-<イベント>） */
 export const NICK_MIN = 2, NICK_MAX = 6;
 
 /* ぁ〜ん・ー・ゔ。小書きも ふくむ */
@@ -71,16 +72,47 @@ export function checkNick(raw: string): NickCheck {
   return { ok: true, value: v };
 }
 
-/* 最初に 入れておく 候補。「いろ＋いきもの」で 2〜6文字に おさまる 組み合わせだけ */
-const COLORS = ['あか', 'あお', 'きいろ', 'みどり', 'しろ', 'くろ', 'もも', 'きん', 'ぎん', 'そら'];
-const ANIMALS = ['かに', 'ねこ', 'いぬ', 'うさぎ', 'きつね', 'たぬき', 'くま', 'ぱんだ', 'ぺんぎん', 'りす', 'さる', 'ぞう', 'とり', 'かめ', 'らいおん'];
+/* ---- 同じ名前が 掲示に 2つ ならばないように ----
+   そのイベントで すでに 点数を 出している 名前を 先に 取ってきて、かぶったら 別のを えらんでもらう。
+   名前を 決めるのは 遊んだ【あと】なので、先に 遊んだ人の名前は もう サーバーに ある。
+   つながらないときは 素どおりさせる（名前が 決められず 点数が 送れないほうが 困る）。 */
+let taken = new Set<string>();
+const namesKey = (ev: string) => NAMES_KEY + '-' + ev;
+
+/** 取ってきた 名前を 覚える（localStorage にも 控える：オフラインでも 前回ぶんは きく） */
+export function setTakenNames(list: string[], ev?: string) {
+  taken = new Set(list.filter(Boolean));
+  if (ev) { try { store(namesKey(ev), JSON.stringify([...taken].slice(0, 500))); } catch { /* 容量 */ } }
+}
+/** 控えを 読みこむ（シートを 開いた ときに 呼ぶ。取ってくるのは 別で 走らせる） */
+export function loadTakenNames(ev: string) {
+  try { const a = JSON.parse(store(namesKey(ev)) || '[]'); taken = new Set(Array.isArray(a) ? a.map(String) : []); }
+  catch { taken = new Set(); }
+}
+export function isTaken(v: string): boolean { return taken.has(v); }
+export function takenCount(): number { return taken.size; }
+
+/* 最初に 入れておく 候補。「いろ＋いきもの」で 2〜6文字に おさまる 組み合わせだけ。
+   当日 50組 来ると 同じ候補が 出やすいので、組み合わせは 多めに 持つ */
+const COLORS = ['あか', 'あお', 'きいろ', 'みどり', 'しろ', 'くろ', 'もも', 'きん', 'ぎん', 'そら',
+  'あさ', 'ゆき', 'うみ', 'はる', 'なつ', 'あき', 'ふゆ', 'ほし', 'つき', 'ひかり',
+  'むぎ', 'まめ', 'いちご', 'ぶどう', 'みかん', 'りんご', 'れもん', 'すいか', 'おちゃ', 'みつ'];
+const ANIMALS = ['かに', 'ねこ', 'いぬ', 'うさぎ', 'きつね', 'たぬき', 'くま', 'ぱんだ', 'ぺんぎん', 'りす',
+  'さる', 'ぞう', 'とり', 'かめ', 'らいおん', 'いるか', 'くじら', 'らっこ', 'あざらし', 'こあら',
+  'しまうま', 'きりん', 'かえる', 'とかげ', 'ふくろう', 'はりねずみ', 'もぐら', 'こま', 'たこ', 'いか'];
+
+/** かぶっていない 候補を 返す。ぜんぶ かぶっていたら 最後の候補（決められないより まし） */
 export function suggestNick(): string {
-  for (let i = 0; i < 20; i++) {
+  let last = 'みどりのかに';
+  for (let i = 0; i < 40; i++) {
     const c = COLORS[Math.floor(rng() * COLORS.length)], a = ANIMALS[Math.floor(rng() * ANIMALS.length)];
-    const cands = [c + 'の' + a, c + a];
-    for (const v of cands) if (v.length <= NICK_MAX && checkNick(v).ok) return v;
+    for (const v of [c + 'の' + a, c + a]) {
+      if (v.length > NICK_MAX || !checkNick(v).ok) continue;
+      last = v;
+      if (!isTaken(v)) return v;
+    }
   }
-  return 'みどりのかに';
+  return last;
 }
 
 export function getNick(): string | null { return store(NICK_KEY) || null; }

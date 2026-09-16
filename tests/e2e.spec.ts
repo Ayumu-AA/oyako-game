@@ -93,7 +93,8 @@ test('結果画面：ランクと じこベスト（60秒）', async ({ page }) 
 });
 
 test('ランキング：タイトルから 入って 名前を 決める・NGワード・オフライン表示', async ({ page }) => {
-  await open(page);
+  /* すでに つかわれている 名前の 控え（ふだんは サーバーから 取る。ここでは 端末の控えを 置いておく） */
+  await open(page, { 'oyako-names-home': JSON.stringify(['ぱんだ', 'みどりのかに']) });
   await page.click('#btn-rank-title');
   await expect(page.locator('#s-rank')).toBeVisible();
   await page.click('#seg-rank-mode button[data-v="battle"]');
@@ -103,15 +104,29 @@ test('ランキング：タイトルから 入って 名前を 決める・NGワ
   await expect(page.locator('#nick-hint')).toHaveText('そのことばは つかえないよ');
   await page.fill('#nick-input', 'あ'); await page.click('#btn-nick-ok');
   await expect(page.locator('#nick-hint')).toHaveText('2もじ いじょうに してね');
+  /* つかわれている 名前は はじく（カタカナで 入れても 同じ） */
   await page.fill('#nick-input', 'パンダ'); await page.click('#btn-nick-ok');
+  await expect(page.locator('#nick-hint')).toHaveText('その なまえは つかわれているよ');
+  await expect(page.locator('#name-ov')).toBeVisible();
+  /* サイコロは かぶらない 候補を 出す */
+  for (let i = 0; i < 5; i++) {
+    await page.click('#btn-nick-dice');
+    const v = await page.inputValue('#nick-input');
+    expect(['ぱんだ', 'みどりのかに']).not.toContain(v);
+  }
+  await page.fill('#nick-input', 'こあら'); await page.click('#btn-nick-ok');
   await expect(page.locator('#name-ov')).toBeHidden();
-  await expect(page.locator('#btn-rank-name')).toHaveText(/ぱんだ/);
-  expect(await page.evaluate(() => localStorage.getItem('oyako-nick'))).toBe('ぱんだ');
+  await expect(page.locator('#btn-rank-name')).toHaveText(/こあら/);
+  expect(await page.evaluate(() => localStorage.getItem('oyako-nick'))).toBe('こあら');
   /* この環境からは Supabase に つながらない → 8秒で あきらめて 案内を 出す */
   await expect(page.locator('#rank-offline')).toHaveText('つながると 出ます', { timeout: 15000 });
   /* せってい からも 名前を 変えられる */
   await page.click('#btn-rank-back'); await page.click('#btn-settings');
-  await expect(page.locator('#btn-set-name')).toHaveText('ぱんだ　（かえる）');
+  await expect(page.locator('#btn-set-name')).toHaveText('こあら　（かえる）');
+  /* 自分の いまの名前は そのまま 通せる（つかわれている扱いに しない） */
+  await page.click('#btn-set-name');
+  await page.fill('#nick-input', 'こあら'); await page.click('#btn-nick-ok');
+  await expect(page.locator('#name-ov')).toBeHidden();
 });
 
 test('10を作る：式を組んで 判定', async ({ page }) => {

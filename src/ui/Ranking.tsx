@@ -1,9 +1,9 @@
 /* ランキング：名前入力の シート と 一覧の 画面 */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RANKS } from '../data/texts';
-import { checkNick, suggestNick, NICK_MAX, getNick, setNickLocal } from '../lib/nickname';
+import { checkNick, suggestNick, NICK_MAX, getNick, setNickLocal, isTaken, loadTakenNames, setTakenNames } from '../lib/nickname';
 import { enqueueProfile, flush } from '../lib/sync';
-import { cachedTable, fetchTable, RANK_MODES, type RankTable } from '../lib/ranking';
+import { cachedTable, fetchTable, fetchNames, RANK_MODES, type RankTable } from '../lib/ranking';
 import { eventCode } from '../lib/config';
 import { CONFIG } from './texts';
 import type { Level, Mode } from '../game/types';
@@ -16,14 +16,24 @@ export function NameSheet({ open, level, initial, onDone, onCancel }: { open: bo
   const [v, setV] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const inp = useRef<HTMLInputElement>(null);
+  const ev = eventCode();
   useEffect(() => {
     if (!open) return;
+    loadTakenNames(ev);                                   /* まず 前回の 控えで 判定できるように */
     setV(initial || getNick() || suggestNick()); setErr(null);
     setTimeout(() => inp.current?.focus(), 50);
-  }, [open, initial]);
+    /* 最新の 名前一覧を 取ってくる。間に合わなくても 入力は 止めない */
+    void fetchNames(ev).then((names) => {
+      if (!names.length) return;
+      setTakenNames(names, ev);
+      setV((cur) => (cur && isTaken(cur) && cur !== getNick() ? suggestNick() : cur));   /* 出した候補が かぶっていたら 差しかえる */
+    });
+  }, [open, initial, ev]);
   const submit = () => {
     const r = checkNick(v);
     if (!r.ok) { setErr(r.reason); return; }
+    /* 同じ名前が 掲示に ならばないように。自分の いまの名前は そのままで いい */
+    if (r.value !== getNick() && isTaken(r.value)) { setErr('その なまえは つかわれているよ'); return; }
     setNickLocal(r.value); enqueueProfile(r.value, level);
     onDone(r.value);
   };

@@ -65,6 +65,16 @@ export async function fetchTable(ev: string, mode: Mode, lv: Level): Promise<Ran
   } catch { return null; }
 }
 
+/** そのイベントで つかわれている 名前を 取ってくる（名前を 決めるとき かぶりを 教えるため）。
+    1クエリ・名前だけ。取れなければ 空（＝かぶり判定なしで 素どおり） */
+export async function fetchNames(ev: string, limit = 600): Promise<string[]> {
+  const c = getClient(); if (!c) return [];
+  try {
+    const { data } = await c.from(RANK_TABLE).select('nickname').eq('event_code', ev).limit(limit);
+    return [...new Set((data || []).map((r) => String((r as { nickname: string }).nickname)).filter(Boolean))];
+  } catch { return []; }
+}
+
 /** 掲示用：全モード・両学年を まとめて 取る（こちらも 人ごとの ベストだけ） */
 export async function fetchAll(ev: string, limit = 5): Promise<Record<string, RankRow[]>> {
   const c = getClient(); const out: Record<string, RankRow[]> = {};
