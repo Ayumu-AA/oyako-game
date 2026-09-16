@@ -6,7 +6,7 @@
 import { store } from './storage';
 import { ensureUser, getClient } from './supabase';
 import { onRecordChange, mergeRemote, allStats, type StatRow } from '../game/records';
-import { getNick, setNickLocal } from './nickname';
+import { getNick, setNickLocal, setExtraNg } from './nickname';
 
 export const QUEUE_KEY = 'oyako-queue';
 export const QUEUE_MAX = 500;
@@ -122,17 +122,30 @@ export function enqueueScore(row: ScoreRow) {
 }
 export function enqueueProfile(nickname: string, level: 1 | 2) { enqueue({ k: 'profile', nickname, level }); }
 
-/** サーバーに 名前が あれば 取りこむ（端末に 無いとき だけ）。戻り値は 取りこんだ 名前 */
+/** サーバーの 名前を 取りこむ。端末に 無ければ そのまま、あれば サーバーが 正（NGワードで 置きかえられた ときに そろう）。
+    送りかけの 名前が キューに 残っているときは 触らない。戻り値は 取りこんで 変わった 名前 */
 export async function pullProfile(): Promise<string | null> {
   try {
-    if (getNick()) return null;
     const c = getClient(); if (!c) return null;
     const uid = await ensureUser(); if (!uid) return null;
+    if (loadQ().some((x) => x.k === 'profile')) return null;
     const { data } = await c.from('profiles').select('nickname').eq('id', uid).maybeSingle();
     const n = data?.nickname as string | undefined;
-    if (n && !getNick()) { setNickLocal(n); return n; }
+    if (n && n !== getNick()) { setNickLocal(n); return n; }
     return null;
   } catch { return null; }
+}
+
+/** サーバーの NGワードを 取りこむ（Dashboard から 足したものが アプリにも きく） */
+export async function pullNgWords(): Promise<number> {
+  try {
+    const c = getClient(); if (!c) return 0;
+    const { data } = await c.from('ng_words').select('word');
+    if (!data) return 0;
+    const words = data.map((r) => String(r.word)).filter(Boolean);
+    setExtraNg(words);
+    return words.length;
+  } catch { return 0; }
 }
 
 let started = false;
@@ -145,10 +158,11 @@ export function startSync(onPulled?: (n: number) => void, onNick?: (nick: string
     document.addEventListener('visibilitychange', () => { if (!document.hidden) void flush(); });
   }
   void (async () => {
+    void pullNgWords();
     const n = await pullRecords();
     if (n && onPulled) onPulled(n);
-    const nick = await pullProfile();
+    await flush();                        /* 送りかけの 名前を 先に 届けてから */
+    const nick = await pullProfile();     /* サーバーの 名前に そろえる */
     if (nick && onNick) onNick(nick);
-    await flush();
   })();
 }

@@ -45,6 +45,8 @@ export function Board() {
         const k = ALL_KEYS.findIndex((x) => x.mode === r.mode && x.lv === r.level);
         if (k >= 0) { setI(k); setTick((t) => t + 1); }
       })
+      /* 名前の 変更（profiles の trigger が scores を 書きかえる）は 静かに 取りなおす */
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'scores', filter: 'event_code=eq.' + ev }, () => { void reload(); })
       .subscribe();
     return () => { void c.removeChannel(ch); };
   }, [ev]);  // eslint-disable-line react-hooks/exhaustive-deps
