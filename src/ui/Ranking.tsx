@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RANKS } from '../data/texts';
 import { checkNick, suggestNick, NICK_MAX, getNick, setNickLocal } from '../lib/nickname';
-import { enqueueProfile } from '../lib/sync';
+import { enqueueProfile, flush } from '../lib/sync';
 import { cachedTable, fetchTable, RANK_MODES, type RankTable } from '../lib/ranking';
 import { eventCode } from '../lib/config';
 import { CONFIG } from './texts';
@@ -59,8 +59,8 @@ export function RankingScreen({ mode0, level0, nick, onBack, onName }: { mode0: 
   const load = useCallback(async (m: Mode, l: Level) => {
     setState('loading');
     setT(cachedTable(ev, m, l));
-    /* つながらない回線で 待たせすぎない：8秒で あきらめて「つながると 出ます」 */
-    const r = await Promise.race([fetchTable(ev, m, l), new Promise<null>((res) => setTimeout(() => res(null), 8000))]);
+    /* 送りかけの 点数（いまの回）を 先に 流してから 表を 取る。つながらない回線で 待たせすぎない：8秒で あきらめる */
+    const r = await Promise.race([flush().then(() => fetchTable(ev, m, l)), new Promise<null>((res) => setTimeout(() => res(null), 8000))]);
     if (r) { setT(r); setState('ok'); } else setState('offline');
   }, [ev]);
   useEffect(() => { void load(mode, level); }, [mode, level, load]);

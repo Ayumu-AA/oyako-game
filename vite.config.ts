@@ -15,6 +15,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,webp}'],   // build 資産と えいごの絵を 全部 先読み → 機内モードでも 遊べる
         navigateFallback: '/oyako-game/index.html',
         navigateFallbackAllowlist: [/^\/oyako-game\//],
+        navigateFallbackDenylist: [/board\.html/],          /* 掲示ページは 別の HTML */
+        ignoreURLParametersMatching: [/^e$/, /^v$/, /^utm_/],   /* ?e=T2026-12 が 付いていても 先読みした HTML を 使う */
         runtimeCaching: [
           { urlPattern: /^https:\/\/fonts\.googleapis\.com\//, handler: 'StaleWhileRevalidate', options: { cacheName: 'gfonts-css', expiration: { maxEntries: 8, maxAgeSeconds: 60 * 60 * 24 * 365 } } },
           { urlPattern: /^https:\/\/fonts\.gstatic\.com\//, handler: 'CacheFirst', options: { cacheName: 'gfonts-files', expiration: { maxEntries: 32, maxAgeSeconds: 60 * 60 * 24 * 365 }, cacheableResponse: { statuses: [0, 200] } } },

@@ -39,3 +39,18 @@ test('一度 開いたあと オフラインでも 起動して 遊べる', asyn
   expect(errs).toEqual([]);
   await ctx.close();
 });
+
+test('掲示ページは Service Worker が 入ったあとも 本体に すりかわらない', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 1024, height: 700 } });
+  const page = await ctx.newPage();
+  await page.goto('./');
+  await page.waitForFunction(async () => !!(await navigator.serviceWorker.getRegistration())?.active, null, { timeout: 30000 });
+  await page.reload();
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 15000 });
+  await page.goto('./board.html?e=TEST');
+  await expect(page.locator('.bhead h1')).toHaveText('親子ゲーム ランキング');
+  await expect(page.locator('.bev')).toHaveText('TEST');
+  await page.goto('./?e=TEST');
+  await expect(page.locator('#s-title')).toBeVisible();
+  await ctx.close();
+});
