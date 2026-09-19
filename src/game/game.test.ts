@@ -3,7 +3,7 @@ import { setKV, memoryKV } from '../lib/storage';
 import { reloadRecords, markMiss, markHit, missCount, markSeen, seenAt, clearRecords } from './records';
 import { evalTokens, makePuzzle, checkMath, type Token } from './math10';
 import { rankOf, rankNext } from './rank';
-import { plain, furi, furiName } from './furigana';
+import { plain, furi, furiName, FURI_RE } from './furigana';
 import { calcQuestion, BattleSession, battlePool, pickOpts } from './battle';
 import { relayDeck, deckFor, hints3, missDeck } from './decks';
 import { polyOf, inPoly, geoChoices, geoGroupOf, geoDeck, jpSVG, wSVG, jpFullVB, geoQuestion } from './geo';
@@ -77,11 +77,21 @@ describe('furigana', () => {
 });
 
 describe('decks', () => {
-  it('学年で 完全に 分かれる', () => {
+  it('都道府県は 高学年が 47ぜんぶ・低学年は やさしい県だけ', () => {
     const a = relayDeck('pref', 1).map((q) => q.name), b = relayDeck('pref', 2).map((q) => q.name);
-    expect(a.length + b.length).toBe(47);
-    expect(a.some((x) => b.includes(x))).toBe(false);
+    expect(b.length).toBe(47);                              // 高学年は ぜんぶ
+    expect(a.length).toBeGreaterThanOrEqual(28);            // 低学年は その一部
+    expect(a.every((x) => b.includes(x))).toBe(true);
+    expect(a.includes('北海道')).toBe(true);
+    expect(a.includes('鳥取県')).toBe(false);               // 低学年には 出ない
     expect(relayDeck('eigo', 1).every((q) => q.art)).toBe(true);
+  });
+  it('ほかの教科は 学年で 完全に 分かれる', () => {
+    for (const sub of ['kokugo', 'rika', 'rekishi', 'eigo'] as const) {
+      const a = relayDeck(sub, 1).map((q) => q.name), b = relayDeck(sub, 2).map((q) => q.name);
+      expect(a.length, sub).toBeGreaterThan(0); expect(b.length, sub).toBeGreaterThan(0);
+      expect(a.some((x) => b.includes(x)), sub).toBe(false);
+    }
   });
   it('ヒントは 6つのプールから 3つ', () => {
     const q = relayDeck('flag', 1).find((x) => x.name === '日本')!;
@@ -122,8 +132,12 @@ describe('battle', () => {
         const r = KOKUGO_REI[q.name];
         expect(r, q.name).toBeDefined();
         expect(plain(r.rei)).toContain('「' + plain(q.name).slice(0, 2));    // 例文の中に そのことばが「」つきで 入っている（活用あり）
-        expect(/[一-鿿](?![^{]*\})/.test(r.rei.replace(/[一-鿿]+\{[^}]*\}/g, ''))).toBe(false);   // 漢字は みんな ふりがなつき
-        expect(/[一-鿿](?![^{]*\})/.test(r.imi.replace(/[一-鿿]+\{[^}]*\}/g, ''))).toBe(false);
+        /* 漢字は みんな ふりがなつき。ルビの ついた ぶんを まるごと 消して、
+           のこった 漢字が あれば つけ忘れ。本体と 同じ FURI_RE を つかうので
+           々 や ヶ を ふくむ ことば（次々{つぎつぎ} など）でも 正しく 判定できる */
+        const noRuby = (t: string) => t.replace(new RegExp(FURI_RE.source, 'g'), '');
+        expect(/[一-鿿々〆ヶ]/.test(noRuby(r.rei)), q.name + ' rei').toBe(false);
+        expect(/[一-鿿々〆ヶ]/.test(noRuby(r.imi)), q.name + ' imi').toBe(false);
       });
     }
     const s = new BattleSession({ level: 2, bsubj: 'kokugo', handi: 1, goal: 0 });
@@ -180,7 +194,7 @@ describe('geo', () => {
   });
   it('デッキと SVG', () => {
     expect(geoDeck('jp', 2).length).toBe(47);
-    expect(geoDeck('jp', 1).length).toBe(20);
+    expect(geoDeck('jp', 1).length).toBe(relayDeck('pref', 1).length);   /* ちずクイズも 同じ「やさしい県」 */
     expect(jpSVG({ '13': 'hit' })).toContain('class="pf hit" data-k="13"');
     expect(wSVG({ jp: 'hit' })).toContain('class="cty hit" data-k="jp"');
     expect(jpFullVB()[2]).toBeGreaterThan(400);

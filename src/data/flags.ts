@@ -140,7 +140,86 @@ export const FLAGS={
     s+=star(15,30,4.2,'#fff');
     s+=star(45,9,2.1,'#fff')+star(50,19,2.4,'#fff')+star(43,23,2.1,'#fff')+star(46,32,2.4,'#fff')+star(39,17,1.3,'#fff');
     return s;
+  },
+  /* ---- ここから 2026-09 追加 ---- */
+  es:function(){return '<rect width="60" height="40" fill="#AA151B"/><rect y="10" width="60" height="20" fill="#F1BF00"/>';},
+  mx:function(){
+    let s='<rect width="20" height="40" fill="#006847"/><rect x="20" width="20" height="40" fill="#fff"/><rect x="40" width="20" height="40" fill="#CE1126"/>';
+    /* まん中の わし は こまかいので、形だけ わかるように 簡単にしてある */
+    s+='<path d="M25.6 21.6 a5 5 0 0 0 8.8 0" fill="none" stroke="#2F6B35" stroke-width="0.9"/>';
+    s+='<path d="M26.8 18.2 q3.2-3.4 6.4 0 q-3.2 4.2-6.4 0 z" fill="#8B5A2B"/>';
+    s+='<circle cx="30" cy="17.2" r="1" fill="#8B5A2B"/>';
+    return s;
+  },
+  eg:function(){
+    return '<rect width="60" height="13.34" fill="#CE1126"/><rect y="13.34" width="60" height="13.33" fill="#fff"/><rect y="26.67" width="60" height="13.33" fill="#000"/>'
+      +'<circle cx="30" cy="20" r="3.6" fill="#C09300"/>';
+  },
+  ph:function(){
+    let s='<rect width="60" height="20" fill="#0038A8"/><rect y="20" width="60" height="20" fill="#CE1126"/>';
+    s+='<polygon points="0,0 26,20 0,40" fill="#fff"/>';
+    for(let i=0;i<8;i++){
+      const t=Math.PI*2*i/8;
+      s+='<line x1="'+(8+2.4*Math.cos(t)).toFixed(2)+'" y1="'+(20+2.4*Math.sin(t)).toFixed(2)+'" x2="'+(8+4.4*Math.cos(t)).toFixed(2)+'" y2="'+(20+4.4*Math.sin(t)).toFixed(2)+'" stroke="#FCD116" stroke-width="0.8"/>';
+    }
+    s+='<circle cx="8" cy="20" r="2.4" fill="#FCD116"/>';
+    s+=star(3.4,3.4,1.5,'#FCD116')+star(3.4,36.6,1.5,'#FCD116')+star(21.5,20,1.5,'#FCD116');
+    return s;
+  },
+  sg:function(){
+    let s='<rect width="60" height="20" fill="#ED2939"/><rect y="20" width="60" height="20" fill="#fff"/>';
+    s+='<circle cx="13" cy="10" r="6.4" fill="#fff"/><circle cx="16.2" cy="10" r="5.3" fill="#ED2939"/>';
+    [[23,6.2],[26.6,8.8],[25.2,13],[20.8,13],[19.4,8.8]].forEach(function(p){ s+=star(p[0],p[1],1.5,'#fff'); });
+    return s;
+  },
+  nz:function(){
+    let s='<rect width="60" height="40" fill="#00247D"/><g transform="scale(0.5)">'+unionJack()+'</g>';
+    [[46,9,2.3],[51,19,1.9],[44,23.5,2.3],[47.5,31,1.9]].forEach(function(p){
+      s+=star(p[0],p[1],p[2]+0.7,'#fff')+star(p[0],p[1],p[2],'#CC142B');
+    });
+    return s;
+  },
+  no:function(){
+    return '<rect width="60" height="40" fill="#BA0C2F"/><rect x="17" width="10" height="40" fill="#fff"/><rect y="15" width="60" height="10" fill="#fff"/>'
+      +'<rect x="19.5" width="5" height="40" fill="#00205B"/><rect y="17.5" width="60" height="5" fill="#00205B"/>';
+  },
+  fi:function(){
+    return '<rect width="60" height="40" fill="#fff"/><rect x="17" width="9" height="40" fill="#002F6C"/><rect y="15.5" width="60" height="9" fill="#002F6C"/>';
+  },
+  is:function(){
+    return '<rect width="60" height="40" fill="#02529C"/><rect x="17" width="10" height="40" fill="#fff"/><rect y="15" width="60" height="10" fill="#fff"/>'
+      +'<rect x="19.5" width="5" height="40" fill="#DC1E35"/><rect y="17.5" width="60" height="5" fill="#DC1E35"/>';
+  },
+  pl:function(){return '<rect width="60" height="20" fill="#fff"/><rect y="20" width="60" height="20" fill="#DC143C"/>';},
+  at:function(){return '<rect width="60" height="40" fill="#fff"/><rect width="60" height="13.34" fill="#ED2939"/><rect y="26.66" width="60" height="13.34" fill="#ED2939"/>';},
+  ie:function(){return '<rect width="20" height="40" fill="#169B62"/><rect x="20" width="20" height="40" fill="#fff"/><rect x="40" width="20" height="40" fill="#FF883E"/>';},
+  be:function(){return '<rect width="20" height="40" fill="#000"/><rect x="20" width="20" height="40" fill="#FDDA24"/><rect x="40" width="20" height="40" fill="#EF3340"/>';},
+  ua:function(){return '<rect width="60" height="20" fill="#0057B7"/><rect y="20" width="60" height="20" fill="#FFDD00"/>';},
+  gh:function(){
+    return '<rect width="60" height="13.34" fill="#CE1126"/><rect y="13.34" width="60" height="13.33" fill="#FCD116"/><rect y="26.67" width="60" height="13.33" fill="#006B3F"/>'
+      +star(30,20,4.4,'#000');
+  },
+  ng:function(){return '<rect width="20" height="40" fill="#008751"/><rect x="20" width="20" height="40" fill="#fff"/><rect x="40" width="20" height="40" fill="#008751"/>';},
+  cl:function(){
+    return '<rect width="60" height="20" fill="#fff"/><rect y="20" width="60" height="20" fill="#D52B1E"/><rect width="20" height="20" fill="#0039A6"/>'
+      +star(10,10,5.6,'#fff');
+  },
+  pe:function(){return '<rect width="20" height="40" fill="#D91023"/><rect x="20" width="20" height="40" fill="#fff"/><rect x="40" width="20" height="40" fill="#D91023"/>';},
+  cu:function(){
+    let s='<rect width="60" height="40" fill="#fff"/>';
+    [0,16,32].forEach(function(y){ s+='<rect y="'+y+'" width="60" height="8" fill="#002A8F"/>'; });
+    s+='<polygon points="0,0 26,20 0,40" fill="#CF142B"/>'+star(8.6,20,4.2,'#fff');
+    return s;
+  },
+  my:function(){
+    let s='<rect width="60" height="40" fill="#fff"/>';
+    for(let i=0;i<7;i++){ s+='<rect y="'+(i*2*40/14).toFixed(2)+'" width="60" height="'+(40/14).toFixed(2)+'" fill="#CC0001"/>'; }
+    s+='<rect width="30" height="'+(40*8/14).toFixed(2)+'" fill="#010066"/>';
+    s+='<circle cx="12" cy="11.5" r="5.6" fill="#FFCC00"/><circle cx="14.6" cy="11.5" r="4.7" fill="#010066"/>';
+    s+='<polygon points="'+pts(22,11.5,4.2,14,0)+'" fill="#FFCC00"/>';   /* 14の 州を あらわす 14本の 星 */
+    return s;
   }
+
 };
 export function flagSVG(code){
   return '<svg viewBox="0 0 60 40" role="img" aria-label="国旗">'+FLAGS[code]()+'</svg>';

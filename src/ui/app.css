@@ -273,6 +273,9 @@
     background:var(--gold);color:#463206;
     border-radius:999px;padding:9px 15px;font-size:15px;font-weight:700;
   }
+  /* ヒントの ルビ。行の高さを 先に とっておくと、ルビの ある行と ない行で 段差が 出ない */
+  .hints li{line-height:2.1}
+  .hints rt{font-size:.5em;font-weight:700;opacity:.85}
   .hints{margin:0;padding:0}
   .reading{font-size:16px;color:var(--muted);font-weight:700;letter-spacing:.06em;margin-top:-8px}
   #mathpad{display:grid;gap:11px;width:100%}

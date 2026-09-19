@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deckFor, hints3 } from '../game/decks';
 import { checkMath, type Token } from '../game/math10';
-import { plain, nameHTML } from '../game/furigana';
+import { furi, plain, nameHTML } from '../game/furigana';
 import { artHTML, preloadArt } from '../game/art';
 import { markSeen, markHit, markMiss } from '../game/records';
 import { capOf, capSameName, jpSVG, wSVG } from '../game/geo';
@@ -179,7 +179,9 @@ export function PlayScreen({ mode, level, seconds, role, onFinish, onRestart, on
         <p className="reading" id="reading" hidden={!(rq && (rq.sub || mode) === 'eigo')}>{rq?.yomi}</p>
         <div id="hintblock" hidden={!!mq}>
           <p className="hintlabel">ヒントのたね</p>
-          <ul className="hints" id="hints">{rq && h3.k === idx && h3.v.map((h, i) => <li key={i}>{plain(h)}</li>)}</ul>
+          {/* ヒントは スマホを持つ人（ふつうは こども）が 声に出して 読む。
+              低学年でも 読めるように ルビを つける（データに 漢字{よみ} が 入っている） */}
+          <ul className="hints" id="hints">{rq && h3.k === idx && h3.v.map((h, i) => <li key={i} dangerouslySetInnerHTML={{ __html: furi(h) }} />)}</ul>
         </div>
         <p className="solution" id="solution" hidden={!sol}>{mq && sol ? 'れい：' + mq.sol : ''}</p>
       </div>

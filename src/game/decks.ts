@@ -16,7 +16,7 @@ const LV1_FLAG_SET = LV1_FLAG as Set<string>;
 export function relayDeck(sub: Subject, lv: Level): RelayQ[] {
   if (sub === 'pref') {
     return orderBySeen('pref', (PREF as Row[]).map((q, i) => [q, PCODE(i) as string] as const)
-      .filter((p) => lv === 1 ? LV1_PREF_SET.has(p[0][0]) : !LV1_PREF_SET.has(p[0][0]))
+      .filter((p) => lv === 2 || LV1_PREF_SET.has(p[0][0]))   /* 高学年は 47 ぜんぶ。低学年は 子どもが 知っている 県だけ */
       .map((p) => { const q = p[0]; return { name: q[0], yomi: q[1], tag: q[2] + '地方', hints: q[3].concat(HINT2_MAP.pref[q[0]] || []), fact: q[4], art: null, mk: p[1], sub: 'pref' as const }; }));
   }
   if (sub === 'flag') {
