@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { deckFor, hints3 } from '../game/decks';
 import { checkMath, type Token } from '../game/math10';
-import { furi, plain, nameHTML } from '../game/furigana';
+import { furi, nameHTML } from '../game/furigana';
 import { artHTML, preloadArt } from '../game/art';
 import { markSeen, markHit, markMiss } from '../game/records';
 import { capOf, capSameName, jpSVG, wSVG } from '../game/geo';
