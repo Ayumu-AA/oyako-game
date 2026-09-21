@@ -1,5 +1,6 @@
 /* 小さな部品 */
 import { useEffect, useRef, type ReactNode } from 'react';
+import { plowMark } from '../data/logo';
 import { CONFIG } from '../data/texts';
 
 /** SVG文字列などを そのまま入れる */
@@ -71,7 +72,7 @@ export function PauseOverlay({ open, info, onResume, onRestart, onQuit }: { open
 export function Promo({ prefix = '' }: { prefix?: string }) {
   return (
     <div className="promo">
-      <b id={prefix + 'promo-name'}>{CONFIG.schoolName}</b>
+      <b id={prefix + 'promo-name'}><Raw as="span" className="footmark" html={plowMark(17)} />{CONFIG.schoolName}</b>
       <p id={prefix + 'promo-text'}>{CONFIG.promoText}</p>
     </div>
   );

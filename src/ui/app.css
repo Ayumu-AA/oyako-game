@@ -10,6 +10,11 @@
     --gold:#E9B44C;
     --leaf:#2F8F5B;
     --line:rgba(27,73,101,.16);
+    /* プラウのロゴの色。ロゴそのものは この値で 描く（src/data/logo.ts）。
+       背景に 敷くときは 白文字が 読めないので 少し 濃い -bg のほうを つかう
+       （WCAG 4.5 に対し ロゴ青 3.83→4.89、ロゴ赤 4.38→5.14） */
+    --plow-green:#34B544; --plow-red:#ED1C24; --plow-blue:#0E88D3; --plow-yellow:#FAB20B;
+    --plow-blue-bg:#0B76B8; --plow-red-bg:#D81922; --plow-purple-bg:#7E5BB5;
     --shadow:0 2px 0 rgba(27,73,101,.16), 0 10px 24px rgba(27,73,101,.10);
     --r:18px;
     color-scheme:light;
@@ -61,13 +66,11 @@
   .brandmark{
     display:flex;align-items:center;gap:10px;
   }
-  .brandmark .pin{
-    width:30px;height:30px;border-radius:50%;
-    background:var(--vermilion);
-    box-shadow:inset 0 0 0 4px var(--surface), 0 0 0 1.5px var(--vermilion);
-    flex:none;
-  }
-  .brandmark span{font-size:13px;font-weight:700;color:var(--sea)}
+  .brandmark .pin{flex:none;display:flex;align-items:center}
+  .brandmark .pin svg{display:block}
+  .footmark{display:inline-flex;vertical-align:-3px;margin-right:5px}
+  .footmark svg{display:block}
+  .brandmark span{font-size:12.5px;font-weight:700;color:var(--sea);letter-spacing:-.01em}
   .lede{margin:0;color:var(--muted);font-size:14.5px;line-height:1.75}
 
   .modes{display:grid;gap:9px}
@@ -91,6 +94,49 @@
   .mode .icon svg{display:block;width:100%;height:auto;border-radius:3px;border:1px solid var(--line)}
   .mode b{display:block;font-size:16.5px;font-weight:900}
   .mode small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+
+  /* ---- ホーム画面だけ ゲームを カラータイルにする ----
+     色は プラウのロゴの 4色＋紺。面の色で 見分けられるので、ブースで
+     先生が「赤いやつ」と 指させる。教科えらび（#s-sub）は 教科の絵を
+     見せたいので これまでどおり 白いカードのまま */
+  #s-title .modes{grid-template-columns:1fr 1fr}
+  #s-title .mode{
+    --c:var(--sea); --on:#fff;
+    position:relative;
+    flex-direction:column;align-items:stretch;justify-content:space-between;gap:0;
+    min-height:118px;
+    background:var(--c);color:var(--on);
+    border:none;border-radius:17px;
+    padding:12px 12px 11px;
+    box-shadow:0 3px 0 rgba(0,0,0,.18);
+    transition:transform .08s ease, box-shadow .08s ease;
+  }
+  #s-title .mode:hover{filter:brightness(1.06)}
+  #s-title .mode:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+  #s-title .mode .icon{width:28px;height:28px;display:block}
+  #s-title .mode .icon svg{width:100%;height:100%;display:block;border:none;border-radius:0}
+  #s-title .mode b{font-size:15.5px;line-height:1.25;margin-top:7px}
+  #s-title .mode small{font-size:10.5px;font-weight:700;opacity:.92;margin-top:3px;color:inherit}
+  /* 横いっぱいの タイル（ひとりであそぶ・まちがい直し） */
+  #s-title .mode.wide{
+    grid-column:1/-1;min-height:0;
+    flex-direction:row;align-items:center;gap:11px;padding:11px 13px;
+  }
+  #s-title .mode.wide b{margin-top:0}
+  #s-title .mode[data-group="relay"]{--c:var(--plow-blue-bg)}
+  #s-title .mode[data-group="battle"]{--c:var(--plow-red-bg)}
+  #s-title .mode[data-group="cross"]{--c:var(--plow-green);--on:#0F3318}
+  #s-title .mode[data-group="geo"]{--c:var(--sea)}
+  #s-title .mode[data-group="solo"]{--c:var(--plow-purple-bg)}
+  #s-title .mode[data-mode="miss"]{--c:var(--plow-yellow);--on:#3D2A00}
+  /* 「2人で」は バッジに 出す。説明文を 短くして 2行に 折れないようにするため */
+  #s-title .mode .n{
+    position:absolute;top:11px;right:11px;
+    font-size:9.5px;font-weight:900;letter-spacing:.02em;
+    padding:2px 7px;border-radius:999px;
+    background:rgba(255,255,255,.22);color:inherit;
+  }
+  #s-title .mode[data-group="cross"] .n,#s-title .mode[data-mode="miss"] .n{background:rgba(0,0,0,.14)}
 
   .settingrow{
     display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -481,7 +527,7 @@
   .setsheet{max-width:360px;text-align:left;gap:14px}
   .setnote{margin:0;font-size:12.5px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
   /* まちがい直しは わき役なので カードを 小さく */
-  .mode.miss{border-color:var(--gold);background:#FFFBF0;padding:8px 12px;gap:10px}
+  .mode.miss{}
   .mode.miss .icon{width:34px;height:26px}
   .mode.miss b{font-size:14.5px}
   .mode.miss small{font-size:11px;margin-top:1px}
@@ -516,7 +562,7 @@
     .mode.miss .icon{width:28px;height:21px}
     .mode.miss b{font-size:13.5px}
     .picklabel{font-size:11px}
-    .brandmark .pin{width:26px;height:26px}
+    .brandmark .pin svg{height:22px}
     .rulesbtn{padding:7px 12px 7px 9px;font-size:12px}
     .foot{font-size:10px}
     .howttl h2{font-size:17px}
@@ -984,5 +1030,11 @@
   #s-rank .rm-brand{text-align:center;font-size:12px;font-weight:700;color:var(--sea);margin:0}
   .btn-rank{background:#C9961F;color:#fff}
   #s-title .howhead .brandmark{flex:1;min-width:0}
-  #s-title .brandmark span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  @media (max-width:380px){ #s-title .brandmark span{display:none} }   /* 塾名は 下の presented by に ある */
+  #s-title .howhead{gap:8px}
+  #s-title #brand-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* せまい画面では ヘッダーの ボタンを つめて 塾名が 省略されないようにする */
+  @media (max-width:410px){
+    #s-title .rulesbtn{padding:7px 11px 7px 8px;font-size:11.5px;gap:5px}
+    #s-title .brandmark span{font-size:12px}
+  }
+  @media (max-width:380px){ #s-title #brand-title{display:none} }   /* せまい画面では 塾名の 文字だけ 隠す（ロゴマークは 残す）。塾名は 下の presented by に ある */

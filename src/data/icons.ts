@@ -24,3 +24,14 @@ export const GROUP_ICON={
   geo:GEO_ICON,
   miss:'<svg viewBox="0 0 60 40" aria-hidden="true"><rect width="60" height="40" fill="#EAF2F5"/><rect x="10" y="6" width="34" height="28" rx="3" fill="#fff" stroke="#1B4965" stroke-width="1.4"/><path d="M15 14h18M15 20h22M15 26h14" stroke="#9FB3BD" stroke-width="2" stroke-linecap="round"/><path d="M37 26l5 5 10-13" fill="none" stroke="#2F8F5B" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
 };
+
+/* カラータイル用の 白い線アイコン（ホーム画面）。
+   色のついた 面の 上に のせるので、塗りは 使わず currentColor の 線だけで 描く */
+export const TILE_ICON={
+  relay:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6.5h9v6H7l-3 2.5v-2.5H3z"/><path d="M12 11h9v6h-2v2.5L16 17h-4z"/></svg>',
+  battle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="7" rx="2"/><path d="M9 6.5h6M9 17.5h6"/></svg>',
+  cross:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>',
+  geo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>',
+  solo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>',
+  miss:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11l3 3v15H5z"/><path d="M8.5 13l2.5 2.5L16 10"/></svg>',
+};

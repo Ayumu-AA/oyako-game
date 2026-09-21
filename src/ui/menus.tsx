@@ -1,18 +1,19 @@
 /* タイトル・グループ・あそびかた・カウントダウン・せってい・ルール */
 import { useEffect, useRef, useState } from 'react';
 import { CONFIG, MODE_NAME, MODE_SUB, MODE_TAG, MODE_LABEL, GROUPS, HOW_LEDE, STEPS_MISS, STEPS_HINT, STEPS_GEO, STEPS_NUM, STEPS_CROSS, STEPS_BATTLE, STEPS_MATH } from '../data/texts';
-import { ICON, GROUP_ICON } from '../data/icons';
+import { ICON, TILE_ICON } from '../data/icons';
 import { missCount, seenCount, clearRecords } from '../game/records';
 import { store } from '../lib/storage';
 import { soundOn, setSound } from '../lib/sound';
 import type { Level, Mode } from '../game/types';
 import { PickGrid, Raw } from './parts';
+import { plowMark } from '../data/logo';
 import { bestKey, isGeo, type Group, type Settings } from './state';
 
 const MN = MODE_NAME as Record<string, string>;
 const G = GROUPS as Record<Group, { eyebrow: string; title: string; lede: string; note: string; modes: string[] }>;
 const ICONS = ICON as Record<string, string>;
-const GI = GROUP_ICON as Record<string, string>;
+const TI = TILE_ICON as Record<string, string>;
 
 /* ===== タイトル ===== */
 export function TitleScreen({ level, onLevel, onGroup, onMode, onSettings, onRank, missN }: {
@@ -22,7 +23,7 @@ export function TitleScreen({ level, onLevel, onGroup, onMode, onSettings, onRan
     <section className="screen on" id="s-title">
       <div className="howhead">
         <div className="brandmark">
-          <div className="pin" aria-hidden="true"></div>
+          <Raw as="div" className="pin" html={plowMark(22)} />
           <span id="brand-title">{[CONFIG.schoolName, CONFIG.eventName].filter(Boolean).join('　')}</span>
         </div>
         <button type="button" className="rulesbtn" id="btn-rank-title" onClick={onRank}>
@@ -34,41 +35,41 @@ export function TitleScreen({ level, onLevel, onGroup, onMode, onSettings, onRan
       </div>
       <div className="titlelede">
         <h1 className="display">親子ゲーム</h1>
-        <p className="lede">きょうかの内ようで、<b>親子でいっしょに</b>あそべます。ひとり用も あります。</p>
       </div>
+
+      {/* 学年は いちばん 先に 決めるものなので いちばん 上に 置く */}
+      <PickGrid id="seg-level" label="がくねん" cols={2} value={level} onPick={onLevel}
+        options={[{ v: 1 as Level, b: 'ていがくねん', s: '1〜3年生' }, { v: 2 as Level, b: 'こうがくねん', s: '4〜6年生' }]} />
 
       <div className="modes">
         <button className="mode" data-group="relay" onClick={() => onGroup('relay')}>
-          <Raw className="icon" id="ico-relay" html={GI.relay} />
-          <span><b>親子ヒントリレー</b><small>2人で ／ 6つのきょうか</small></span>
+          <Raw className="icon" id="ico-relay" html={TI.relay} />
+          <span><b>親子ヒントリレー</b><small>6つの きょうか</small></span><span className="n">2人</span>
         </button>
         <button className="mode" data-group="battle" onClick={() => onGroup('battle')}>
-          <Raw className="icon" id="ico-battle" html={GI.battle} />
-          <span><b>はやおし親子バトル</b><small>2人で ／ 向かい合って対戦</small></span>
+          <Raw className="icon" id="ico-battle" html={TI.battle} />
+          <span><b>はやおし親子バトル</b><small>向かい合って 対戦</small></span><span className="n">2人</span>
         </button>
         <button className="mode" data-group="cross" onClick={() => onGroup('cross')}>
-          <Raw className="icon" id="ico-cross" html={GI.cross} />
-          <span><b>親子クロスワード</b><small>2人で ／ 協力して完成させる</small></span>
+          <Raw className="icon" id="ico-cross" html={TI.cross} />
+          <span><b>親子クロスワード</b><small>力を合わせて 完成</small></span><span className="n">2人</span>
         </button>
         <button className="mode" data-group="geo" onClick={() => onGroup('geo')}>
-          <Raw className="icon" id="ico-geo" html={GI.geo} />
-          <span><b>ちずクイズ</b><small>2人で ／ 地図で 場所を さがす</small></span>
+          <Raw className="icon" id="ico-geo" html={TI.geo} />
+          <span><b>ちずクイズ</b><small>地図で 場所さがし</small></span><span className="n">2人</span>
         </button>
-        <button className="mode" data-group="solo" onClick={() => onGroup('solo')}>
-          <Raw className="icon" id="ico-solo" html={GI.solo} />
-          <span><b>ひとりであそぶ</b><small>1人で ／ 算数</small></span>
+        <button className="mode wide" data-group="solo" onClick={() => onGroup('solo')}>
+          <Raw className="icon" id="ico-solo" html={TI.solo} />
+          <span><b>ひとりであそぶ</b><small>算数（10を作る・けいさんクロス）</small></span>
         </button>
-        <button className="mode miss" data-mode="miss" id="card-miss" hidden={missN === 0} onClick={() => onMode('miss')}>
-          <Raw className="icon" id="ico-miss" html={GI.miss} />
+        <button className="mode wide miss" data-mode="miss" id="card-miss" hidden={missN === 0} onClick={() => onMode('miss')}>
+          <Raw className="icon" id="ico-miss" html={TI.miss} />
           <span><b>まちがい直し</b><small id="miss-sub">のこり {missN}もん</small></span>
         </button>
       </div>
 
-      <PickGrid id="seg-level" label="がくねん" cols={2} value={level} onPick={onLevel}
-        options={[{ v: 1 as Level, b: 'ていがくねん', s: '1〜3年生' }, { v: 2 as Level, b: 'こうがくねん', s: '4〜6年生' }]} />
-
       <div className="spacer"></div>
-      <p className="foot" id="brand-foot">presented by {CONFIG.schoolName}</p>
+      <p className="foot" id="brand-foot"><Raw as="span" className="footmark" html={plowMark(14)} />presented by {CONFIG.schoolName}</p>
     </section>
   );
 }

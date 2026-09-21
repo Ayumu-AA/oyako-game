@@ -1,5 +1,6 @@
 /* 掲示用：全ゲームの 上位を 自動で 切りかえて 表示。新しい点数が 入った瞬間に 動く（Realtime） */
 import { useEffect, useRef, useState } from 'react';
+import { plowMark } from '../data/logo';
 import { RANKS } from '../data/texts';
 import { CONFIG } from './texts';
 import { eventCode } from '../lib/config';
@@ -65,7 +66,7 @@ export function Board() {
   return (
     <div className="board">
       <header className="bhead">
-        <div className="bbrand"><span className="pin" aria-hidden="true"></span><span>{CONFIG.schoolName}</span></div>
+        <div className="bbrand"><span className="pin" dangerouslySetInnerHTML={{ __html: plowMark(30) }} /><span>{CONFIG.schoolName}</span></div>
         <h1 className="display">親子ゲーム ランキング</h1>
         <span className="bev">{ev === 'home' ? 'おうち' : ev}</span>
       </header>
