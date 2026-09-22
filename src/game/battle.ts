@@ -76,6 +76,10 @@ export class BattleSession {
   q: BattleQ | null = null;
   last: BattleQ | null = null;   // へぇ 用（fact を持つ 最後の正解）
   done = false;
+  /** 回答権を 持っている人。null＝だれも 押していない（2人のときだけ 使う） */
+  owner: Side | null = null;
+  /** この問題で もう まちがえた人（1問に 1回だけ 答えられる） */
+  tried: Record<Side, boolean> = { adult: false, child: false };
   opts: BattleOpts;
   /** まちがい直しのときだけ 使う。学年をまたいで まちがえた問題を あつめたもの */
   missPool: RelayQ[] = [];
@@ -157,6 +161,8 @@ export class BattleSession {
   /** つぎの問題へ。両側の選たく肢も ここで決める */
   next(): { q: BattleQ; opts: Record<Side, string[]>; wait: number } {
     this.done = false;
+    this.owner = null;
+    this.tried = { adult: false, child: false };
     const q = this.makeQ();
     this.q = q;
     this.input = { adult: '', child: '' };
@@ -168,6 +174,18 @@ export class BattleSession {
     const wait = (q.num && !solo) ? (HANDI_WAIT[this.opts.handi] || 0) : 0;
     return { q, opts, wait };
   }
+
+  /** 赤いボタン（回答権を とる）。取れたら true。
+      すでに だれかが 持っている／この問題で もう まちがえた人なら false。
+      ひとりモードは 取り合う相手が いないので いつでも true */
+  claim(side: Side): boolean {
+    if (this.opts.players === 1) return true;
+    if (this.done || this.owner || this.tried[side]) return false;
+    this.owner = side;
+    return true;
+  }
+  /** 2人とも まちがえた（だれも 取れずに つぎの問題へ） */
+  bothTried(): boolean { return this.tried.adult && this.tried.child; }
 
   /** 正解。戻り値 true なら 〇もん先取に とどいた */
   correct(side: Side): boolean {
@@ -182,6 +200,8 @@ export class BattleSession {
     const q = this.q!;
     markMiss(q.sub, q.answer);
     if (q.num) this.input[side] = '';
+    this.tried[side] = true;
+    if (this.owner === side) this.owner = null;   /* 回答権は 手ばなす（相手が 押せるように） */
   }
   /** テンキー入力。戻り値は 判定が出たかどうか */
   key(side: Side, v: string): 'ok' | 'ng' | null {

@@ -320,3 +320,44 @@ describe('はやおしの まちがい直し・ひとり', () => {
     expect(s.scoreText('child')).toBe('3/3');
   });
 });
+
+describe('はやおしの 回答権（赤いボタン）', () => {
+  const sess = () => { setKV(memoryKV()); reloadRecords(); const s = new BattleSession({ level: 2, bsubj: 'rekishi', handi: 1, goal: 0 }); s.next(); return s; };
+  it('先に おした人だけが 回答権を 持つ', () => {
+    const s = sess();
+    expect(s.owner).toBe(null);
+    expect(s.claim('child')).toBe(true);
+    expect(s.owner).toBe('child');
+    expect(s.claim('adult')).toBe(false);   /* もう 取られている */
+  });
+  it('まちがえたら 回答権は はなれ、同じ人は もう 押せない', () => {
+    const s = sess();
+    s.claim('child'); s.wrong('child');
+    expect(s.owner).toBe(null);
+    expect(s.claim('child')).toBe(false);   /* 1問に 1回だけ */
+    expect(s.claim('adult')).toBe(true);
+    expect(s.bothTried()).toBe(false);
+  });
+  it('2人とも まちがえたら つぎの問題へ（bothTried）', () => {
+    const s = sess();
+    s.claim('child'); s.wrong('child');
+    s.claim('adult'); s.wrong('adult');
+    expect(s.bothTried()).toBe(true);
+    expect(s.owner).toBe(null);
+  });
+  it('つぎの問題で 回答権は まっさらに もどる', () => {
+    const s = sess();
+    s.claim('child'); s.wrong('child');
+    s.next();
+    expect(s.owner).toBe(null);
+    expect(s.tried).toEqual({ adult: false, child: false });
+  });
+  it('ひとりモードは 取り合う相手が いないので いつでも こたえられる', () => {
+    setKV(memoryKV()); reloadRecords();
+    const s = new BattleSession({ level: 2, bsubj: 'rekishi', handi: 1, goal: 0, players: 1 });
+    s.next();
+    expect(s.claim('child')).toBe(true);
+    s.wrong('child');
+    expect(s.claim('child')).toBe(true);   /* 同じ問題に もう一度 挑戦できる */
+  });
+});

@@ -682,6 +682,23 @@
     align-items:center;justify-content:center;
     font-size:clamp(17px,3.2vh,24px);font-weight:900;letter-spacing:.08em;
   }
+  /* 赤いボタン（回答権を とる）。押した人だけに こたえが 出る */
+  .buzz{
+    flex:none;width:min(80%,260px);min-height:clamp(66px,14vh,112px);
+    border:none;border-radius:999px;
+    background:var(--vermilion);color:#fff;
+    font:inherit;font-weight:900;font-size:clamp(17px,3.4vh,23px);letter-spacing:.04em;
+    box-shadow:0 6px 0 rgba(0,0,0,.22);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .buzz:active:not(:disabled){transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.22)}
+  .buzz:disabled{background:#C3CFD5;color:#5B6B73;box-shadow:0 3px 0 rgba(0,0,0,.10);font-size:14px;font-weight:800;cursor:default}
+  /* 2人とも まちがえたときの こたえ見せ */
+  .bans{
+    flex:none;font-size:clamp(15px,2.9vh,19px);font-weight:800;color:var(--muted);
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;text-align:center;
+  }
+  .bans b{font-size:clamp(19px,3.6vh,26px);font-weight:900;color:var(--ink)}
   .side.waiting .waitmsg{display:flex}
   .side.waiting .numpad,.side.waiting .numin{pointer-events:none}
   /* 終了オーバーレイ：時間切れ直後の連打を すべて受けとめる */

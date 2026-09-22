@@ -21,6 +21,11 @@ const noErrors = (page: Page) => {
 };
 /** テンキーは pointerdown で受けるので dispatch する。
     同じキーの 60ms いないの 二重入力は 捨てる仕様なので、人の指と同じく 少し間をあける */
+/** 赤いボタンで 回答権を とる（2人のときだけ 必要） */
+async function buzz(page: Page, side: 'adult' | 'child') {
+  await page.click(`#buzz-${side}`);
+  await expect(page.locator(`#buzz-${side}`)).toHaveCount(0);   /* こたえが 出たら ボタンは 消える */
+}
 async function numkey(page: Page, side: 'adult' | 'child', k: string) {
   await page.locator(`#side-${side} .numkey[data-k="${k}"]`).dispatchEvent('pointerdown', { bubbles: true, cancelable: true });
   await page.waitForTimeout(80);
@@ -174,7 +179,7 @@ test('はやおしバトル：けいさんは テンキーで 桁数がそろっ
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
   let saw3 = false; let prevText: string | null = null;
   for (let n = 0; n < 5; n++) {
-    await expect(page.locator('#side-child .numwrap')).toBeVisible();
+    await expect(page.locator('#buzz-adult')).toBeEnabled();
     if (prevText !== null) await expect(page.locator('#side-child .qtext')).not.toHaveText(prevText);
     const text = await page.locator('#side-child .qtext').innerText();
     prevText = text;
@@ -182,12 +187,15 @@ test('はやおしバトル：けいさんは テンキーで 桁数がそろっ
     const a = Number(m[1]), b = Number(m[3]);
     const ans = m[2] === '+' ? a + b : m[2] === '−' ? a - b : m[2] === '×' ? a * b : a / b;
     const s = String(ans); if (s.length === 3) saw3 = true;
-    /* わざと まちがえる（最後の桁を ずらす） → おてつき */
+    /* おとなが 赤いボタンを 取って わざと まちがえる（最後の桁を ずらす） → おてつき */
     let wrong = s.slice(0, -1) + String((Number(s.slice(-1)) + 1) % 10);
     if (wrong[0] === '0') wrong = '1' + wrong.slice(1);   /* 先頭の 0 は 打てない仕様 */
+    await buzz(page, 'adult');
+    await expect(page.locator('#side-child .numwrap')).toHaveCount(0);   /* 相手には テンキーは 出ない */
     for (const ch of wrong) await numkey(page, 'adult', ch);
     await expect(page.locator('#side-adult')).toHaveClass(/locked/);
-    await expect(page.locator('#side-adult .numval')).toHaveText('');
+    /* 回答権が こどもに 回ってくる */
+    await buzz(page, 'child');
     for (const ch of s) await numkey(page, 'child', ch);
     await expect(page.locator('#sc-child')).toHaveText((n + 1) + '/5');
   }
@@ -207,8 +215,15 @@ test('はやおしバトル：4たくは 同じ種類の 選たく肢（れき�
   await page.click('#seg-subject button[data-v="rekishi"]');
   await page.click('#btn-start');
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
-  await expect(page.locator('#side-child .choice')).toHaveCount(2);
+  /* はじめは 両方 赤いボタン。こたえは まだ 出ていない */
+  await expect(page.locator('#buzz-child')).toBeEnabled();
+  await expect(page.locator('#buzz-adult')).toBeEnabled();
+  await expect(page.locator('#s-battle .choice')).toHaveCount(0);
+  /* おとなが とる → おとなにだけ 4たく、こどもは 押せなくなる */
+  await buzz(page, 'adult');
   await expect(page.locator('#side-adult .choice')).toHaveCount(4);
+  await expect(page.locator('#side-child .choice')).toHaveCount(0);
+  await expect(page.locator('#buzz-child')).toBeDisabled();
   /* ふりがな：漢字は かならず ruby の中 */
   const bare = await page.evaluate(() => {
     let n = 0;
@@ -219,14 +234,13 @@ test('はやおしバトル：4たくは 同じ種類の 選たく肢（れき�
     return n;
   });
   expect(bare).toBe(0);
-  /* 正解を押すと 得点 */
-  const ansAttr = await page.evaluate(() => {
-    const opts = [...document.querySelectorAll('#side-adult .choice')].map((b) => (b as HTMLElement).dataset.a!);
-    const child = [...document.querySelectorAll('#side-child .choice')].map((b) => (b as HTMLElement).dataset.a!);
-    return opts.find((o) => child.includes(o))!;   // 両側にあるのが こたえ（子2の片方は必ず正解）
-  });
-  const both = await page.locator(`#side-child .choice[data-a="${ansAttr}"]`).count();
-  expect(both).toBe(1);
+  /* おとなが こたえる（合っていれば つぎの問題、まちがいなら 回ってくる）。
+     どちらでも こどもは 赤いボタンを 押せて、こどもは ハンデで 2たく */
+  const first = await page.evaluate(() => (document.querySelector('#side-adult .choice') as HTMLElement).dataset.a!);
+  await page.click(`#side-adult .choice[data-a="${first}"]`);
+  await page.waitForTimeout(700);
+  await buzz(page, 'child');
+  await expect(page.locator('#side-child .choice')).toHaveCount(2);
 });
 
 test('はやおしバトル：ことばは 例文が 問題・意味が 選たく肢。こどもが 上・おとなが 下。まちがえた問題を もう一回', async ({ page }) => {
@@ -252,6 +266,7 @@ test('はやおしバトル：ことばは 例文が 問題・意味が 選た�
   /* 問題は「」つきの 例文、選たく肢は 意味（ことば そのものは 出ない） */
   await expect(page.locator('#side-adult .qtext')).toHaveClass(/long/);
   expect(await page.locator('#side-adult .qtext').innerText()).toMatch(/「.+」/);
+  await buzz(page, 'adult');
   const seen = await page.evaluate(() => [...document.querySelectorAll('#side-adult .choice')].map((b) => ({ a: (b as HTMLElement).dataset.a!, t: (b as HTMLElement).innerText })));
   expect(seen.length).toBe(4);
   for (const c of seen) { expect(c.t).not.toBe(c.a); expect(c.t.length).toBeGreaterThan(3); }
@@ -261,7 +276,7 @@ test('はやおしバトル：ことばは 例文が 問題・意味が 選た�
     const qn = document.querySelector('#side-child .qtext')!.cloneNode(true) as HTMLElement;
     qn.querySelectorAll('rt').forEach((e) => e.remove());
     const segs = (qn.textContent || '').split('「').slice(1);   /* 「」は 例文の中に 2つ以上 あることもある */
-    const c = [...document.querySelectorAll('#side-child .choice')].map((b) => (b as HTMLElement).dataset.a!);
+    const c = [...document.querySelectorAll('#side-adult .choice')].map((b) => (b as HTMLElement).dataset.a!);
     const ans = c.find((o) => segs.some((g) => g.startsWith(o.slice(0, 2))))!;
     return { ans, wrong: c.find((o) => o !== ans)! };
   });
@@ -269,6 +284,7 @@ test('はやおしバトル：ことばは 例文が 問題・意味が 選た�
   await page.click(`#side-adult .choice[data-a="${ans.ans}"]`);
   await expect(page.locator('#sc-adult')).toHaveText('1/5');
   await expect(page.locator('#side-adult')).not.toHaveClass(/flash/);   /* つぎの問題 */
+  await buzz(page, 'child');
   const wrong2 = await page.evaluate(() => {
     const qn = document.querySelector('#side-child .qtext')!.cloneNode(true) as HTMLElement;
     qn.querySelectorAll('rt').forEach((e) => e.remove());
@@ -298,6 +314,7 @@ test('はやおしバトル：ことばは 例文が 問題・意味が 選た�
     const m = /(\d+)\s*([+−×÷])\s*(\d+)/.exec(text)!;
     const a = Number(m[1]), b = Number(m[3]);
     const v = m[2] === '+' ? a + b : m[2] === '−' ? a - b : m[2] === '×' ? a * b : a / b;
+    await buzz(page, 'child');
     for (const ch of String(v)) await numkey(page, 'child', ch);
     await expect(page.locator('#sc-child')).toHaveText((n + 1) + '/5');
   }
@@ -503,26 +520,27 @@ for (const [w, h, tag] of VPS) {
   });
 }
 
-test('はやおし（ひとり）：1画面・回転なし・ランキングには 出さない', async ({ page }) => {
+test('はやおし（ひとり）：1画面・回転なし・せいげん時間だけ・ランキングには 出さない', async ({ page }) => {
   const errs = noErrors(page);
+  await page.clock.install(); await page.clock.resume();   /* 90秒を 早送りして 結果画面まで 見る */
   await open(page);
   await nav(page, 1);
   await page.click('[data-mode="battle1"]');
   await expect(page.locator('#how-title')).toHaveText('はやおし（ひとり）');
-  await expect(page.locator('#seg-players')).toHaveCount(0);   /* 人数は 1画面目で 決めたので ここには 出さない */
-  await expect(page.locator('#seg-handi')).toHaveCount(0);   /* 相手が いないので ハンデは 出さない */
+  await expect(page.locator('#seg-players')).toHaveCount(0);   /* 人数は 1画面目で 決めた */
+  await expect(page.locator('#seg-goal')).toHaveCount(0);      /* 5もん・10もんは なし。せいげん時間だけ */
+  await expect(page.locator('#seg-handi')).toHaveCount(0);     /* 相手が いないので ハンデも なし */
   await page.click('#seg-subject button[data-v="calc"]');
-  await page.click('#seg-goal button[data-v="5"]');
   await page.click('#btn-start');
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
-  /* ならび：時間が 上、じぶんの 面が 下。回転は しない */
+  /* ならび：時間が 上、じぶんの 面が 下。回転は しない。赤いボタンも 出ない */
   const order = await page.evaluate(() => [...document.querySelectorAll('#s-battle > .side, #s-battle > .mid')].map((e) => e.id || e.className));
   expect(order).toEqual(['mid', 'side-child']);
   expect(await page.evaluate(() => getComputedStyle(document.getElementById('side-child')!).transform)).toBe('none');
+  await expect(page.locator('.buzz')).toHaveCount(0);
   let prevText: string | null = null;
-  for (let n = 0; n < 5; n++) {
+  for (let n = 0; n < 3; n++) {
     await expect(page.locator('#side-child .numwrap')).toBeVisible();
-    /* 正解のあと 0.42秒は 前の問題が のこるので、変わるまで まつ */
     if (prevText !== null) await expect(page.locator('#side-child .qtext')).not.toHaveText(prevText);
     const text = await page.locator('#side-child .qtext').innerText();
     prevText = text;
@@ -530,23 +548,23 @@ test('はやおし（ひとり）：1画面・回転なし・ランキングに�
     const a = Number(m[1]), b = Number(m[3]);
     const ans = String(m[2] === '+' ? a + b : m[2] === '−' ? a - b : m[2] === '×' ? a * b : a / b);
     for (const ch of ans) await numkey(page, 'child', ch);
-    await expect(page.locator('#sc-solo')).toHaveText((n + 1) + '/5');
+    await expect(page.locator('#sc-solo')).toHaveText(String(n + 1));
   }
-  await expect(page.locator('#s-bresult')).toBeVisible({ timeout: 4000 });
+  await page.clock.fastForward(95000);
+  await expect(page.locator('#s-bresult')).toBeVisible({ timeout: 8000 });
   await expect(page.locator('#bwin')).toHaveText('ひとりで はやおし');
-  await expect(page.locator('#bs-solo')).toHaveText('5');
+  await expect(page.locator('#bs-solo')).toHaveText('3');
   await expect(page.locator('#bs-adult')).toHaveCount(0);
   await expect(page.locator('#btn-brank-view')).toHaveCount(0);
+  /* じこベストが この端末に のこる（90秒・こうがくねん） */
+  expect(await page.evaluate(() => localStorage.getItem('oyako-battle1-2-90'))).toBe('3');
   expect(errs).toEqual([]);
 });
 
 test('はやおしバトル：まちがい直しは 帳から 出る・ランキングには 出さない', async ({ page }) => {
   const errs = noErrors(page);
-  const t = Date.now();
-  const names = ['徳川家康', '織田信長', '聖徳太子'];
-  const miss: Record<string, { n: number; t: number }> = {};
-  names.forEach((n) => { miss['rekishi:' + n] = { n: 1, t }; });
-  await open(page, { 'oyako-miss': JSON.stringify(miss) });
+  /* 帳を 1問だけに しておくと、出る問題が それに 決まるので たしかめやすい */
+  await open(page, { 'oyako-miss': JSON.stringify({ 'rekishi:徳川家康': { n: 1, t: Date.now() } }) });
   await nav(page);
   await page.click('[data-mode="battle"]');
   await expect(page.locator('#seg-subject button[data-v="miss"]')).toBeVisible();
@@ -555,18 +573,12 @@ test('はやおしバトル：まちがい直しは 帳から 出る・ランキ
   await page.click('#btn-start');
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
   for (let i = 0; i < 5; i++) {
-    /* 正解のあと 0.42秒は 前の問題が のこる。光りが 消えてから 読む */
-    await expect(page.locator('#side-child')).not.toHaveClass(/flash/);
-    const cs = await page.evaluate(() => [...document.querySelectorAll('#side-child .choice')].map((b) => (b as HTMLElement).dataset.a!));
-    /* こたえは 画面から 分からないので、順に おして 点が 入ったものを こたえと する */
-    let ans = '';
-    for (const c of cs) {
-      await page.click(`#side-child .choice[data-a="${c}"]`);
-      await page.waitForTimeout(150);
-      if ((await page.locator('#sc-child').innerText()) === (i + 1) + '/5') { ans = c; break; }
-      await page.waitForTimeout(1500);   /* おてつきの お休みが 明けるまで まつ */
-    }
-    expect(names).toContain(ans);   /* 帳に ある問題しか 出ない */
+    await expect(page.locator('#buzz-child')).toBeEnabled();
+    await buzz(page, 'child');
+    /* 帳に ある問題しか 出ない（こたえが かならず 選たく肢に ある） */
+    await expect(page.locator('#side-child .choice[data-a="徳川家康"]')).toBeVisible();
+    await page.click('#side-child .choice[data-a="徳川家康"]');
+    await expect(page.locator('#sc-child')).toHaveText((i + 1) + '/5');
   }
   await expect(page.locator('#s-bresult')).toBeVisible({ timeout: 4000 });
   await expect(page.locator('#btn-brank-view')).toHaveCount(0);

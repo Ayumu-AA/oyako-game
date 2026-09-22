@@ -114,8 +114,8 @@ export default function App() {
       const tot = r.adult + r.child;
       submitScore({ event_code: eventCode(), mode: 'battle', level: s.level, seconds: r.seconds, score: tot, rank_i: rankOf('battle', tot, r.seconds).i, nickname: '' });
     }
-    /* ひとりモードの じかん勝負だけ この端末の ベストを のこす */
-    if (r.players === 1 && !r.miss && !r.goal) {
+    /* ひとりモードは いつも せいげん時間。この端末の ベストを のこす */
+    if (r.players === 1 && !r.miss) {
       const key = bestKey('battle1', s.level, r.seconds);
       if (r.child > Number(store(key) || 0)) store(key, String(r.child));
     }
@@ -134,7 +134,7 @@ export default function App() {
       {screen === 'count' && <CountScreen mode={mode} role={s.role} players={s.players} onDone={afterCount} />}
       {screen === 'play' && <PlayScreen key={round} mode={mode} level={s.level} seconds={s.seconds} role={s.role} onFinish={finishPlay} onRestart={restart} onQuit={quit} onEmpty={() => go('title')} />}
       {screen === 'geo' && <GeoScreen key={round} mode={mode} level={s.level} seconds={s.seconds} onFinish={finishPlay} onRestart={restart} onQuit={quit} />}
-      {screen === 'battle' && <BattleScreen key={round} level={s.level} seconds={s.seconds} bsubj={s.bsubj} handi={s.handi} goal={s.goal} players={s.players} onFinish={finishBattle} onRestart={restart} onQuit={quit} />}
+      {screen === 'battle' && <BattleScreen key={round} level={s.level} seconds={s.seconds} bsubj={s.bsubj} handi={s.handi} goal={s.players === 1 ? 0 : s.goal} players={s.players} onFinish={finishBattle} onRestart={restart} onQuit={quit} />}
       {screen === 'cross' && <CrossScreen key={round} level={s.level} kana={s.kana} players={s.players} prevIdx={cwIdx} forceIdx={cwForce} onIdx={(i) => { cwCur.current = i; }} onFinish={(r) => { setCr(r); if (r.idx !== undefined) setCwIdx(r.idx); go('cresult'); }} onRestart={restart} onQuit={quit} />}
       {screen === 'numcross' && <NumCrossScreen key={round} level={s.level} onFinish={(r) => { setCr(r); go('cresult'); }} onRestart={restart} onQuit={quit} />}
       {screen === 'result' && pr && <ResultScreen r={pr} onAgain={() => go('how')} onMiss={() => { if (missCount()) openHow('miss'); }} onTitle={() => go('title')} onRank={rankable(pr.mode) ? () => rankFromResult(pr.mode) : undefined} />}

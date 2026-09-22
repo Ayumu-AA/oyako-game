@@ -227,8 +227,8 @@ function stepsFor(mode: Mode, players: 1 | 2): string[] {
 }
 export function bestLine(mode: Mode, s: Settings): string {
   if (mode === 'battle' && s.bsubj === 'miss') return 'まちがい帳に ' + missCount() + 'もん たまっています';
-  /* はやおし（ひとり）の じかんモードだけ、この端末の ベストを 出す */
-  if (mode === 'battle' && s.players === 1 && !s.goal) {
+  /* はやおし（ひとり）は いつも せいげん時間。この端末の ベストを 出す */
+  if (mode === 'battle' && s.players === 1) {
     const b = store(bestKey('battle1', s.level, s.seconds));
     return b ? 'この端末のベスト　' + s.seconds + '秒で ' + b + 'もん' : 'この端末にはまだ記録がありません';
   }
@@ -281,8 +281,9 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
           options={([{ v: 'mix', b: 'ミックス' }, { v: 'pref', b: '都道府県' }, { v: 'flag', b: '国旗' }, { v: 'kokugo', b: 'ことば' }, { v: 'rika', b: 'りか' }, { v: 'rekishi', b: 'れきし' }, { v: 'eigo', b: 'えいご' }, { v: 'calc', b: 'けいさん' }] as { v: Settings['bsubj']; b: string }[])
             .concat(missN > 0 ? [{ v: 'miss' as Settings['bsubj'], b: 'まちがい' }] : [])} />}
 
-        {isBattle && <PickGrid id="seg-goal" label={solo ? 'おわりかた' : 'しょうぶの きめかた'} cols={3} value={s.goal} onPick={(v) => { onChange({ goal: v }); store('oyako-goal', String(v)); }}
-          options={[{ v: 5, b: '5もん', s: solo ? 'とったら おわり' : '先に とったら かち' }, { v: 10, b: '10もん', s: solo ? 'とったら おわり' : '先に とったら かち' }, { v: 0, b: 'じかん', s: 'せいげん時間まで' }]} />}
+        {/* ひとりモードは せいげん時間だけ。〇もん先取は 相手が いてこそ */}
+        {isBattle && !solo && <PickGrid id="seg-goal" label="しょうぶの きめかた" cols={3} value={s.goal} onPick={(v) => { onChange({ goal: v }); store('oyako-goal', String(v)); }}
+          options={[{ v: 5, b: '5もん', s: '先に とったら かち' }, { v: 10, b: '10もん', s: '先に とったら かち' }, { v: 0, b: 'じかん', s: 'せいげん時間まで' }]} />}
 
         {isBattle && !solo && <PickGrid id="seg-handi" label="おとなの ハンデ" cols={3} value={s.handi} onPick={(v) => onChange({ handi: v })}
           options={[{ v: 0, b: 'なし', s: '3たく・3たく' }, { v: 1, b: 'ふつう', s: '子2・親4' }, { v: 2, b: 'たっぷり', s: '子2・親6' }]} />}

@@ -18,6 +18,8 @@ export interface BattleProps {
 
 type SideUI = { opts: string[]; flash: boolean; locked: boolean; waiting: boolean; input: string };
 const sideZero = (): SideUI => ({ opts: [], flash: false, locked: false, waiting: false, input: '' });
+/** 回答権の ようす。2人のときだけ 意味がある */
+type Turn = { owner: Side | null; tried: Record<Side, boolean>; reveal: boolean };
 
 export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFinish, onRestart, onQuit }: BattleProps) {
   const solo = players === 1;
@@ -25,6 +27,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
   const [q, setQ] = useState<BattleQ | null>(null);
   const [ui, setUi] = useState<Record<Side, SideUI>>({ adult: sideZero(), child: sideZero() });
   const [score, setScore] = useState({ adult: '0', child: '0' });
+  const [turn, setTurn] = useState<Turn>({ owner: null, tried: { adult: false, child: false }, reveal: false });
   const [left, setLeft] = useState(seconds * 1000);
   const [paused, setPaused] = useState(false);
   const [fin, setFin] = useState(false);
@@ -40,6 +43,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
   const stopTimer = () => { if (timer.current) { clearInterval(timer.current); timer.current = null; } };
   const setSide = (side: Side, p: Partial<SideUI>) => setUi((u) => ({ ...u, [side]: { ...u[side], ...p } }));
   const drawScore = (s: BattleSession) => setScore({ adult: s.scoreText('adult'), child: s.scoreText('child') });
+  const syncTurn = (s: BattleSession, reveal = false) => setTurn({ owner: s.owner, tried: { ...s.tried }, reveal });
 
   /* バトルは 時間切れの瞬間に 全画面の「しゅうりょう！」で タップを受けとめてから結果へ */
   const battleFinish = useCallback(() => {
@@ -67,11 +71,12 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     const s = sess.current!;
     const { q, opts, wait } = s.next();
     setQ(q);
+    syncTurn(s);
     setUi({
       adult: { opts: opts.adult, flash: false, locked: false, waiting: wait > 0, input: '' },
       child: { opts: opts.child, flash: false, locked: false, waiting: false, input: '' },
     });
-    /* けいさんは 選たく肢が ないので、ハンデは「おとなだけ しばらく テンキーを 押せない」にする */
+    /* ハンデは「おとなだけ しばらく 赤いボタンを 押せない」にする（けいさんは 選たく肢が ないので） */
     if (wait > 0) later(() => setSide('adult', { waiting: false }), wait);
   }, []);
 
@@ -99,13 +104,27 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
   const battleWrong = (side: Side) => {
     const s = sess.current!;
     s.wrong(side);
+    /* 2人とも まちがえたら こたえを 見せて つぎの問題へ。1人なら 同じ問題を もう一度 */
+    const both = players === 2 && s.bothTried();
+    syncTurn(s, both);
     setSide(side, { locked: true, input: '' });
-    later(() => setSide(side, { locked: false }), 1500);
+    later(() => {
+      setSide(side, { locked: false });
+      if (both && !finished.current) nextBattle();
+    }, 1500);
   };
   const onChoice = (side: Side, a: string) => {
     const s = sess.current; if (!s || s.done || pausedRef.current || !s.q) return;
     if (uiRef.current[side].locked) return;
+    if (players === 2 && s.owner !== side) return;   /* 回答権を 持っている人だけ */
     if (a === s.q.answer) battleCorrect(side); else battleWrong(side);
+  };
+  /* 赤いボタン：回答権を とる */
+  const onBuzz = (side: Side) => {
+    const s = sess.current; if (!s || s.done || pausedRef.current || !s.q) return;
+    const u = uiRef.current[side];
+    if (u.locked || u.waiting) return;
+    if (s.claim(side)) syncTurn(s);
   };
 
   /* テンキーは pointerdown で受ける。click だと 端末によって タッチ1回で 2回 発火することがある */
@@ -125,6 +144,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
       if (!s || !s.q || !s.q.num || s.done || pausedRef.current) return;
       const u = uiRef.current[side];
       if (u.locked || u.waiting) return;
+      if (s.opts.players === 2 && s.owner !== side) return;
       const res = s.key(side, k.dataset.k || '');
       setSide(side, { input: s.input[side] });
       if (res === 'ok') battleCorrect(side); else if (res === 'ng') battleWrong(side);
@@ -148,15 +168,15 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     <section className={'screen on' + (solo ? ' solo' : '')} id="s-battle" ref={root}>
       {/* 2人：こどもが 上（180度回転）、おとなが 下（スマホを持つ人。まん中の 時間・一時停止も おとな向き）
           ひとり：こども側 だけを 回転なしで 下に 出す（時間は 上） */}
-      {!solo && <BattleSide side="child" q={q} u={ui.child} onChoice={onChoice} />}
+      {!solo && <BattleSide side="child" q={q} u={ui.child} players={players} turn={turn} onChoice={onChoice} onBuzz={onBuzz} />}
       <div className="mid">
         {!solo && <span className="mscore flip"><span id="sc-child">{score.child}</span><small>こども</small></span>}
         <div className="mtimer"><div id="btimer" className={left <= 10000 ? 'warn' : ''} style={{ width: (ratio * 100).toFixed(1) + '%' }}></div></div>
         <span className="mscore"><span id={solo ? 'sc-solo' : 'sc-adult'}>{solo ? score.child : score.adult}</span><small>{solo ? 'とくてん' : 'おとな'}</small></span>
         <PauseButton id="btn-bpause" onClick={pause} />
       </div>
-      {solo ? <BattleSide side="child" q={q} u={ui.child} onChoice={onChoice} tag="あなた" />
-        : <BattleSide side="adult" q={q} u={ui.adult} onChoice={onChoice} />}
+      {solo ? <BattleSide side="child" q={q} u={ui.child} players={players} turn={turn} onChoice={onChoice} onBuzz={onBuzz} tag="あなた" />
+        : <BattleSide side="adult" q={q} u={ui.adult} players={players} turn={turn} onChoice={onChoice} onBuzz={onBuzz} />}
       <div className={'bfin' + (fin ? ' on' : '')} id="bfin" aria-hidden="true">
         {!solo && <div className="half up"><span className="big">しゅうりょう！</span><span className="sub">手を とめて けっかを 見よう</span></div>}
         <div className="half"><span className="big">しゅうりょう！</span><span className="sub">手を とめて けっかを 見よう</span></div>
@@ -166,29 +186,47 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
   );
 }
 
-function BattleSide({ side, q, u, onChoice, tag }: { side: Side; q: BattleQ | null; u: SideUI; onChoice: (side: Side, a: string) => void; tag?: string }) {
-  const cls = 'side' + (u.flash ? ' flash' : '') + (u.locked ? ' locked' : '') + (u.waiting ? ' waiting' : '');
+function BattleSide({ side, q, u, players, turn, onChoice, onBuzz, tag }: {
+  side: Side; q: BattleQ | null; u: SideUI; players: 1 | 2; turn: Turn;
+  onChoice: (side: Side, a: string) => void; onBuzz: (side: Side) => void; tag?: string;
+}) {
+  /* こたえ見せの あいだは「おてつき！」を どけて、2人とも こたえが 読めるようにする */
+  const cls = 'side' + (u.flash ? ' flash' : '') + (u.locked && !turn.reveal ? ' locked' : '') + (u.waiting ? ' waiting' : '');
   const num = !!(q && q.num);
+  /* ひとりモードは 取り合う相手が いないので いつでも こたえられる。
+     2人は 赤いボタンを おした人だけに こたえが 出る */
+  const owned = players === 1 || turn.owner === side;
+  const canBuzz = players === 2 && !turn.reveal && !turn.owner && !turn.tried[side] && !u.locked && !u.waiting;
+  const bzLabel = u.waiting ? 'まって…'
+    : turn.owner ? 'あいてが こたえ中…'
+      : turn.tried[side] ? 'あいての ばん…'
+        : 'はやおし！';
+  const ansHTML = q ? (q.yomi && q.yomi[q.answer] ? furiName(q.answer, q.yomi[q.answer]) : furi(q.answer)) : '';
   return (
     <div className={cls} data-side={side} id={'side-' + side}>
       <span className="sidetag">{tag || (side === 'adult' ? 'おとな' : 'こども')}</span>
       {q && q.art ? <Raw as="div" className="qart" html={artHTML(q.art)} /> : <div className="qart" hidden></div>}
       {q && q.num ? <p className="qtext num">{q.text}</p> : <Raw as="p" className={'qtext' + (q && q.disp ? ' long' : '')} html={q ? furi(q.text) : ''} />}
-      <div className="numwrap" hidden={!num}>
-        <div className={'numin' + (u.input ? ' filled' : '')}><span className="numval">{u.input}</span><span className="numcaret"></span></div>
-        <div className="numpad">
-          {NUMKEYS.map((k) => <button type="button" className="numkey" data-k={k} key={k}>{k}</button>)}
-          <button type="button" className="numkey del" data-k="del">1つけす</button>
-        </div>
-        <div className="waitmsg">まって…</div>
-      </div>
-      <div className={'choices' + (u.opts.length <= 2 ? ' one' : '')} hidden={num}>
-        {!num && u.opts.map((o) => {
-          const d = q && q.disp && q.disp[o];
-          const y = q && q.yomi && q.yomi[o];
-          return <ChoiceBtn key={o} a={o} imi={!!d} html={d ? furi(d) : y ? furiName(o, y) : furi(o)} onClick={() => onChoice(side, o)} />;
-        })}
-      </div>
+      {turn.reveal
+        ? <div className="bans">こたえは <Raw as="b" html={ansHTML} /></div>
+        : owned ? (<>
+          <div className="numwrap" hidden={!num}>
+            <div className={'numin' + (u.input ? ' filled' : '')}><span className="numval">{u.input}</span><span className="numcaret"></span></div>
+            <div className="numpad">
+              {NUMKEYS.map((k) => <button type="button" className="numkey" data-k={k} key={k}>{k}</button>)}
+              <button type="button" className="numkey del" data-k="del">1つけす</button>
+            </div>
+            <div className="waitmsg">まって…</div>
+          </div>
+          <div className={'choices' + (u.opts.length <= 2 ? ' one' : '')} hidden={num}>
+            {!num && u.opts.map((o) => {
+              const d = q && q.disp && q.disp[o];
+              const y = q && q.yomi && q.yomi[o];
+              return <ChoiceBtn key={o} a={o} imi={!!d} html={d ? furi(d) : y ? furiName(o, y) : furi(o)} onClick={() => onChoice(side, o)} />;
+            })}
+          </div>
+        </>)
+          : <button type="button" className="buzz" id={'buzz-' + side} disabled={!canBuzz} onClick={() => onBuzz(side)}>{bzLabel}</button>}
       <div className="lockmsg">おてつき！</div>
     </div>
   );
