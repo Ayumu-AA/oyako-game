@@ -48,9 +48,10 @@ export interface BattleQ {
   yomi?: Record<string, string>;
   sub?: Subject;
   disp?: Record<string, string>;   // 選たく肢の 表示（ことば：名前 → 意味）。answer/pool は 名前のまま
-  /* もじあて（みんはや式）：こたえの よみを 1文字ずつ 4たくで えらぶ */
-  chars?: string[];                // こたえの よみ（1文字ずつ）
-  charOpts?: string[][];           // 1文字目〜 の 4たく
+  /* もじあて：よみの 一部を ? にして、そこを 1文字ずつ 4たく（国旗は2たく）で うめる */
+  chars?: string[];                // こたえの よみ（ぜんぶ。? のところも 入っている）
+  holes?: number[];                // ? のいち。この順に こたえる
+  charOpts?: string[][];           // holes と 同じ数の 選たく肢
   tail?: string;                   // うしろに そのまま 出す文字（県・都・府・道）
 }
 

@@ -11,7 +11,8 @@ export const HANDI_WAIT = [0, 800, 1600];   /* けいさんのときの おと�
 export const NUMKEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 export const SOLO_OPTS = 4;   /* ひとりモードの 選たく肢の 数 */
 export const ANSWER_MS = 3000;   /* 赤いボタンを 取ってから／もじあての 1文字ぶんの もちじかん */
-export const MOJI_OPTS = 4;      /* もじあての 1文字ぶんの 選たく肢の 数 */
+export const MOJI_OPTS = 4;      /* もじあて（都道府県）の 1文字ぶんの 選たく肢の 数 */
+export const MOJI_OPTS_FLAG = 2; /* 国旗は 小学生には むずかしい国が まざるので 2たくに する */
 export const BATTLE_CAP = 180;   /* 〇もん先取でも これ以上は つづけない（秒） */
 export const BSUBJ_ALL: (Subject)[] = ['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo', 'calc'];
 export type BattleSubj = 'mix' | 'miss' | 'moji' | Subject;   /* miss = まちがい帳から / moji = もじあて */
@@ -75,8 +76,18 @@ export function battlePool(key: string, deck: RelayQ[], q: RelayQ): string[] {
 /** もじあての まちがいの文字は、同じ教科の よみに 出てくる かなから とる */
 export function kanaPool(deck: RelayQ[], sub: string): string[] {
   const set = new Set<string>();
-  deck.forEach((x) => { for (const c of splitYomi(sub, x.name, x.yomi).body) set.add(c); });
+  deck.forEach((x) => { for (const c of splitYomi(sub, x.name, x.yomi).body) if (SMALL_KANA.indexOf(c) < 0) set.add(c); });
   return [...set];
+}
+/** 小さい字と のばす音は ? に しない（「ー」を えらばせても クイズに ならないので） */
+export const SMALL_KANA = 'ぁぃぅぇぉゃゅょっゎー';
+/** ? にする いちを えらぶ。だいたい 半分、多くても 3つ（インスタの 出し方に あわせた） */
+export function pickHoles(chars: string[]): number[] {
+  const len = chars.length;
+  const k = Math.min(3, Math.max(2, Math.ceil(len / 2)), len);
+  const good = shuffle([...Array(len).keys()].filter((i) => SMALL_KANA.indexOf(chars[i]) < 0));
+  const rest = shuffle([...Array(len).keys()].filter((i) => SMALL_KANA.indexOf(chars[i]) >= 0));
+  return good.concat(rest).slice(0, k).sort((a, b) => a - b);
 }
 /** 正解＋まちがい3つ を まぜて 返す */
 export function charOptions(pool: string[], ans: string, n = MOJI_OPTS): string[] {
@@ -177,11 +188,15 @@ export class BattleSession {
     const { body, tail } = splitYomi(key, q.name, q.yomi);
     const pool = kanaPool(deck, key);
     const chars = [...body];
-    const charOpts = chars.map((c) => charOptions(pool, c));
-    const text = key === 'flag' ? 'この国旗{こっき}の 国{くに}の なまえは？' : pickN(q.hints, 2).join('・');
+    const holes = pickHoles(chars);
+    const n = key === 'flag' ? MOJI_OPTS_FLAG : MOJI_OPTS;
+    const charOpts = holes.map((i) => charOptions(pool, chars[i], n));
+    /* 特産物などの ヒントは 出さない。出ているのは 名前の 一部と（国旗なら）旗そのもの */
+    const text = key === 'flag' ? '？に ひらがなを 入れて 国{くに}の なまえを 完成{かんせい}させよう'
+      : '？に ひらがなを 入れて 都道府県{とどうふけん}を 完成{かんせい}させよう';
     return {
       art: key === 'flag' ? q.art : null, text, num: false, answer: q.name, pool: [], fact: q.fact,
-      sub: key, yomi: { [q.name]: q.yomi }, chars, charOpts, tail,
+      sub: key, yomi: { [q.name]: q.yomi }, chars, holes, charOpts, tail,
     };
   }
 
@@ -254,12 +269,12 @@ export class BattleSession {
   /** もじあての 1文字。ちがえば その場で おてつき、ぜんぶ そろえば 正解 */
   char(side: Side, ch: string): 'ok' | 'ng' | null {
     const q = this.q!;
-    if (!q.chars) return null;
+    if (!q.chars || !q.holes) return null;
     const cur = this.input[side] || '';
-    if (cur.length >= q.chars.length) return null;
-    if (ch !== q.chars[cur.length]) return 'ng';
+    if (cur.length >= q.holes.length) return null;
+    if (ch !== q.chars[q.holes[cur.length]]) return 'ng';
     this.input[side] = cur + ch;
-    return this.input[side].length >= q.chars.length ? 'ok' : null;
+    return this.input[side].length >= q.holes.length ? 'ok' : null;
   }
   /** いま 何文字目を えらぶところか */
   charAt(side: Side): number { return (this.input[side] || '').length; }

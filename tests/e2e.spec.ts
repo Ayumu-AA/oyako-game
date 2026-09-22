@@ -621,7 +621,9 @@ test('はやおしバトル：赤いボタンを 取ったら 3秒以内・も�
   /* こたえの わくが 文字数ぶん、選たく肢は 1文字ぶんの 4つ（相手には 出ない） */
   const n = await page.locator('#side-adult .mchar').count();
   expect(n).toBeGreaterThan(1);
-  await expect(page.locator('#side-adult .choice.mj')).toHaveCount(4);
+  /* 都道府県は 4たく、国旗は 2たく（どちらが 出るかは そのとき しだい） */
+  const nOpt = await page.locator('#side-adult .choice.mj').count();
+  expect([2, 4]).toContain(nOpt);
   await expect(page.locator('#side-child .choice.mj')).toHaveCount(0);
   const kana = await page.evaluate(() => [...document.querySelectorAll('#side-adult .choice.mj')].map((b) => (b as HTMLElement).dataset.a!));
   kana.forEach((k) => expect(k.length).toBe(1));   /* ひらがな1文字 */
@@ -630,6 +632,6 @@ test('はやおしバトル：赤いボタンを 取ったら 3秒以内・も�
   await expect(page.locator('#side-adult')).toHaveClass(/locked/, { timeout: 5000 });
   await expect(page.locator('#buzz-child')).toBeEnabled();
   await buzz(page, 'child');
-  await expect(page.locator('#side-child .choice.mj')).toHaveCount(4);
+  await expect(page.locator('#side-child .choice.mj')).toHaveCount(nOpt);
   expect(errs).toEqual([]);
 });

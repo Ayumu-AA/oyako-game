@@ -384,17 +384,49 @@ describe('もじあて（みんはや式）と 3秒ルール', () => {
     const s = new BattleSession({ level: 2, bsubj: 'moji', handi: 1, goal: 0 });
     const { q, opts } = s.next();
     expect(q.chars!.length).toBeGreaterThan(1);
-    expect(q.charOpts!.length).toBe(q.chars!.length);
+    /* ? は 一部だけ。ぜんぶは あかない（名前の 手がかりが のこる） */
+    expect(q.holes!.length).toBeGreaterThanOrEqual(2);
+    expect(q.holes!.length).toBeLessThanOrEqual(3);
+    if (q.chars!.length >= 3) expect(q.holes!.length).toBeLessThan(q.chars!.length);
+    expect(q.charOpts!.length).toBe(q.holes!.length);
     expect(opts.child.length).toBe(0);              /* ふつうの選たく肢は 出さない */
-    expect(q.charOpts![0]).toContain(q.chars![0]);
-    const wrong = q.charOpts![0].find((c) => c !== q.chars![0])!;
+    const first = q.chars![q.holes![0]];
+    expect(q.charOpts![0]).toContain(first);
+    const wrong = q.charOpts![0].find((c) => c !== first)!;
     expect(s.char('child', wrong)).toBe('ng');
     s.wrong('child');
     expect(s.charAt('child')).toBe(0);              /* 入れたものは 消える */
-    /* さいごの1文字で 正解に なる */
-    for (let i = 0; i < q.chars!.length; i++) {
-      const res = s.char('child', q.chars![i]);
-      expect(res).toBe(i === q.chars!.length - 1 ? 'ok' : null);
+    /* ? を 順に うめると 正解に なる */
+    q.holes!.forEach((h, i) => {
+      const res = s.char('child', q.chars![h]);
+      expect(res).toBe(i === q.holes!.length - 1 ? 'ok' : null);
+    });
+  });
+  it('国旗は 2たく（むずかしい国が まざるので やさしくする）', () => {
+    setKV(memoryKV()); reloadRecords();
+    const s = new BattleSession({ level: 2, bsubj: 'moji', handi: 1, goal: 0 });
+    let sawFlag = false, sawPref = false;
+    for (let i = 0; i < 40 && !(sawFlag && sawPref); i++) {
+      const { q } = s.next();
+      if (!q.charOpts) continue;
+      const n = q.charOpts[0].length;
+      if (q.sub === 'flag') { sawFlag = true; expect(n).toBe(2); }
+      if (q.sub === 'pref') { sawPref = true; expect(n).toBe(4); }
+      expect(q.charOpts!.length).toBe(q.holes!.length);
+    }
+    expect(sawFlag && sawPref).toBe(true);
+  });
+  it('小さい字や のばす音は ? に しない', () => {
+    setKV(memoryKV()); reloadRecords();
+    const s = new BattleSession({ level: 2, bsubj: 'moji', handi: 1, goal: 0 });
+    for (let i = 0; i < 40; i++) {
+      const { q } = s.next();
+      if (!q.holes) continue;
+      const small = [...'ぁぃぅぇぉゃゅょっゎー'];
+      /* ふつうの かなが 足りていれば、? は かならず ふつうの かな */
+      const normal = q.chars!.filter((c) => small.indexOf(c) < 0).length;
+      if (normal >= q.holes.length) q.holes.forEach((h) => expect(small).not.toContain(q.chars![h]));
+      q.charOpts!.forEach((o) => o.forEach((c) => expect(small).not.toContain(c)));
     }
   });
   it('こたえる もちじかんは 3秒', () => { expect(ANSWER_MS).toBe(3000); });

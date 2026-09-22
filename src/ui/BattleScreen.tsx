@@ -259,9 +259,10 @@ function BattleSide({ side, q, u, players, turn, ans, onChoice, onBuzz, onChar, 
       : turn.tried[side] ? 'あいての ばん…'
         : 'はやおし！';
   const ansHTML = q ? (q.yomi && q.yomi[q.answer] ? furiName(q.answer, q.yomi[q.answer]) : furi(q.answer)) : '';
-  /* もじあて：いま 何文字目か と、そこの 4たく */
+  /* もじあて：いま 何個目の ? を うめるところか と、そこの 選たく肢 */
   const mi = q && q.chars ? u.input.length : 0;
   const mopts = q && q.charOpts && mi < q.charOpts.length ? q.charOpts[mi] : null;
+  const holeAt = (i: number) => (q && q.holes ? q.holes.indexOf(i) : -1);
   return (
     <div className={cls} data-side={side} id={'side-' + side}>
       <span className="sidetag">{tag || (side === 'adult' ? 'おとな' : 'こども')}</span>
@@ -277,12 +278,15 @@ function BattleSide({ side, q, u, players, turn, ans, onChoice, onBuzz, onChar, 
           {q && q.chars ? (
             <div className="mojiwrap">
               <div className="mojiword">
-                {q.chars.map((_c, i) => (
-                  <span key={i} className={'mchar' + (i < mi ? ' on' : i === mi ? ' cur' : '')}>{i < mi ? u.input[i] : ''}</span>
-                ))}
+                {q.chars.map((c, i) => {
+                  const h = holeAt(i);
+                  if (h < 0) return <span key={i} className="mchar fix">{c}</span>;   /* はじめから 見えている文字 */
+                  if (h < mi) return <span key={i} className="mchar on">{u.input[h]}</span>;
+                  return <span key={i} className={'mchar q' + (h === mi ? ' cur' : '')}>？</span>;
+                })}
                 {q.tail ? <span className="mtail">{q.tail}</span> : null}
               </div>
-              <div className="choices moji">
+              <div className={'choices moji' + ((mopts || []).length <= 2 ? ' two' : '')}>
                 {(mopts || []).map((c) => (
                   <button type="button" className="choice mj" data-a={c} key={c} onClick={() => onChar(side, c)}>{c}</button>
                 ))}

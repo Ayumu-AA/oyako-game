@@ -699,9 +699,13 @@
     font-size:clamp(20px,5vw,28px);font-weight:900;color:var(--ink);
   }
   .mchar.on{border-color:var(--leaf);background:#DFF2E6}
+  .mchar.q{color:var(--vermilion)}
   .mchar.cur{border-color:var(--vermilion);box-shadow:0 0 0 3px rgba(224,69,47,.22)}
+  /* はじめから 見えている文字は わくなし（写真の 「?や?き県」と 同じ見た目） */
+  .mchar.fix{border-color:transparent;background:none;width:auto;min-width:clamp(22px,5.4vw,30px)}
   .mtail{font-size:clamp(20px,5vw,28px);font-weight:900;color:var(--muted);margin-left:2px}
   .choices.moji{grid-template-columns:repeat(4,minmax(0,1fr));width:100%}
+  .choices.moji.two{grid-template-columns:repeat(2,minmax(0,1fr))}   /* 国旗は 2たく */
   .choice.mj{font-size:clamp(22px,5.4vw,30px);font-weight:900;padding:12px 4px}
 
   /* 赤いボタン（回答権を とる）。押した人だけに こたえが 出る */
