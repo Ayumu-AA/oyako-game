@@ -4,7 +4,7 @@ import { reloadRecords, markMiss, markHit, missCount, markSeen, seenAt, clearRec
 import { evalTokens, makePuzzle, checkMath, type Token } from './math10';
 import { rankOf, rankNext } from './rank';
 import { plain, furi, furiName, FURI_RE } from './furigana';
-import { calcQuestion, BattleSession, battlePool, pickOpts } from './battle';
+import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS } from './battle';
 import { relayDeck, deckFor, hints3, missDeck } from './decks';
 import { polyOf, inPoly, geoChoices, geoGroupOf, geoDeck, jpSVG, wSVG, jpFullVB, geoQuestion } from './geo';
 import { newCross, cwCells, cwInput, cwHint, cwAllOk, cwLeft, cwTapCell, cwModify, cwDelete, cycleKana, cwCycle } from './cross';
@@ -259,5 +259,64 @@ describe('numcross', () => {
     for (const k of nc.puz.hide) { nc.sel = k; for (const ch of String(nc.puz.v[k])) ncKey(nc, ch); }
     expect(ncLeft(nc)).toBe(0);
     expect(ncAllOk(nc)).toBe(true);
+  });
+});
+
+describe('はやおしの まちがい直し・ひとり', () => {
+  it('まちがい帳から 出る。選たく肢は 同じ教科から', () => {
+    setKV(memoryKV()); reloadRecords();
+    markMiss('rekishi', '徳川家康'); markMiss('rekishi', '織田信長');
+    markMiss('kokugo', '一石二鳥'); markMiss('pref', '北海道');
+    const s = new BattleSession({ level: 2, bsubj: 'miss', handi: 1, goal: 0 });
+    expect(s.missPool.length).toBe(4);
+    for (let i = 0; i < 12; i++) {
+      const { q, opts } = s.next();
+      expect(['徳川家康', '織田信長', '一石二鳥', '北海道'], q.answer).toContain(q.answer);
+      /* まちがいの選たく肢は こたえと 同じ教科から（別教科が まざらない） */
+      const deck = relayDeck(q.sub!, 1).concat(relayDeck(q.sub!, 2)).map((x) => x.name);
+      opts.adult.forEach((o) => expect(deck, q.sub + ' の 選たく肢に ' + o).toContain(o));
+    }
+  });
+  it('低学年の問題を 高学年で 直しても 選たく肢が そろう', () => {
+    setKV(memoryKV()); reloadRecords();
+    markMiss('rika', 'カブトムシ');                    // 低学年の問題
+    const s = new BattleSession({ level: 2, bsubj: 'miss', handi: 1, goal: 0 });   // 高学年で 遊ぶ
+    const { q, opts } = s.next();
+    expect(q.answer).toBe('カブトムシ');
+    const rika = relayDeck('rika', 1).concat(relayDeck('rika', 2)).map((x) => x.name);
+    opts.adult.forEach((o) => expect(rika).toContain(o));
+    expect(opts.adult.length).toBeGreaterThan(1);
+  });
+  it('まちがい帳が 空なら けいさんに なる（画面は 止まらない）', () => {
+    setKV(memoryKV()); reloadRecords();
+    const s = new BattleSession({ level: 1, bsubj: 'miss', handi: 1, goal: 0 });
+    expect(s.missPool.length).toBe(0);
+    expect(s.next().q.num).toBe(true);
+  });
+  it('ひとりモードは 4たく・相手なし・ハンデなし', () => {
+    setKV(memoryKV()); reloadRecords();
+    const s = new BattleSession({ level: 2, bsubj: 'rekishi', handi: 1, goal: 5, players: 1 });
+    const { q, opts } = s.next();
+    expect(q.answer).toBeTruthy();
+    expect(opts.child.length).toBe(SOLO_OPTS);
+    expect(opts.child).toContain(q.answer);
+    expect(opts.adult.length).toBe(0);            /* 相手側は 出さない */
+    expect(s.correct('child')).toBe(false);       /* 5もんで おわり。1もん目では まだ */
+    expect(s.score.child).toBe(1);
+  });
+  it('ひとりモードの けいさんは 待たされない', () => {
+    setKV(memoryKV()); reloadRecords();
+    const solo = new BattleSession({ level: 2, bsubj: 'calc', handi: 2, goal: 0, players: 1 });
+    expect(solo.next().wait).toBe(0);
+    const duo = new BattleSession({ level: 2, bsubj: 'calc', handi: 2, goal: 0 });
+    expect(duo.next().wait).toBeGreaterThan(0);   /* 2人のときは おとなに ハンデの 待ちが 入る */
+  });
+  it('ひとりモードで 〇もん とったら おわる', () => {
+    setKV(memoryKV()); reloadRecords();
+    const s = new BattleSession({ level: 2, bsubj: 'pref', handi: 0, goal: 3, players: 1 });
+    s.next(); expect(s.correct('child')).toBe(false);
+    s.next(); expect(s.correct('child')).toBe(false);
+    s.next(); expect(s.correct('child')).toBe(true);
+    expect(s.scoreText('child')).toBe('3/3');
   });
 });

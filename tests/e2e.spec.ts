@@ -475,3 +475,73 @@ for (const [w, h, tag] of VPS) {
     await ctx.close();
   });
 }
+
+test('はやおし（ひとり）：1画面・回転なし・ランキングには 出さない', async ({ page }) => {
+  const errs = noErrors(page);
+  await open(page);
+  await page.click('[data-group="solo"]');
+  await expect(page.locator('#sub-title')).toHaveText('ひとりであそぶ');
+  await page.click('[data-mode="battle1"]');
+  await expect(page.locator('#how-title')).toHaveText('はやおし（ひとり）');
+  await expect(page.locator('#seg-players button[aria-pressed="true"]')).toHaveText(/ひとり/);
+  await expect(page.locator('#seg-handi')).toHaveCount(0);   /* 相手が いないので ハンデは 出さない */
+  await page.click('#seg-subject button[data-v="calc"]');
+  await page.click('#seg-goal button[data-v="5"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  /* ならび：時間が 上、じぶんの 面が 下。回転は しない */
+  const order = await page.evaluate(() => [...document.querySelectorAll('#s-battle > .side, #s-battle > .mid')].map((e) => e.id || e.className));
+  expect(order).toEqual(['mid', 'side-child']);
+  expect(await page.evaluate(() => getComputedStyle(document.getElementById('side-child')!).transform)).toBe('none');
+  let prevText: string | null = null;
+  for (let n = 0; n < 5; n++) {
+    await expect(page.locator('#side-child .numwrap')).toBeVisible();
+    /* 正解のあと 0.42秒は 前の問題が のこるので、変わるまで まつ */
+    if (prevText !== null) await expect(page.locator('#side-child .qtext')).not.toHaveText(prevText);
+    const text = await page.locator('#side-child .qtext').innerText();
+    prevText = text;
+    const m = /(\d+)\s*([+−×÷])\s*(\d+)/.exec(text)!;
+    const a = Number(m[1]), b = Number(m[3]);
+    const ans = String(m[2] === '+' ? a + b : m[2] === '−' ? a - b : m[2] === '×' ? a * b : a / b);
+    for (const ch of ans) await numkey(page, 'child', ch);
+    await expect(page.locator('#sc-solo')).toHaveText((n + 1) + '/5');
+  }
+  await expect(page.locator('#s-bresult')).toBeVisible({ timeout: 4000 });
+  await expect(page.locator('#bwin')).toHaveText('ひとりで はやおし');
+  await expect(page.locator('#bs-solo')).toHaveText('5');
+  await expect(page.locator('#bs-adult')).toHaveCount(0);
+  await expect(page.locator('#btn-brank-view')).toHaveCount(0);
+  expect(errs).toEqual([]);
+});
+
+test('はやおしバトル：まちがい直しは 帳から 出る・ランキングには 出さない', async ({ page }) => {
+  const errs = noErrors(page);
+  const t = Date.now();
+  const names = ['徳川家康', '織田信長', '聖徳太子'];
+  const miss: Record<string, { n: number; t: number }> = {};
+  names.forEach((n) => { miss['rekishi:' + n] = { n: 1, t }; });
+  await open(page, { 'oyako-miss': JSON.stringify(miss) });
+  await page.click('[data-group="battle"]');
+  await expect(page.locator('#seg-subject button[data-v="miss"]')).toBeVisible();
+  await page.click('#seg-subject button[data-v="miss"]');
+  await page.click('#seg-goal button[data-v="5"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  for (let i = 0; i < 5; i++) {
+    /* 正解のあと 0.42秒は 前の問題が のこる。光りが 消えてから 読む */
+    await expect(page.locator('#side-child')).not.toHaveClass(/flash/);
+    const cs = await page.evaluate(() => [...document.querySelectorAll('#side-child .choice')].map((b) => (b as HTMLElement).dataset.a!));
+    /* こたえは 画面から 分からないので、順に おして 点が 入ったものを こたえと する */
+    let ans = '';
+    for (const c of cs) {
+      await page.click(`#side-child .choice[data-a="${c}"]`);
+      await page.waitForTimeout(150);
+      if ((await page.locator('#sc-child').innerText()) === (i + 1) + '/5') { ans = c; break; }
+      await page.waitForTimeout(1500);   /* おてつきの お休みが 明けるまで まつ */
+    }
+    expect(names).toContain(ans);   /* 帳に ある問題しか 出ない */
+  }
+  await expect(page.locator('#s-bresult')).toBeVisible({ timeout: 4000 });
+  await expect(page.locator('#btn-brank-view')).toHaveCount(0);
+  expect(errs).toEqual([]);
+});

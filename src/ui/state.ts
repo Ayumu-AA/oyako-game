@@ -13,6 +13,7 @@ export interface Settings {
   bsubj: BattleSubj;
   handi: number;
   goal: number;              // 0 = じかん
+  players: 1 | 2;            // はやおし：2人で対戦 ／ ひとりであそぶ
   kana: 'R' | 'L' | 'F';       // 50音の ならび：みぎから／ひだりから／フリック
 }
 
@@ -20,7 +21,7 @@ export function loadSettings(): Settings {
   const g = store('oyako-goal');
   const k = store('oyako-kana');
   return {
-    level: 2, seconds: 90, role: 'child', bsubj: 'mix', handi: 1,
+    level: 2, seconds: 90, role: 'child', bsubj: 'mix', handi: 1, players: 2,
     goal: (g !== null && g !== '') ? Number(g) : 10,
     kana: (k === 'R' || k === 'L' || k === 'F') ? k : 'R',
   };
@@ -41,6 +42,8 @@ export interface PlayResult {
 }
 export interface BattleResult {
   adult: number; child: number; goal: number; seconds: number;   // seconds = 実際にかかった秒（先取）か 制限時間
+  players: 1 | 2;   // 1 = ひとりモード（こども側の 点だけを 見る）
+  miss?: boolean;   // まちがい直しで あそんだか
   last: { answer: string; fact: string } | null;
 }
 export interface CrossResult {
@@ -53,7 +56,7 @@ export interface CrossResult {
 
 export function isGeo(mode: Mode) { return mode === 'geopref' || mode === 'geoflag'; }
 export function groupOfMode(mode: Mode): Group | null {
-  if (mode === 'math' || mode === 'numcross') return 'solo';
+  if (mode === 'math' || mode === 'numcross' || mode === 'battle1') return 'solo';
   if (isGeo(mode)) return 'geo';
   if (mode === 'battle' || mode === 'cross' || mode === 'miss') return null;
   return 'relay';

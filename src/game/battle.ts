@@ -1,5 +1,5 @@
 /* はやおし親子バトル の 純ロジック（問題づくり・選たく肢・得点）。タイマーと描画は UI 側 */
-import { relayDeck } from './decks';
+import { relayDeck, missDeck } from './decks';
 import { KOKUGO_REI } from '../data/kokugo_rei';
 import { preloadArt } from './art';
 import { markSeen, seenAt, markHit, markMiss } from './records';
@@ -9,9 +9,10 @@ import type { BattleQ, Level, RelayQ, Side, Subject } from './types';
 export const HANDI: [number, number][] = [[3, 3], [2, 4], [2, 6]];   /* [こどもの選たく肢, おとなの選たく肢] */
 export const HANDI_WAIT = [0, 800, 1600];   /* けいさんのときの おとなの ハンデ（ミリ秒） */
 export const NUMKEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+export const SOLO_OPTS = 4;   /* ひとりモードの 選たく肢の 数 */
 export const BATTLE_CAP = 180;   /* 〇もん先取でも これ以上は つづけない（秒） */
 export const BSUBJ_ALL: (Subject)[] = ['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo', 'calc'];
-export type BattleSubj = 'mix' | Subject;
+export type BattleSubj = 'mix' | 'miss' | Subject;   /* miss = まちがい帳から 出す */
 
 export function calcQuestion(lv: Level): BattleQ {
   let a: number, b: number, text: string, ans: number;
@@ -64,7 +65,7 @@ export function pickOpts(q: BattleQ, n: number): string[] {
   return shuffle(a);
 }
 
-export interface BattleOpts { level: Level; bsubj: BattleSubj; handi: number; goal: number }
+export interface BattleOpts { level: Level; bsubj: BattleSubj; handi: number; goal: number; players?: 1 | 2 }
 
 /** 1ゲームぶんの 状態。UI は これを持って 描画する */
 export class BattleSession {
@@ -76,10 +77,25 @@ export class BattleSession {
   last: BattleQ | null = null;   // へぇ 用（fact を持つ 最後の正解）
   done = false;
   opts: BattleOpts;
+  /** まちがい直しのときだけ 使う。学年をまたいで まちがえた問題を あつめたもの */
+  missPool: RelayQ[] = [];
+
   constructor(opts: BattleOpts) {
     this.opts = opts;
     for (const k of ['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo'] as Subject[]) this.pools[k] = relayDeck(k, opts.level);
-    if (opts.bsubj === 'mix' || opts.bsubj === 'eigo') preloadArt((this.pools.eigo || []).map((q) => q.art));
+    if (opts.bsubj === 'miss') {
+      /* まちがい帳は 始めた時点で 固定する。当てて 帳から 消えても、この勝負では 出つづける */
+      this.missPool = missDeck().filter((q) => q.sub !== 'math' && q.sub !== 'calc');
+      /* まちがい帳は 学年を またぐので、まちがいの選たく肢も 両方の学年から とる。
+         こうしないと 低学年の問題を 高学年で 直すとき、選たく肢が 教科ちがいに なる */
+      for (const k of ['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo'] as Subject[]) {
+        const seen = new Set<string>();
+        this.pools[k] = relayDeck(k, 1).concat(relayDeck(k, 2)).filter((q) => !seen.has(q.name) && seen.add(q.name));
+      }
+    }
+    if (opts.bsubj === 'mix' || opts.bsubj === 'eigo' || opts.bsubj === 'miss') {
+      preloadArt((opts.bsubj === 'miss' ? this.missPool : (this.pools.eigo || [])).map((q) => q.art));
+    }
   }
 
   /* 同じ問題が つづけて 出ないように えらぶ。
@@ -101,12 +117,26 @@ export class BattleSession {
   }
 
   makeQ(): BattleQ {
+    /* まちがい直しは 帳から 1問 えらび、まちがいの選たく肢は その問題の 教科から とる
+       （みかん と 織田信長 が ならばないように） */
+    if (this.opts.bsubj === 'miss') {
+      if (!this.missPool.length) return calcQuestion(this.opts.level);
+      const q = this.pickFromDeck('miss', this.missPool);
+      const key = q.sub;
+      const deck = this.pools[key] || this.missPool;
+      return this.buildQ(key, q, deck);
+    }
     const keys: Subject[] = this.opts.bsubj === 'mix' ? BSUBJ_ALL : [this.opts.bsubj];
     const key = keys[Math.floor(rng() * keys.length)];
     if (key === 'calc') return calcQuestion(this.opts.level);
     const deck = this.pools[key];
     if (!deck || !deck.length) return calcQuestion(this.opts.level);
     const q = this.pickFromDeck(key, deck);
+    return this.buildQ(key, q, deck);
+  }
+
+  /** 1問ぶんの 表示を 組み立てる（まちがい直しでも ふつうの出題でも 同じ形にする） */
+  buildQ(key: Subject, q: RelayQ, deck: RelayQ[]): BattleQ {
     markSeen(key, q.name);
     let text: string, art = null, disp: Record<string, string> | undefined;
     if (key === 'flag') { text = 'この国旗{こっき}はどこ？'; art = q.art; }
@@ -131,8 +161,11 @@ export class BattleSession {
     this.q = q;
     this.input = { adult: '', child: '' };
     const n = HANDI[this.opts.handi] || HANDI[1];
-    const opts = { child: pickOpts(q, n[0]), adult: pickOpts(q, n[1]) };
-    const wait = q.num ? (HANDI_WAIT[this.opts.handi] || 0) : 0;
+    /* ひとりモードは 相手が いないので ハンデも 待ちも なし。選たく肢は いつも 4つ */
+    const solo = this.opts.players === 1;
+    const opts = solo ? { child: pickOpts(q, SOLO_OPTS), adult: [] as string[] }
+      : { child: pickOpts(q, n[0]), adult: pickOpts(q, n[1]) };
+    const wait = (q.num && !solo) ? (HANDI_WAIT[this.opts.handi] || 0) : 0;
     return { q, opts, wait };
   }
 

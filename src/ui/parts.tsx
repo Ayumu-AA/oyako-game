@@ -11,7 +11,7 @@ export function Raw({ html, as: Tag = 'span', className, id, hidden, style }: { 
 
 /** 2〜4列の えらぶボタン */
 export function PickGrid<T extends string | number>({ id, label, cols, value, options, onPick, className }: {
-  id: string; label: string; cols: 2 | 3 | 4; value: T;
+  id: string; label: string; cols: 2 | 3 | 4 | 5; value: T;
   options: { v: T; b: ReactNode; s?: ReactNode }[]; onPick: (v: T) => void; className?: string;
 }) {
   return (

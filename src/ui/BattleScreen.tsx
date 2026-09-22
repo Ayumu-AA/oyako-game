@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BattleSession, BATTLE_CAP, NUMKEYS } from '../game/battle';
 import { furi, furiName } from '../game/furigana';
 import { artHTML } from '../game/art';
-import { rankOf, rankNext, rankLine } from '../game/rank';
+import { rankOf, rankNext, rankLine, rankMsg } from '../game/rank';
 import { missCount } from '../game/records';
 import type { BattleQ, Level, Side } from '../game/types';
 import type { BattleSubj } from '../game/battle';
@@ -12,13 +12,15 @@ import type { BattleResult } from './state';
 
 export interface BattleProps {
   level: Level; seconds: number; bsubj: BattleSubj; handi: number; goal: number;
+  players: 1 | 2;   /* 1 = ひとりモード。こども側だけを 回転なしで 出す */
   onFinish: (r: BattleResult) => void; onRestart: () => void; onQuit: () => void;
 }
 
 type SideUI = { opts: string[]; flash: boolean; locked: boolean; waiting: boolean; input: string };
 const sideZero = (): SideUI => ({ opts: [], flash: false, locked: false, waiting: false, input: '' });
 
-export function BattleScreen({ level, seconds, bsubj, handi, goal, onFinish, onRestart, onQuit }: BattleProps) {
+export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFinish, onRestart, onQuit }: BattleProps) {
+  const solo = players === 1;
   const sess = useRef<BattleSession | null>(null);
   const [q, setQ] = useState<BattleQ | null>(null);
   const [ui, setUi] = useState<Record<Side, SideUI>>({ adult: sideZero(), child: sideZero() });
@@ -50,9 +52,9 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, onFinish, onR
     later(() => {
       setFin(false);
       const sec = goal ? Math.max(1, Math.round((Date.now() - (t0.current || Date.now())) / 1000)) : seconds;
-      onFinishRef.current({ adult: s.score.adult, child: s.score.child, goal, seconds: sec, last: s.last ? { answer: s.last.answer, fact: s.last.fact || '' } : null });
+      onFinishRef.current({ adult: s.score.adult, child: s.score.child, goal, seconds: sec, players, miss: bsubj === 'miss', last: s.last ? { answer: s.last.answer, fact: s.last.fact || '' } : null });
     }, 1400);
-  }, [goal, seconds]);
+  }, [goal, seconds, players, bsubj]);
 
   const tick = useCallback(() => {
     const l = Math.max(0, endAt.current - Date.now());
@@ -74,7 +76,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, onFinish, onR
   }, []);
 
   useEffect(() => {
-    const s = new BattleSession({ level, bsubj, handi, goal });
+    const s = new BattleSession({ level, bsubj, handi, goal, players });
     sess.current = s; finished.current = false;
     drawScore(s);
     nextBattle();
@@ -139,21 +141,24 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, onFinish, onR
 
   const ratio = left / (capSec * 1000);
   const s = sess.current;
-  const info = 'のこり ' + Math.ceil(remain.current / 1000) + '秒' + (s ? ' ／ おとな ' + s.score.adult + ' − こども ' + s.score.child : '');
+  const info = 'のこり ' + Math.ceil(remain.current / 1000) + '秒'
+    + (s ? (solo ? ' ／ とくてん ' + s.score.child : ' ／ おとな ' + s.score.adult + ' − こども ' + s.score.child) : '');
 
   return (
-    <section className="screen on" id="s-battle" ref={root}>
-      {/* こどもが 上（180度回転）、おとなが 下（スマホを持つ人。まん中の 時間・一時停止も おとな向き） */}
-      <BattleSide side="child" q={q} u={ui.child} onChoice={onChoice} />
+    <section className={'screen on' + (solo ? ' solo' : '')} id="s-battle" ref={root}>
+      {/* 2人：こどもが 上（180度回転）、おとなが 下（スマホを持つ人。まん中の 時間・一時停止も おとな向き）
+          ひとり：こども側 だけを 回転なしで 下に 出す（時間は 上） */}
+      {!solo && <BattleSide side="child" q={q} u={ui.child} onChoice={onChoice} />}
       <div className="mid">
-        <span className="mscore flip"><span id="sc-child">{score.child}</span><small>こども</small></span>
+        {!solo && <span className="mscore flip"><span id="sc-child">{score.child}</span><small>こども</small></span>}
         <div className="mtimer"><div id="btimer" className={left <= 10000 ? 'warn' : ''} style={{ width: (ratio * 100).toFixed(1) + '%' }}></div></div>
-        <span className="mscore"><span id="sc-adult">{score.adult}</span><small>おとな</small></span>
+        <span className="mscore"><span id={solo ? 'sc-solo' : 'sc-adult'}>{solo ? score.child : score.adult}</span><small>{solo ? 'とくてん' : 'おとな'}</small></span>
         <PauseButton id="btn-bpause" onClick={pause} />
       </div>
-      <BattleSide side="adult" q={q} u={ui.adult} onChoice={onChoice} />
+      {solo ? <BattleSide side="child" q={q} u={ui.child} onChoice={onChoice} tag="あなた" />
+        : <BattleSide side="adult" q={q} u={ui.adult} onChoice={onChoice} />}
       <div className={'bfin' + (fin ? ' on' : '')} id="bfin" aria-hidden="true">
-        <div className="half up"><span className="big">しゅうりょう！</span><span className="sub">手を とめて けっかを 見よう</span></div>
+        {!solo && <div className="half up"><span className="big">しゅうりょう！</span><span className="sub">手を とめて けっかを 見よう</span></div>}
         <div className="half"><span className="big">しゅうりょう！</span><span className="sub">手を とめて けっかを 見よう</span></div>
       </div>
       <PauseOverlay open={paused} info={info} onResume={resume} onRestart={() => { setPaused(false); stopTimer(); onRestart(); }} onQuit={() => { setPaused(false); stopTimer(); onQuit(); }} />
@@ -161,12 +166,12 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, onFinish, onR
   );
 }
 
-function BattleSide({ side, q, u, onChoice }: { side: Side; q: BattleQ | null; u: SideUI; onChoice: (side: Side, a: string) => void }) {
+function BattleSide({ side, q, u, onChoice, tag }: { side: Side; q: BattleQ | null; u: SideUI; onChoice: (side: Side, a: string) => void; tag?: string }) {
   const cls = 'side' + (u.flash ? ' flash' : '') + (u.locked ? ' locked' : '') + (u.waiting ? ' waiting' : '');
   const num = !!(q && q.num);
   return (
     <div className={cls} data-side={side} id={'side-' + side}>
-      <span className="sidetag">{side === 'adult' ? 'おとな' : 'こども'}</span>
+      <span className="sidetag">{tag || (side === 'adult' ? 'おとな' : 'こども')}</span>
       {q && q.art ? <Raw as="div" className="qart" html={artHTML(q.art)} /> : <div className="qart" hidden></div>}
       {q && q.num ? <p className="qtext num">{q.text}</p> : <Raw as="p" className={'qtext' + (q && q.disp ? ' long' : '')} html={q ? furi(q.text) : ''} />}
       <div className="numwrap" hidden={!num}>
@@ -196,26 +201,32 @@ function ChoiceBtn({ a, html, imi, onClick }: { a: string; html: string; imi?: b
 export function BResultScreen({ r, onAgain, onMiss, onTitle, onRank }: { r: BattleResult; onAgain: () => void; onMiss: () => void; onTitle: () => void; onRank?: () => void }) {
   const a = r.adult, c = r.child;
   const missN = missCount();
+  const solo = r.players === 1;
+  /* ひとりモードは 勝ち負けが ないので、こども側の 点だけを 見る。
+     くらいの ものさしは 2人ぶんの battle では きびしすぎるので relay（1人ぶん）を つかう */
   const win = a > c ? { t: 'おとなの かち', bg: '#1B4965', m: 'さすが。つぎはハンデを増やしてみよう。' }
     : c > a ? { t: 'こどもの かち', bg: '#E0452F', m: 'はやい！おとなに勝ったね。' }
       : { t: 'ひきわけ', bg: '#7E93A0', m: 'いい勝負。もう一回やって決着をつけよう。' };
-  const tot = a + c;
-  const rk = rankOf('battle', tot, r.seconds);
-  const nx = rankNext('battle', tot, r.seconds);
+  const kind = solo ? 'relay' : 'battle';
+  const tot = solo ? c : a + c;
+  const rk = rankOf(kind, tot, r.seconds);
+  const nx = rankNext(kind, tot, r.seconds);
   const lock = useResultLock(3000);
   return (
     <section className={'screen on' + (lock > 0 ? ' reslock' : '')} id="s-bresult">
       <div className="rankcard">
-        <span className="rankbadge" id="bwin" style={{ background: win.bg }}>{win.t}</span>
-        <div className="vs">
-          <div><span className="n display" id="bs-adult">{a}</span><span className="who">おとな</span></div>
-          <span className="dash">−</span>
-          <div><span className="n display" id="bs-child">{c}</span><span className="who">こども</span></div>
-        </div>
-        <p className="lede" id="bmsg" style={{ margin: '10px 0 0' }}>{win.m}</p>
+        <span className="rankbadge" id="bwin" style={{ background: solo ? '#7E5BB5' : win.bg }}>{solo ? (r.miss ? 'まちがい直し' : 'ひとりで はやおし') : win.t}</span>
+        {solo
+          ? <div className="vs"><div><span className="n display" id="bs-solo">{c}</span><span className="who">せいかい</span></div></div>
+          : <div className="vs">
+            <div><span className="n display" id="bs-adult">{a}</span><span className="who">おとな</span></div>
+            <span className="dash">−</span>
+            <div><span className="n display" id="bs-child">{c}</span><span className="who">こども</span></div>
+          </div>}
+        <p className="lede" id="bmsg" style={{ margin: '10px 0 0' }}>{solo ? rankMsg('relay', rk.i) : win.m}</p>
         <div className="ranksash">
           <span className="rankbadge" id="brank" style={{ background: rk.color }}>{rk.name}</span>
-          <p className="rankpace" id="brank-pace">2人あわせて {rankLine(tot, r.seconds)}{r.goal ? '（' + r.goal + 'もん先取）' : ''}</p>
+          <p className="rankpace" id="brank-pace">{solo ? '' : '2人あわせて '}{rankLine(tot, r.seconds)}{r.goal ? '（' + r.goal + 'もん' + (solo ? 'で おわり' : '先取') + '）' : ''}</p>
           <p className="ranknext" id="brank-next" hidden={!nx}>{nx ? 'あと ' + nx.more + 'もんで ' + nx.name : ''}</p>
         </div>
       </div>
@@ -223,7 +234,7 @@ export function BResultScreen({ r, onAgain, onMiss, onTitle, onRank }: { r: Batt
         : <Hee prefix="b" name="はやおしのコツ" text="あせってまちがえると1.5秒お休み。あわてず確実にいくほうが速いことが多い。" />}
       <Promo prefix="b" />
       <button className="btn btn-go" id="btn-bagain" onClick={onAgain} disabled={lock > 0}>{lock > 0 ? 'けっかを 見てね… ' + lock : 'もういちど'}</button>
-      {onRank && <button className="btn btn-rank" id="btn-brank-view" onClick={onRank} disabled={lock > 0}>ランキングを 見る</button>}
+      {onRank && !solo && !r.miss && <button className="btn btn-rank" id="btn-brank-view" onClick={onRank} disabled={lock > 0}>ランキングを 見る</button>}
       <button className="btn btn-sea" id="btn-bmiss" hidden={missN === 0} onClick={onMiss} disabled={lock > 0}>まちがえた問題を もう一回</button>
       <button className="btn btn-ghost" data-back="s-title" onClick={onTitle}>さいしょの画面へ</button>
     </section>

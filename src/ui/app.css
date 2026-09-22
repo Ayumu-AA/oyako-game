@@ -466,6 +466,8 @@
     padding:11px 13px;
   }
   .howlede b{color:var(--vermilion);font-weight:800}
+  /* ベストの行が からのとき（バトルなど）は 行ごと 消す。すき間が むだに 空かないように */
+  #best-line:empty{display:none}
   /* 上のすき間は 下より せまく。えらぶところが やや上に 来るほうが 読みやすい */
   #s-how .spacer.top{flex:.45}
   .rulesbtn{
@@ -488,6 +490,8 @@
   .pickrow[hidden]{display:none}
   .picklabel{font-size:11.5px;font-weight:800;letter-spacing:.1em;color:var(--muted)}
   .pickgrid{display:grid;gap:6px}
+  .pickgrid.c5{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .pickgrid.c5 button{font-size:11.5px;padding:7px 2px}   /* 5つならぶと せまいので 少し小さく */
   .pickgrid.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
   .pickgrid.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
   .pickgrid.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -550,6 +554,7 @@
   /* せの低い スマホ（iPhone SE など）は もう少し 詰める */
   @media (max-height:710px){
     .wrap{padding-block:9px 10px;gap:9px}
+    #s-how{gap:10px}
     h1{font-size:24px}
     .titlelede{gap:3px}
     .titlelede .lede{font-size:12px;line-height:1.5}
@@ -595,6 +600,8 @@
     position:relative;overflow:hidden;
   }
   .side[data-side="child"]{transform:rotate(180deg)}   /* こどもが 上（向こう側）。おとなが スマホを持つ想定 */
+  /* ひとりモード：向かい合わないので 回さない。側は 1つだけ */
+  #s-battle.solo .side[data-side="child"]{transform:none}
   .side.flash{background:#DFF2E6;border-color:var(--leaf)}
   .sidetag{
     position:absolute;top:7px;left:12px;

@@ -36,6 +36,7 @@ export default function App() {
   const nameThen = useRef<(() => void) | null>(null);        // 名前が 決まったあとに すること
   const pendingScore = useRef<ScoreRow | null>(null);        // 名前が 無くて 送れなかった 今回の点数
   const [rankMode, setRankMode] = useState<Mode>('pref');
+  const howGroup = useRef<Group | null>(null);   // あそびかた画面へ どこから来たか（もどる先）
 
   const change = useCallback((p: Partial<Settings>) => setS((x) => ({ ...x, ...p })), []);
   const go = useCallback((sc: Screen) => { setScreen(sc); window.scrollTo(0, 0); if (sc === 'title') setMissN(missCount()); }, []);
@@ -59,13 +60,22 @@ export default function App() {
   /* 結果画面の「ランキングを 見る」：名前が 無ければ 先に 決めてもらう */
   const rankFromResult = (m: Mode) => { if (getNick()) openRank(m); else askName(() => openRank(m)); };
 
-  const openHow = (m: Mode) => { setMode(m); go('how'); };
+  /* 'battle1'（ひとりであそぶ の はやおし）は えらばれた時点で players=1 の 'battle' に 読みかえる。
+     まちがい帳が からに なっていたら きょうかも もどす */
+  const openHow = (m: Mode) => {
+    const miss = missCount() > 0;
+    if (m === 'battle1') { setS((x) => ({ ...x, players: 1, bsubj: (x.bsubj === 'miss' && !miss) ? 'mix' : x.bsubj })); setMode('battle'); }
+    else if (m === 'battle') { setS((x) => ({ ...x, players: 2, bsubj: (x.bsubj === 'miss' && !miss) ? 'mix' : x.bsubj })); setMode('battle'); }
+    else setMode(m);
+    if (m === 'battle1' || m === 'battle') howGroup.current = (m === 'battle1' ? 'solo' : null);
+    go('how');
+  };
   const onGroup = (g: Group | 'battle' | 'cross') => {
-    if (g === 'battle' || g === 'cross') { openHow(g); return; }
+    if (g === 'battle' || g === 'cross') { howGroup.current = null; openHow(g); return; }
     setGroup(g); go('sub');
   };
   const backFromHow = () => {
-    const g = groupOfMode(mode);
+    const g = howGroup.current || groupOfMode(mode);
     if (!g) go('title'); else { setGroup(g); go('sub'); }
   };
   const start = (same = false) => {
@@ -96,23 +106,33 @@ export default function App() {
     } else pendingScore.current = null;
   };
   const finishBattle = (r: BattleResult) => {
-    setBr(r); go('bresult');
-    const tot = r.adult + r.child;
-    submitScore({ event_code: eventCode(), mode: 'battle', level: s.level, seconds: r.seconds, score: tot, rank_i: rankOf('battle', tot, r.seconds).i, nickname: '' });
+    setBr(r); setMissN(missCount()); go('bresult');
+    /* ランキングは「2人で 対戦・ふつうの出題」だけ。ひとりモードと まちがい直しは
+       出題も 点の意味も ちがうので、同じ表に まぜない */
+    if (r.players === 1 || r.miss) { pendingScore.current = null; }
+    else {
+      const tot = r.adult + r.child;
+      submitScore({ event_code: eventCode(), mode: 'battle', level: s.level, seconds: r.seconds, score: tot, rank_i: rankOf('battle', tot, r.seconds).i, nickname: '' });
+    }
+    /* ひとりモードの じかん勝負だけ この端末の ベストを のこす */
+    if (r.players === 1 && !r.miss && !r.goal) {
+      const key = bestKey('battle1', s.level, r.seconds);
+      if (r.child > Number(store(key) || 0)) store(key, String(r.child));
+    }
   };
 
   return (
     <div className="wrap">
       {screen === 'title' && <>
-        <TitleScreen level={s.level} onLevel={(l) => change({ level: l })} onGroup={onGroup} onMode={openHow} onSettings={() => setSetOpen(true)} onRank={() => openRank(mode)} missN={missN} />
+        <TitleScreen level={s.level} onLevel={(l) => change({ level: l })} onGroup={onGroup} onMode={(m) => { howGroup.current = null; openHow(m); }} onSettings={() => setSetOpen(true)} onRank={() => openRank(mode)} missN={missN} />
         <SettingsOverlay open={setOpen} seconds={s.seconds} onSeconds={(v) => change({ seconds: v })} onClose={() => setSetOpen(false)} onCleared={() => setMissN(0)} nick={nick} onName={() => askName(() => undefined)} />
       </>}
-      {screen === 'sub' && <SubScreen group={group} onMode={openHow} onBack={() => go('title')} />}
+      {screen === 'sub' && <SubScreen group={group} onMode={(m) => { howGroup.current = group; openHow(m); }} onBack={() => go('title')} />}
       {screen === 'how' && <HowScreen mode={mode} s={s} onChange={change} onStart={() => start()} onBack={backFromHow} />}
-      {screen === 'count' && <CountScreen mode={mode} role={s.role} onDone={afterCount} />}
+      {screen === 'count' && <CountScreen mode={mode} role={s.role} players={s.players} onDone={afterCount} />}
       {screen === 'play' && <PlayScreen key={round} mode={mode} level={s.level} seconds={s.seconds} role={s.role} onFinish={finishPlay} onRestart={restart} onQuit={quit} onEmpty={() => go('title')} />}
       {screen === 'geo' && <GeoScreen key={round} mode={mode} level={s.level} seconds={s.seconds} onFinish={finishPlay} onRestart={restart} onQuit={quit} />}
-      {screen === 'battle' && <BattleScreen key={round} level={s.level} seconds={s.seconds} bsubj={s.bsubj} handi={s.handi} goal={s.goal} onFinish={finishBattle} onRestart={restart} onQuit={quit} />}
+      {screen === 'battle' && <BattleScreen key={round} level={s.level} seconds={s.seconds} bsubj={s.bsubj} handi={s.handi} goal={s.goal} players={s.players} onFinish={finishBattle} onRestart={restart} onQuit={quit} />}
       {screen === 'cross' && <CrossScreen key={round} level={s.level} kana={s.kana} prevIdx={cwIdx} forceIdx={cwForce} onIdx={(i) => { cwCur.current = i; }} onFinish={(r) => { setCr(r); if (r.idx !== undefined) setCwIdx(r.idx); go('cresult'); }} onRestart={restart} onQuit={quit} />}
       {screen === 'numcross' && <NumCrossScreen key={round} level={s.level} onFinish={(r) => { setCr(r); go('cresult'); }} onRestart={restart} onQuit={quit} />}
       {screen === 'result' && pr && <ResultScreen r={pr} onAgain={() => go('how')} onMiss={() => { if (missCount()) openHow('miss'); }} onTitle={() => go('title')} onRank={rankable(pr.mode) ? () => rankFromResult(pr.mode) : undefined} />}
