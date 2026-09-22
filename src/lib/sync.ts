@@ -2,7 +2,11 @@
    - 記録は まず localStorage に書く（ゲームは 一度も 止めない）
    - 同時に 送信キュー（oyako-queue）に積み、つながっているとき Supabase に流す
    - ログインできたら サーバーの記録を 取りこんで、端末の記録と 新しいほうを 採用する
-   - Supabase を「正」とするのは このため。端末の記録が 消えても サーバーから 戻る */
+
+   注意：記録は ブラウザごとに 別もの。ログインが 無いので 匿名ユーザーIDも
+   そのブラウザの localStorage にあり、スマホと PC は 別人として あつかわれる。
+   サイトデータを 丸ごと 消すと ユーザーIDごと 消えるので、サーバーの記録も 戻せない。
+   サーバーに 送っているのは、記録のキーだけが 消えたとき（容量あふれなど）に 戻すため */
 import { store } from './storage';
 import { ensureUser, getClient } from './supabase';
 import { onRecordChange, mergeRemote, allStats, type StatRow } from '../game/records';
