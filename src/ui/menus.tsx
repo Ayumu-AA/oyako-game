@@ -1,6 +1,6 @@
 /* ホーム3ステップ（何人で → がくねん → ゲーム）・教科えらび・あそびかた・カウントダウン・せってい・ルール */
 import { useEffect, useRef, useState } from 'react';
-import { CONFIG, MODE_NAME, MODE_SUB, MODE_TAG, MODE_LABEL, GROUPS, HOW_LEDE, STEPS_MISS, STEPS_HINT, STEPS_GEO, STEPS_NUM, STEPS_CROSS, STEPS_BATTLE, STEPS_BATTLE1, STEPS_MATH } from '../data/texts';
+import { CONFIG, MODE_NAME, MODE_SUB, MODE_TAG, MODE_LABEL, GROUPS, HOW_LEDE, STEPS_MISS, STEPS_HINT, STEPS_GEO, STEPS_NUM, STEPS_CROSS, STEPS_CROSS1, STEPS_BATTLE, STEPS_BATTLE1, STEPS_MATH } from '../data/texts';
 import { ICON, GROUP_ICON, TILE_ICON } from '../data/icons';
 import { missCount, seenCount, clearRecords } from '../game/records';
 import { store } from '../lib/storage';
@@ -41,8 +41,10 @@ export const GAMES: Record<1 | 2, Tile[]> = {
   ],
   1: [
     { k: 'battle1', m: 'battle1', b: 'はやおしクイズ', s: '4たくで 早おし' },
+    { k: 'geo', g: 'geo', b: 'ちずクイズ', s: '地図で 場所さがし' },
     { k: 'math', m: 'math', b: '10を作る', s: '数で 10を つくる' },
     { k: 'numcross', m: 'numcross', b: 'けいさんクロス', s: '計算を そろえる' },
+    { k: 'cross', m: 'cross', b: 'クロスワード', s: 'ことばで マスうめ' },
   ],
 };
 
@@ -79,13 +81,13 @@ export function TitleScreen({ onPlayers, onSettings, onRank }: {
       <p className="lede" id="title-q">何人で あそぶ？</p>
 
       <div className="modes" id="players-modes">
-        <button className="mode tall" data-tile="p2" data-players="2" id="btn-p2" onClick={() => onPlayers(2)}>
-          <Raw className="icon" html={TILE_SVG.p2} />
-          <span><b>2人で あそぶ</b><small>おとなと こども</small></span>
-        </button>
         <button className="mode tall" data-tile="p1" data-players="1" id="btn-p1" onClick={() => onPlayers(1)}>
           <Raw className="icon" html={TILE_SVG.p1} />
           <span><b>1人で あそぶ</b><small>じぶんの ペースで</small></span>
+        </button>
+        <button className="mode tall" data-tile="p2" data-players="2" id="btn-p2" onClick={() => onPlayers(2)}>
+          <Raw className="icon" html={TILE_SVG.p2} />
+          <span><b>2人で あそぶ</b><small>おとなと こども</small></span>
         </button>
       </div>
 
@@ -214,6 +216,7 @@ export function SubScreen({ group, onMode, onBack }: { group: Group; onMode: (m:
 function stepsFor(mode: Mode, players: 1 | 2): string[] {
   const S = (x: unknown) => x as string[];
   if (mode === 'battle' && players === 1) return S(STEPS_BATTLE1);
+  if (mode === 'cross' && players === 1) return S(STEPS_CROSS1);
   if (mode === 'miss') return S(STEPS_MISS);
   if (isGeo(mode)) return S(STEPS_GEO);
   if (mode === 'numcross') return S(STEPS_NUM);
@@ -240,6 +243,7 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
   const [rules, setRules] = useState(false);
   const isBattle = mode === 'battle', isCross = mode === 'cross', isNum = mode === 'numcross', isMath = mode === 'math', geo = isGeo(mode);
   const solo = isBattle && s.players === 1;
+  const soloCross = isCross && s.players === 1;   /* 1人の クロスワード：役わりの わりふりは 出さない */
   const missN = missCount();
   const showRole = !(isMath || isBattle || isCross || isNum || geo);
   const closeBtn = useRef<HTMLButtonElement>(null);
@@ -257,18 +261,18 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
         <div className="howhead">
           <div className="howttl">
             <p className="eyebrow">あそぶ ゲーム<span className="lvchip" id="how-lv">{s.level === 1 ? 'ていがくねん' : 'こうがくねん'}</span></p>
-            <h2 id="how-title">{solo ? MN.battle1 : MN[mode]}</h2>
+            <h2 id="how-title">{solo ? MN.battle1 : soloCross ? MN.cross1 : MN[mode]}</h2>
           </div>
           <button type="button" className="rulesbtn" id="btn-rules" onClick={() => setRules(true)}>
             <span className="qm" aria-hidden="true">?</span>ルールを見る
           </button>
         </div>
 
-        <Raw as="p" className="howlede" id="how-lede" html={(HOW_LEDE as Record<string, string>)[solo ? 'battle1' : mode] || (HOW_LEDE as Record<string, string>).pref} />
+        <Raw as="p" className="howlede" id="how-lede" html={(HOW_LEDE as Record<string, string>)[solo ? 'battle1' : soloCross ? 'cross1' : mode] || (HOW_LEDE as Record<string, string>).pref} />
 
         <div className="spacer top"></div>
 
-        <div className="rolesplit" id="cross-roles" hidden={!isCross}>
+        <div className="rolesplit" id="cross-roles" hidden={!isCross || soloCross}>
           <div className="rs yoko"><b>ヨコのカギ</b><span className="arrow">→</span><span className="who">こども</span></div>
           <div className="rs tate"><b>タテのカギ</b><span className="arrow">↓</span><span className="who">おとな</span></div>
         </div>
@@ -309,7 +313,7 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
       <div className="overlay" id="rules-ov" hidden={!rules} role="dialog" aria-modal="true" aria-labelledby="rules-title" onClick={(e) => { if (e.target === e.currentTarget) setRules(false); }}>
         <div className="sheet rulesheet">
           <h2 className="display" id="rules-title">あそびかた</h2>
-          <p className="rulesmode" id="rules-mode">{solo ? MN.battle1 : MN[mode]}</p>
+          <p className="rulesmode" id="rules-mode">{solo ? MN.battle1 : soloCross ? MN.cross1 : MN[mode]}</p>
           <div className="steps" id="steps">
             {stepsFor(mode, s.players).map((t, i) => (
               <div className="step" key={i}><div className="num">{i + 1}</div><Raw as="p" html={t} /></div>

@@ -572,3 +572,25 @@ test('はやおしバトル：まちがい直しは 帳から 出る・ランキ
   await expect(page.locator('#btn-brank-view')).toHaveCount(0);
   expect(errs).toEqual([]);
 });
+
+test('1人でも クロスワードと ちずクイズが あそべる（役わりの わりふりは 出さない）', async ({ page }) => {
+  const errs = noErrors(page);
+  await open(page);
+  await nav(page, 1);
+  /* ちずクイズは 1人の 一覧にも 出る */
+  await page.click('[data-group="geo"]');
+  await expect(page.locator('#sub-title')).toHaveText('ちずクイズ');
+  await expect(page.locator('[data-mode="geopref"]')).toBeVisible();
+  await page.click('#s-sub [data-back="s-title"]');   /* もどる → ゲーム一覧 */
+  await expect(page.locator('#s-games')).toBeVisible();
+  await page.click('[data-mode="cross"]');
+  await expect(page.locator('#how-title')).toHaveText('クロスワード');
+  await expect(page.locator('#cross-roles')).toBeHidden();   /* ヨコ=こども／タテ=おとな は 出さない */
+  await page.click('#btn-start');
+  await expect(page.locator('#s-cross')).toBeVisible({ timeout: 8000 });
+  await expect(page.locator('.rolebar')).toHaveCount(0);
+  await page.click('#btn-cluelist');
+  await expect(page.locator('#cwclues')).toContainText('ヨコのカギ');
+  await expect(page.locator('#cwclues')).not.toContainText('こどもが かんがえる');
+  expect(errs).toEqual([]);
+});

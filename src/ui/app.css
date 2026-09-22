@@ -129,11 +129,11 @@
   .colortiles .mode.tall{min-height:clamp(150px,30vh,220px)}
   .colortiles .mode.tall .icon{width:34px;height:34px}
   .colortiles .mode.tall b{font-size:17px}
-  .colortiles .mode[data-tile="p2"],.colortiles .mode[data-tile="relay"],.colortiles .mode[data-tile="lv2"]{--c:var(--plow-blue-bg)}
+  .colortiles .mode[data-tile="p2"],.colortiles .mode[data-tile="relay"],.colortiles .mode[data-tile="lv2"],.colortiles .mode[data-tile="numcross"]{--c:var(--plow-blue-bg)}
   .colortiles .mode[data-tile="p1"],.colortiles .mode[data-tile="math"]{--c:var(--plow-purple-bg)}
   .colortiles .mode[data-tile="battle"],.colortiles .mode[data-tile="battle1"]{--c:var(--plow-red-bg)}
   .colortiles .mode[data-tile="cross"],.colortiles .mode[data-tile="lv1"]{--c:var(--plow-green);--on:#0F3318}
-  .colortiles .mode[data-tile="geo"],.colortiles .mode[data-tile="numcross"]{--c:var(--sea)}
+  .colortiles .mode[data-tile="geo"]{--c:var(--sea)}
   .colortiles .mode[data-tile="miss"],.colortiles .mode[data-tile="miss1"]{--c:var(--plow-yellow);--on:#3D2A00}
 
   #title-q{margin:0;text-align:center;font-weight:800;color:var(--ink)}

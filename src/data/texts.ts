@@ -6,7 +6,7 @@ export const CONFIG = {
   eventName : '',
   promoText : 'スコアを受付の先生に見せてね。参加賞をプレゼント！おうちでも遊べます。'
 };
-export const MODE_NAME={cross:'親子クロスワード',numcross:'けいさんクロス（算数）',pref:'都道府県',flag:'世界の国旗',kokugo:'ことば（国語）',rika:'りか（理科）',rekishi:'れきし（社会）',geopref:'ちずクイズ 都道府県',geoflag:'ちずクイズ 世界の国',eigo:'えいご（英語）',math:'10を作る（算数）',battle:'はやおし親子バトル',battle1:'はやおし（ひとり）',miss:'まちがい直し'};
+export const MODE_NAME={cross:'親子クロスワード',numcross:'けいさんクロス（算数）',pref:'都道府県',flag:'世界の国旗',kokugo:'ことば（国語）',rika:'りか（理科）',rekishi:'れきし（社会）',geopref:'ちずクイズ 都道府県',geoflag:'ちずクイズ 世界の国',eigo:'えいご（英語）',math:'10を作る（算数）',battle:'はやおし親子バトル',battle1:'はやおし（ひとり）',cross1:'クロスワード',miss:'まちがい直し'};
 export const MODE_SUB={
  pref:'47都道府県 ／ 社会',
  flag:'24の国 ／ 社会',
@@ -36,7 +36,7 @@ export const GROUPS={
    modes:['pref','flag','kokugo','rika','rekishi','eigo']
  },
  geo:{
-   eyebrow:'2人であそぶ（1人でもOK）',
+   eyebrow:'地図で さがす',
    title:'ちずクイズ',
    lede:'<b>地図で 色のついた ところは どこ？</b> 4つの ボタンから えらびます。',
    note:'どちらを やる？',
@@ -64,7 +64,8 @@ export const HOW_LEDE={
   miss   :'これまで <b>まちがえた問題</b>だけが 出ます。当てたら 帳から 消えます。',
   geopref:'地図で <b>色がついた 県</b>は どこ？ 下の 4つから えらぶ。',
   geoflag:'地図で <b>色がついた 国</b>は どこ？ 下の 4つから えらぶ。',
-  battle1:'出た問題に <b>できるだけ 早く</b> こたえる。ひとりでも はやおしの 練習。'
+  battle1:'出た問題に <b>できるだけ 早く</b> こたえる。ひとりでも はやおしの 練習。',
+  cross1 :'タテと ヨコの カギを 読んで、<b>マスを ぜんぶ うめる</b>。'
 };
 export const STEPS_MISS=[
   'これまでに <b>まちがえた問題・パスした問題</b>だけが 出ます。',
@@ -103,6 +104,11 @@ export const STEPS_BATTLE=[
   '上下に同じ問題が出ます。<b>先に正解をタップ</b>した人が1点。',
   '<b>けいさん</b>のときだけ、数字を押して <b>こたえを自分で入力</b>します。',
   'まちがえると<b>1.5秒お休み</b>。そのあいだに相手にとられます。'
+];
+export const STEPS_CROSS1=[
+  'カギを 読んで、その ことばを かんがえます。',
+  'マスか カギをタップして、下の 50音ボタンで ことばを 入れます。',
+  '交わるマスは <b>ヒント</b>になります。分かるところから うめていこう。'
 ];
 export const STEPS_BATTLE1=[
   '画面に 問題が 1つずつ 出ます。<b>4つのボタン</b>から こたえを えらんでタップ。',

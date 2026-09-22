@@ -26,7 +26,7 @@ function useElapsed() {
 
 const KB = KBD as string[][];
 
-export function CrossScreen({ level, kana, prevIdx, forceIdx = null, onIdx, onFinish, onRestart, onQuit }: { level: Level; kana: 'R' | 'L' | 'F'; prevIdx: number | null; forceIdx?: number | null; onIdx?: (idx: number) => void; onFinish: (r: CrossResult) => void; onRestart: () => void; onQuit: () => void }) {
+export function CrossScreen({ level, kana, players, prevIdx, forceIdx = null, onIdx, onFinish, onRestart, onQuit }: { level: Level; kana: 'R' | 'L' | 'F'; players: 1 | 2; prevIdx: number | null; forceIdx?: number | null; onIdx?: (idx: number) => void; onFinish: (r: CrossResult) => void; onRestart: () => void; onQuit: () => void }) {
   const [cw] = useState<CwState>(() => newCross(level, prevIdx, forceIdx));
   const onIdxRef = useRef(onIdx); onIdxRef.current = onIdx;
   useEffect(() => { if (onIdxRef.current) onIdxRef.current(cw.idx); }, [cw]);   /* App が「さいしょから やりなおす」で 同じ問題を 出すため */
@@ -82,10 +82,13 @@ export function CrossScreen({ level, kana, prevIdx, forceIdx = null, onIdx, onFi
         <div className="spacer"></div>
         <PauseButton id="btn-cpause" onClick={pause} />
       </div>
-      <div className="rolebar">
-        <span className="yoko">ヨコ → こども</span>
-        <span className="tate">タテ ↓ おとな</span>
-      </div>
+      {/* 役わりの わりふりは 2人のときだけ。1人なら タテもヨコも じぶんで といていく */}
+      {players === 2 && (
+        <div className="rolebar">
+          <span className="yoko">ヨコ → こども</span>
+          <span className="tate">タテ ↓ おとな</span>
+        </div>
+      )}
       <div className="cwscroll">
         <div className="cwgrid" id="cwgrid" style={{ gridTemplateColumns: 'repeat(' + cw.C + ',var(--cw))', ['--cw' as string]: cellPx + 'px' }}>
           {puz.g.map((row, r) => row.split('').map((ch, c) => {
@@ -104,8 +107,8 @@ export function CrossScreen({ level, kana, prevIdx, forceIdx = null, onIdx, onFi
         </div>
         <button type="button" className="cluetoggle" id="btn-cluelist" onClick={() => setClues((x) => !x)}>{clues ? 'カギの一覧を とじる' : 'カギの一覧を ひらく'}</button>
         <div className="clues" id="cwclues" hidden={!clues}>
-          {clueGroup('A', 'ヨコのカギ　こどもが かんがえる', 'yoko')}
-          {clueGroup('D', 'タテのカギ　おとなが かんがえる', 'tate')}
+          {clueGroup('A', players === 2 ? 'ヨコのカギ　こどもが かんがえる' : 'ヨコのカギ', 'yoko')}
+          {clueGroup('D', players === 2 ? 'タテのカギ　おとなが かんがえる' : 'タテのカギ', 'tate')}
         </div>
       </div>
       <div className="cwnow" id="cwnow">
