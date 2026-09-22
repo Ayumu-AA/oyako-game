@@ -689,6 +689,16 @@
   }
   .anstimer[hidden]{display:none}
   .anstimer div{height:100%;background:var(--vermilion);transition:width .1s linear}
+  /* 問題文を 左から 少しずつ 出す（クイズ番組ふう）。高さは 全文ぶんで 固定 */
+  .qprog{position:relative;width:100%;display:flex}
+  .qprog .ghost{visibility:hidden;width:100%}
+  .qprog .live{position:absolute;inset:0;margin:0}
+  /* 同じ条件の 仲間（すでに 見せておく 都道府県） */
+  .mshown{
+    flex:none;display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:center;
+    font-size:clamp(15px,3.6vw,20px);font-weight:900;color:var(--ink);
+  }
+  .mshown .ms{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:4px 10px}
   /* もじあて（みんはや式）：こたえの わく と 1文字ぶんの 4たく */
   .mojiwrap{flex:none;display:flex;flex-direction:column;align-items:center;gap:10px;width:100%}
   .mojiword{display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap}

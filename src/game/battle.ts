@@ -79,6 +79,24 @@ export function kanaPool(deck: RelayQ[], sub: string): string[] {
   deck.forEach((x) => { for (const c of splitYomi(sub, x.name, x.yomi).body) if (SMALL_KANA.indexOf(c) < 0) set.add(c); });
   return [...set];
 }
+/* 「〇文字目が『が』の都道府県は？」を 作るための 索引。
+   いち＋文字 → あてはまる 名前。2〜4個の ものだけ 問題に つかう
+   （1個だと 見せる仲間が いないし、5個以上は 出しきれない）。 */
+export interface MojiGroup { pos: number; ch: string; names: string[] }
+export function mojiGroups(deck: RelayQ[], sub: string): MojiGroup[] {
+  const map: Record<string, string[]> = {};
+  deck.forEach((x) => {
+    const b = splitYomi(sub, x.name, x.yomi).body;
+    [...b].forEach((c, i) => {
+      if (SMALL_KANA.indexOf(c) >= 0) return;   /* 「っ」が3文字目、では クイズに ならない */
+      const k = i + ':' + c;
+      (map[k] || (map[k] = [])).push(x.name);
+    });
+  });
+  return Object.keys(map).filter((k) => map[k].length >= 2 && map[k].length <= 4)
+    .map((k) => ({ pos: Number(k.slice(0, k.indexOf(':'))), ch: k.slice(k.indexOf(':') + 1), names: map[k] }));
+}
+
 /** 小さい字と のばす音は ? に しない（「ー」を えらばせても クイズに ならないので） */
 export const SMALL_KANA = 'ぁぃぅぇぉゃゅょっゎー';
 /** ? にする いちを えらぶ。だいたい 半分、多くても 3つ（インスタの 出し方に あわせた） */
@@ -184,18 +202,44 @@ export class BattleSession {
     const deck = this.pools[key];
     if (!deck || !deck.length) return calcQuestion(this.opts.level);
     const q = this.pickFromDeck(key, deck);
+    const pool = kanaPool(deck, key);
+    const n = key === 'flag' ? MOJI_OPTS_FLAG : MOJI_OPTS;
+    if (key === 'pref') {
+      /* 「〇文字目が『が』の都道府県は？」。同じ条件の 県が 3つなら 2つは 見せておくので、
+         こたえは かならず 1つに 決まる（同じ文字数の 別の県を 入れて まちがいに ならない） */
+      const gs = mojiGroups(deck, key);
+      if (gs.length) {
+        const g = gs[Math.floor(rng() * gs.length)];
+        const names = shuffle(g.names.slice());
+        const ansName = names[0];
+        const a = deck.find((x) => x.name === ansName)!;
+        const sp = splitYomi(key, a.name, a.yomi);
+        const chars = [...sp.body];
+        /* 条件の いち と 小さい字は はじめから 見せる。のこりを ? に する */
+        const holes = chars.map((_c, i) => i).filter((i) => i !== g.pos && SMALL_KANA.indexOf(chars[i]) < 0);
+        /* 見せておく 仲間。よみは まるごと（ルビが 名前と ずれないように） */
+        const shown = names.slice(1).map((nm) => {
+          const x = deck.find((y) => y.name === nm)!;
+          return { name: x.name, yomi: x.yomi, tail: splitYomi(key, x.name, x.yomi).tail };
+        });
+        markSeen(key, a.name);
+        return {
+          art: null, text: (g.pos + 1) + '文字目{もじめ}が「' + g.ch + '」の 都道府県{とどうふけん}は？',
+          num: false, answer: a.name, pool: [], fact: a.fact, sub: key, yomi: { [a.name]: a.yomi },
+          chars, holes, charOpts: holes.map((i) => charOptions(pool, chars[i], n)), tail: sp.tail,
+          shown, hit: g.pos,
+        };
+      }
+    }
+    /* 国旗は 旗が 出ているので、名前の 一部を ? にして うめてもらう */
     markSeen(key, q.name);
     const { body, tail } = splitYomi(key, q.name, q.yomi);
-    const pool = kanaPool(deck, key);
     const chars = [...body];
     const holes = pickHoles(chars);
-    const n = key === 'flag' ? MOJI_OPTS_FLAG : MOJI_OPTS;
     const charOpts = holes.map((i) => charOptions(pool, chars[i], n));
-    /* 特産物などの ヒントは 出さない。出ているのは 名前の 一部と（国旗なら）旗そのもの */
-    const text = key === 'flag' ? '？に ひらがなを 入れて 国{くに}の なまえを 完成{かんせい}させよう'
-      : '？に ひらがなを 入れて 都道府県{とどうふけん}を 完成{かんせい}させよう';
+    const text = '？に ひらがなを 入れて 国{くに}の なまえを 完成{かんせい}させよう';
     return {
-      art: key === 'flag' ? q.art : null, text, num: false, answer: q.name, pool: [], fact: q.fact,
+      art: q.art, text, num: false, answer: q.name, pool: [], fact: q.fact,
       sub: key, yomi: { [q.name]: q.yomi }, chars, holes, charOpts, tail,
     };
   }

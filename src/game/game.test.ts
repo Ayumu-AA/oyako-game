@@ -4,7 +4,9 @@ import { reloadRecords, markMiss, markHit, missCount, markSeen, seenAt, clearRec
 import { evalTokens, makePuzzle, checkMath, type Token } from './math10';
 import { rankOf, rankNext } from './rank';
 import { plain, furi, furiName, FURI_RE } from './furigana';
-import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, splitYomi, charOptions } from './battle';
+import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, splitYomi, charOptions, mojiGroups } from './battle';
+import { cutFuri, plainLen } from './furigana';
+import { relayDeck as deckOf } from './decks';
 import { relayDeck, deckFor, hints3, missDeck } from './decks';
 import { polyOf, inPoly, geoChoices, geoGroupOf, geoDeck, jpSVG, wSVG, jpFullVB, geoQuestion } from './geo';
 import { newCross, cwCells, cwInput, cwHint, cwAllOk, cwLeft, cwTapCell, cwModify, cwDelete, cycleKana, cwCycle } from './cross';
@@ -430,4 +432,67 @@ describe('もじあて（みんはや式）と 3秒ルール', () => {
     }
   });
   it('こたえる もちじかんは 3秒', () => { expect(ANSWER_MS).toBe(3000); });
+});
+
+
+describe('問題文を 少しずつ 出す（クイズ番組ふう）', () => {
+  const src = '鎌倉時代{かまくらじだい}の 若{わか}い 指導者{しどうしゃ}';
+  it('ふりがなを 数に 入れない 文字数で かぞえる', () => {
+    expect(plainLen(src)).toBe(plain(src).length);
+    expect(plain(src)).toBe('鎌倉時代の 若い 指導者');
+  });
+  it('先頭から n文字。ルビは 途中で 割らない', () => {
+    expect(cutFuri(src, 0)).toBe('');
+    /* 「鎌倉時代」は 4文字ぶん。1文字でも 入るなら まるごと 出す */
+    expect(plain(cutFuri(src, 2))).toBe('鎌倉時代');
+    expect(cutFuri(src, 2)).toContain('{かまくらじだい}');
+    expect(plain(cutFuri(src, 6))).toBe('鎌倉時代の ');
+    expect(cutFuri(src, 99)).toBe(src);
+    /* だんだん のびる（みじかく なることは ない） */
+    let prev = 0;
+    for (let n = 0; n <= plainLen(src); n++) {
+      const len = plain(cutFuri(src, n)).length;
+      expect(len).toBeGreaterThanOrEqual(prev);
+      prev = len;
+    }
+  });
+});
+
+describe('もじあて：〇文字目が「か」の都道府県は？', () => {
+  it('仲間は 2〜4県。ぜんぶ そのいちに その文字を 持つ', () => {
+    const deck = deckOf('pref', 2);
+    const gs = mojiGroups(deck, 'pref');
+    expect(gs.length).toBeGreaterThan(20);
+    gs.forEach((g) => {
+      expect(g.names.length).toBeGreaterThanOrEqual(2);
+      expect(g.names.length).toBeLessThanOrEqual(4);
+      g.names.forEach((nm) => {
+        const x = deck.find((y) => y.name === nm)!;
+        expect(splitYomi('pref', x.name, x.yomi).body[g.pos]).toBe(g.ch);
+      });
+    });
+  });
+  it('こたえは 1つに 決まる（のこりの仲間は 見せてある）', () => {
+    setKV(memoryKV()); reloadRecords();
+    const deck = deckOf('pref', 2);
+    const s = new BattleSession({ level: 2, bsubj: 'moji', handi: 1, goal: 0 });
+    let seen = 0;
+    for (let i = 0; i < 30 && seen < 8; i++) {
+      const { q } = s.next();
+      if (q.sub !== 'pref' || !q.shown) continue;
+      seen++;
+      const m = /^(\d+)文字目\{[^}]*\}が「(.)」/.exec(q.text)!;
+      const pos = Number(m[1]) - 1, ch = m[2];
+      /* その条件に あう県は 「見せてある数 ＋ こたえ」と ぴったり 同じ */
+      const all = deck.filter((x) => splitYomi('pref', x.name, x.yomi).body[pos] === ch).map((x) => x.name);
+      expect(all.sort()).toEqual([q.answer, ...q.shown.map((x) => x.name)].sort());
+      /* 条件の いちは はじめから 見えている（? に しない） */
+      expect(q.holes).not.toContain(pos);
+      expect(q.chars![pos]).toBe(ch);
+      for (let k = 0; k < q.holes!.length; k++) s.char('child', q.chars![q.holes![k]]);
+      expect(s.charAt('child')).toBe(q.holes!.length);
+      s.next();
+    }
+    expect(seen).toBeGreaterThan(3);
+  });
 });

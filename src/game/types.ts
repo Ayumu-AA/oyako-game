@@ -53,6 +53,8 @@ export interface BattleQ {
   holes?: number[];                // ? のいち。この順に こたえる
   charOpts?: string[][];           // holes と 同じ数の 選たく肢
   tail?: string;                   // うしろに そのまま 出す文字（県・都・府・道）
+  shown?: { name: string; yomi: string; tail: string }[];   // すでに 見せておく 仲間（同じ条件の 都道府県）
+  hit?: number;                    // 条件に なっている いち（そこは はじめから 見えている）
 }
 
 export type Side = 'adult' | 'child';

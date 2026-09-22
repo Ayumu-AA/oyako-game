@@ -264,8 +264,9 @@ test('はやおしバトル：ことばは 例文が 問題・意味が 選た�
   expect(rot.child).toBe('matrix(-1, 0, 0, -1, 0, 0)'); expect(rot.chip).toBe('matrix(-1, 0, 0, -1, 0, 0)');
   expect(rot.adult).toBe('none'); expect(rot.chipA).toBe('none');
   /* 問題は「」つきの 例文、選たく肢は 意味（ことば そのものは 出ない） */
-  await expect(page.locator('#side-adult .qtext')).toHaveClass(/long/);
-  expect(await page.locator('#side-adult .qtext').innerText()).toMatch(/「.+」/);
+  /* 文は 少しずつ 出るので、全文は 下じきの .ghost のほう */
+  await expect(page.locator('#side-adult .qtext.ghost')).toHaveClass(/long/);
+  expect(await page.locator('#side-adult .qtext.ghost').textContent()).toMatch(/「.+」/);
   await buzz(page, 'adult');
   const seen = await page.evaluate(() => [...document.querySelectorAll('#side-adult .choice')].map((b) => ({ a: (b as HTMLElement).dataset.a!, t: (b as HTMLElement).innerText })));
   expect(seen.length).toBe(4);
@@ -633,5 +634,27 @@ test('はやおしバトル：赤いボタンを 取ったら 3秒以内・も�
   await expect(page.locator('#buzz-child')).toBeEnabled();
   await buzz(page, 'child');
   await expect(page.locator('#side-child .choice.mj')).toHaveCount(nOpt);
+  expect(errs).toEqual([]);
+});
+
+test('はやおしバトル：問題文が 左から 少しずつ 出る', async ({ page }) => {
+  const errs = noErrors(page);
+  await open(page);
+  await nav(page);
+  await page.click('[data-mode="battle"]');
+  await page.click('#seg-subject button[data-v="rekishi"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  const live = () => page.evaluate(() => (document.querySelector('#side-adult .qprog .live') as HTMLElement).innerText.replace(/\n/g, '').length);
+  const a = await live();
+  await page.waitForTimeout(500);
+  const bLen = await live();
+  expect(bLen).toBeGreaterThan(a);                 /* だんだん のびる */
+  /* 赤いボタンを 取ると そこで 止まる */
+  await buzz(page, 'adult');
+  const c = await page.evaluate(() => (document.querySelector('#side-child .qprog .live') as HTMLElement).innerText.replace(/\n/g, '').length);
+  await page.waitForTimeout(600);
+  const d = await page.evaluate(() => (document.querySelector('#side-child .qprog .live') as HTMLElement).innerText.replace(/\n/g, '').length);
+  expect(d).toBe(c);
   expect(errs).toEqual([]);
 });

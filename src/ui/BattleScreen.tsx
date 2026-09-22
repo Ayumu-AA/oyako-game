@@ -1,7 +1,11 @@
 /* はやおし親子バトル */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BattleSession, BATTLE_CAP, NUMKEYS, ANSWER_MS } from '../game/battle';
-import { furi, furiName } from '../game/furigana';
+
+const REVEAL_MS = 70;   /* 問題文を 1文字ずつ 出す はやさ（クイズ番組ふう） */
+/** 少しずつ 出すのは 文だけの問題（絵・テンキー・もじあては そのまま 全部出す） */
+const isProg = (q: BattleQ | null) => !!(q && !q.num && !q.chars && !q.art);
+import { furi, furiName, cutFuri, plainLen } from '../game/furigana';
 import { artHTML } from '../game/art';
 import { rankOf, rankNext, rankLine, rankMsg } from '../game/rank';
 import { missCount } from '../game/records';
@@ -29,6 +33,8 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
   const [score, setScore] = useState({ adult: '0', child: '0' });
   const [turn, setTurn] = useState<Turn>({ owner: null, tried: { adult: false, child: false }, reveal: false });
   const [ansLeft, setAnsLeft] = useState(0);            /* こたえる もちじかん（ミリ秒）。0 = はかっていない */
+  const [rev, setRev] = useState(999);                  /* 問題文を 何文字 出したか */
+  const revTimer = useRef<number | null>(null);
   const ansEnd = useRef(0), ansTimer = useRef<number | null>(null);
   const [left, setLeft] = useState(seconds * 1000);
   const [paused, setPaused] = useState(false);
@@ -46,6 +52,17 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
   const setSide = (side: Side, p: Partial<SideUI>) => setUi((u) => ({ ...u, [side]: { ...u[side], ...p } }));
   const drawScore = (s: BattleSession) => setScore({ adult: s.scoreText('adult'), child: s.scoreText('child') });
   const syncTurn = (s: BattleSession, reveal = false) => setTurn({ owner: s.owner, tried: { ...s.tried }, reveal });
+
+  /* 問題文を 左から 少しずつ 出す。だれかが 赤いボタンを 取ったら 止める */
+  const stopRev = useCallback(() => { if (revTimer.current) { clearInterval(revTimer.current); revTimer.current = null; } }, []);
+  const runRev = useCallback((q: BattleQ | null) => {
+    stopRev();
+    if (!isProg(q)) { setRev(999); return; }
+    const len = plainLen(q!.text);
+    revTimer.current = window.setInterval(() => {
+      setRev((r) => { const n = r + 1; if (n >= len) stopRev(); return n; });
+    }, REVEAL_MS);
+  }, [stopRev]);
 
   /* こたえる もちじかん（3秒）。赤いボタンを 取ったとき と、もじあての 1文字ごとに 動かす */
   const stopAns = useCallback(() => {
@@ -79,7 +96,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
       const sec = goal ? Math.max(1, Math.round((Date.now() - (t0.current || Date.now())) / 1000)) : seconds;
       onFinishRef.current({ adult: s.score.adult, child: s.score.child, goal, seconds: sec, players, miss: bsubj === 'miss', last: s.last ? { answer: s.last.answer, fact: s.last.fact || '' } : null });
     }, 1400);
-  }, [goal, seconds, players, bsubj, stopAns]);
+  }, [goal, seconds, players, bsubj, stopAns, stopRev]);
 
   const tick = useCallback(() => {
     const l = Math.max(0, endAt.current - Date.now());
@@ -92,6 +109,8 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     const s = sess.current!;
     const { q, opts, wait } = s.next();
     setQ(q);
+    setRev(isProg(q) ? 0 : 999);
+    runRev(q);
     syncTurn(s);
     setUi({
       adult: { opts: opts.adult, flash: false, locked: false, waiting: wait > 0, input: '' },
@@ -103,7 +122,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     stopAns();
     if (players === 1 && q.chars) startAns('child');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [players, startAns, stopAns]);
+  }, [players, startAns, stopAns, runRev]);
 
   useEffect(() => {
     const s = new BattleSession({ level, bsubj, handi, goal, players });
@@ -113,7 +132,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     t0.current = Date.now();
     startTimer(capSec * 1000);
     const tm = timers.current;
-    return () => { stopTimer(); stopAns(); tm.forEach(clearTimeout); };
+    return () => { stopTimer(); stopAns(); stopRev(); tm.forEach(clearTimeout); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -140,6 +159,8 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
       if (both && !finished.current) { nextBattle(); return; }
       /* ひとりモードの もじあては 同じ問題に もう一度 挑戦できるので、3秒も 出しなおす */
       if (players === 1 && sess.current && sess.current.q && sess.current.q.chars && !finished.current) startAns('child');
+      /* 2人で 相手が まだ 押していないなら、問題文の つづきを 出す */
+      if (!both && players === 2 && !finished.current && isProg(sess.current && sess.current.q)) runRev(sess.current!.q);
     }, 1500);
   };
   const onChoice = (side: Side, a: string) => {
@@ -153,7 +174,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     const s = sess.current; if (!s || s.done || pausedRef.current || !s.q) return;
     const u = uiRef.current[side];
     if (u.locked || u.waiting) return;
-    if (s.claim(side)) { syncTurn(s); startAns(side); }   /* 取ったら 3秒で こたえる */
+    if (s.claim(side)) { syncTurn(s); stopRev(); startAns(side); }   /* 取ったら 文は 止まり、3秒で こたえる */
   };
   /* もじあて：1文字えらぶ。合っていれば つぎの1文字へ（3秒 出しなおし） */
   const onChar = (side: Side, ch: string) => {
@@ -202,8 +223,8 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
   const pause = useCallback(() => {
     if (paused || !timer.current) return;
     setPaused(true); remain.current = Math.max(0, endAt.current - Date.now());
-    stopTimer(); stopAns();
-  }, [paused, stopAns]);
+    stopTimer(); stopAns(); stopRev();
+  }, [paused, stopAns, stopRev]);
   const resume = useCallback(() => {
     if (!paused) return;
     setPaused(false); startTimer(remain.current);
@@ -212,8 +233,9 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     if (s && s.q && !s.done) {
       if (players === 2 && s.owner) startAns(s.owner);
       else if (players === 1 && s.q.chars) startAns('child');
+      if (!(players === 2 && s.owner)) runRev(s.q);
     }
-  }, [paused, startTimer, players, startAns]);
+  }, [paused, startTimer, players, startAns, runRev]);
   usePauseKeys(paused, pause, resume);
 
   const ratio = left / (capSec * 1000);
@@ -225,15 +247,15 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     <section className={'screen on' + (solo ? ' solo' : '')} id="s-battle" ref={root}>
       {/* 2人：こどもが 上（180度回転）、おとなが 下（スマホを持つ人。まん中の 時間・一時停止も おとな向き）
           ひとり：こども側 だけを 回転なしで 下に 出す（時間は 上） */}
-      {!solo && <BattleSide side="child" q={q} u={ui.child} players={players} turn={turn} ans={ansSide === 'child' ? ansLeft : 0} onChoice={onChoice} onBuzz={onBuzz} onChar={onChar} />}
+      {!solo && <BattleSide side="child" q={q} u={ui.child} players={players} turn={turn} rev={rev} ans={ansSide === 'child' ? ansLeft : 0} onChoice={onChoice} onBuzz={onBuzz} onChar={onChar} />}
       <div className="mid">
         {!solo && <span className="mscore flip"><span id="sc-child">{score.child}</span><small>こども</small></span>}
         <div className="mtimer"><div id="btimer" className={left <= 10000 ? 'warn' : ''} style={{ width: (ratio * 100).toFixed(1) + '%' }}></div></div>
         <span className="mscore"><span id={solo ? 'sc-solo' : 'sc-adult'}>{solo ? score.child : score.adult}</span><small>{solo ? 'とくてん' : 'おとな'}</small></span>
         <PauseButton id="btn-bpause" onClick={pause} />
       </div>
-      {solo ? <BattleSide side="child" q={q} u={ui.child} players={players} turn={turn} ans={ansLeft} onChoice={onChoice} onBuzz={onBuzz} onChar={onChar} tag="あなた" />
-        : <BattleSide side="adult" q={q} u={ui.adult} players={players} turn={turn} ans={ansSide === 'adult' ? ansLeft : 0} onChoice={onChoice} onBuzz={onBuzz} onChar={onChar} />}
+      {solo ? <BattleSide side="child" q={q} u={ui.child} players={players} turn={turn} rev={rev} ans={ansLeft} onChoice={onChoice} onBuzz={onBuzz} onChar={onChar} tag="あなた" />
+        : <BattleSide side="adult" q={q} u={ui.adult} players={players} turn={turn} rev={rev} ans={ansSide === 'adult' ? ansLeft : 0} onChoice={onChoice} onBuzz={onBuzz} onChar={onChar} />}
       <div className={'bfin' + (fin ? ' on' : '')} id="bfin" aria-hidden="true">
         {!solo && <div className="half up"><span className="big">しゅうりょう！</span><span className="sub">手を とめて けっかを 見よう</span></div>}
         <div className="half"><span className="big">しゅうりょう！</span><span className="sub">手を とめて けっかを 見よう</span></div>
@@ -243,8 +265,8 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
   );
 }
 
-function BattleSide({ side, q, u, players, turn, ans, onChoice, onBuzz, onChar, tag }: {
-  side: Side; q: BattleQ | null; u: SideUI; players: 1 | 2; turn: Turn; ans: number;
+function BattleSide({ side, q, u, players, turn, ans, rev, onChoice, onBuzz, onChar, tag }: {
+  side: Side; q: BattleQ | null; u: SideUI; players: 1 | 2; turn: Turn; ans: number; rev: number;
   onChoice: (side: Side, a: string) => void; onBuzz: (side: Side) => void; onChar: (side: Side, ch: string) => void; tag?: string;
 }) {
   /* こたえ見せの あいだは「おてつき！」を どけて、2人とも こたえが 読めるようにする */
@@ -271,7 +293,24 @@ function BattleSide({ side, q, u, players, turn, ans, onChoice, onBuzz, onChar, 
         <div style={{ width: Math.max(0, Math.min(100, (ans / 3000) * 100)).toFixed(1) + '%' }}></div>
       </div>
       {q && q.art ? <Raw as="div" className="qart" html={artHTML(q.art)} /> : <div className="qart" hidden></div>}
-      {q && q.num ? <p className="qtext num">{q.text}</p> : <Raw as="p" className={'qtext' + (q && q.disp ? ' long' : '')} html={q ? furi(q.text) : ''} />}
+      {q && q.num ? <p className="qtext num">{q.text}</p>
+        : isProg(q) ? (
+          /* 左から 少しずつ。高さが 動かないように 全文を 見えない字で 敷いておく */
+          <div className="qprog">
+            <Raw as="p" className={'qtext ghost' + (q && q.disp ? ' long' : '')} html={q ? furi(q.text) : ''} />
+            <Raw as="p" className={'qtext live' + (q && q.disp ? ' long' : '')} html={q ? furi(cutFuri(q.text, rev)) : ''} />
+          </div>
+        ) : <Raw as="p" className={'qtext' + (q && q.disp ? ' long' : '')} html={q ? furi(q.text) : ''} />}
+      {/* 「〇文字目が『が』の都道府県は？」の ときは、同じ条件の 仲間を 見せておく */}
+      {q && q.shown && q.shown.length ? (
+        <div className="mshown">
+          {q.shown.map((x) => (
+            <span key={x.name} className="ms">
+              <Raw as="b" html={furiName(x.name, x.yomi)} />
+            </span>
+          ))}
+        </div>
+      ) : null}
       {turn.reveal
         ? <div className="bans">こたえは <Raw as="b" html={ansHTML} /></div>
         : owned ? (<>
