@@ -4,7 +4,7 @@ import { reloadRecords, markMiss, markHit, missCount, markSeen, seenAt, clearRec
 import { evalTokens, makePuzzle, checkMath, type Token } from './math10';
 import { rankOf, rankNext } from './rank';
 import { plain, furi, furiName, FURI_RE } from './furigana';
-import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS } from './battle';
+import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, splitYomi, charOptions } from './battle';
 import { relayDeck, deckFor, hints3, missDeck } from './decks';
 import { polyOf, inPoly, geoChoices, geoGroupOf, geoDeck, jpSVG, wSVG, jpFullVB, geoQuestion } from './geo';
 import { newCross, cwCells, cwInput, cwHint, cwAllOk, cwLeft, cwTapCell, cwModify, cwDelete, cycleKana, cwCycle } from './cross';
@@ -360,4 +360,42 @@ describe('はやおしの 回答権（赤いボタン）', () => {
     s.wrong('child');
     expect(s.claim('child')).toBe(true);   /* 同じ問題に もう一度 挑戦できる */
   });
+});
+
+describe('もじあて（みんはや式）と 3秒ルール', () => {
+  it('よみを 県・都・府・道 と 本体に 分ける', () => {
+    expect(splitYomi('pref', '青森県', 'あおもりけん')).toEqual({ body: 'あおもり', tail: '県' });
+    expect(splitYomi('pref', '東京都', 'とうきょうと')).toEqual({ body: 'とうきょう', tail: '都' });
+    expect(splitYomi('pref', '大阪府', 'おおさかふ')).toEqual({ body: 'おおさか', tail: '府' });
+    expect(splitYomi('pref', '北海道', 'ほっかいどう')).toEqual({ body: 'ほっかい', tail: '道' });
+    expect(splitYomi('flag', 'アメリカ', 'あめりか')).toEqual({ body: 'あめりか', tail: '' });
+  });
+  it('1文字ぶんの 選たく肢は 4つで、正解が かならず 入る', () => {
+    const pool = ['あ', 'い', 'う', 'え', 'お', 'か', 'き'];
+    for (let i = 0; i < 20; i++) {
+      const o = charOptions(pool, 'か');
+      expect(o.length).toBe(4);
+      expect(o).toContain('か');
+      expect(new Set(o).size).toBe(4);   /* 同じ文字が ならばない */
+    }
+  });
+  it('1文字ずつ えらんで こたえる。ちがう文字は その場で おてつき', () => {
+    setKV(memoryKV()); reloadRecords();
+    const s = new BattleSession({ level: 2, bsubj: 'moji', handi: 1, goal: 0 });
+    const { q, opts } = s.next();
+    expect(q.chars!.length).toBeGreaterThan(1);
+    expect(q.charOpts!.length).toBe(q.chars!.length);
+    expect(opts.child.length).toBe(0);              /* ふつうの選たく肢は 出さない */
+    expect(q.charOpts![0]).toContain(q.chars![0]);
+    const wrong = q.charOpts![0].find((c) => c !== q.chars![0])!;
+    expect(s.char('child', wrong)).toBe('ng');
+    s.wrong('child');
+    expect(s.charAt('child')).toBe(0);              /* 入れたものは 消える */
+    /* さいごの1文字で 正解に なる */
+    for (let i = 0; i < q.chars!.length; i++) {
+      const res = s.char('child', q.chars![i]);
+      expect(res).toBe(i === q.chars!.length - 1 ? 'ok' : null);
+    }
+  });
+  it('こたえる もちじかんは 3秒', () => { expect(ANSWER_MS).toBe(3000); });
 });

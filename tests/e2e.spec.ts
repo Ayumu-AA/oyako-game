@@ -606,3 +606,30 @@ test('1人でも クロスワードと ちずクイズが あそべる（役わ�
   await expect(page.locator('#cwclues')).not.toContainText('こどもが かんがえる');
   expect(errs).toEqual([]);
 });
+
+test('はやおしバトル：赤いボタンを 取ったら 3秒以内・もじあては 1文字ずつ 4たく', async ({ page }) => {
+  const errs = noErrors(page);
+  await open(page);
+  await nav(page);
+  await page.click('[data-mode="battle"]');
+  await page.click('#seg-subject button[data-v="moji"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  /* 取る前は こたえも もちじかんも 出ていない */
+  await expect(page.locator('#anst-adult')).toBeHidden();
+  await buzz(page, 'adult');
+  /* こたえの わくが 文字数ぶん、選たく肢は 1文字ぶんの 4つ（相手には 出ない） */
+  const n = await page.locator('#side-adult .mchar').count();
+  expect(n).toBeGreaterThan(1);
+  await expect(page.locator('#side-adult .choice.mj')).toHaveCount(4);
+  await expect(page.locator('#side-child .choice.mj')).toHaveCount(0);
+  const kana = await page.evaluate(() => [...document.querySelectorAll('#side-adult .choice.mj')].map((b) => (b as HTMLElement).dataset.a!));
+  kana.forEach((k) => expect(k.length).toBe(1));   /* ひらがな1文字 */
+  await expect(page.locator('#anst-adult')).toBeVisible();   /* 3秒の バーが 動く */
+  /* 3秒 なにも しないと おてつき あつかいで、回答権が こどもに 回る */
+  await expect(page.locator('#side-adult')).toHaveClass(/locked/, { timeout: 5000 });
+  await expect(page.locator('#buzz-child')).toBeEnabled();
+  await buzz(page, 'child');
+  await expect(page.locator('#side-child .choice.mj')).toHaveCount(4);
+  expect(errs).toEqual([]);
+});

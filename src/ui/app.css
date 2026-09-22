@@ -682,6 +682,28 @@
     align-items:center;justify-content:center;
     font-size:clamp(17px,3.2vh,24px);font-weight:900;letter-spacing:.08em;
   }
+  /* こたえる もちじかん（3秒）の バー。側の 上ふちに ぴったり */
+  .anstimer{
+    position:absolute;top:0;left:0;right:0;height:6px;
+    background:rgba(27,73,101,.14);border-radius:0 0 4px 4px;overflow:hidden;z-index:3;
+  }
+  .anstimer[hidden]{display:none}
+  .anstimer div{height:100%;background:var(--vermilion);transition:width .1s linear}
+  /* もじあて（みんはや式）：こたえの わく と 1文字ぶんの 4たく */
+  .mojiwrap{flex:none;display:flex;flex-direction:column;align-items:center;gap:10px;width:100%}
+  .mojiword{display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap}
+  .mchar{
+    width:clamp(34px,8.2vw,46px);height:clamp(42px,9.6vw,56px);
+    border:2.5px solid var(--line);border-radius:10px;background:var(--surface);
+    display:flex;align-items:center;justify-content:center;
+    font-size:clamp(20px,5vw,28px);font-weight:900;color:var(--ink);
+  }
+  .mchar.on{border-color:var(--leaf);background:#DFF2E6}
+  .mchar.cur{border-color:var(--vermilion);box-shadow:0 0 0 3px rgba(224,69,47,.22)}
+  .mtail{font-size:clamp(20px,5vw,28px);font-weight:900;color:var(--muted);margin-left:2px}
+  .choices.moji{grid-template-columns:repeat(4,minmax(0,1fr));width:100%}
+  .choice.mj{font-size:clamp(22px,5.4vw,30px);font-weight:900;padding:12px 4px}
+
   /* 赤いボタン（回答権を とる）。押した人だけに こたえが 出る */
   .buzz{
     flex:none;width:min(80%,260px);min-height:clamp(66px,14vh,112px);

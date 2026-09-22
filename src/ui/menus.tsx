@@ -277,8 +277,8 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
           <div className="rs tate"><b>タテのカギ</b><span className="arrow">↓</span><span className="who">おとな</span></div>
         </div>
 
-        {isBattle && <PickGrid id="seg-subject" label="きょうか" cols={missN > 0 ? 5 : 4} value={s.bsubj} onPick={(v) => onChange({ bsubj: v })}
-          options={([{ v: 'mix', b: 'ミックス' }, { v: 'pref', b: '都道府県' }, { v: 'flag', b: '国旗' }, { v: 'kokugo', b: 'ことば' }, { v: 'rika', b: 'りか' }, { v: 'rekishi', b: 'れきし' }, { v: 'eigo', b: 'えいご' }, { v: 'calc', b: 'けいさん' }] as { v: Settings['bsubj']; b: string }[])
+        {isBattle && <PickGrid id="seg-subject" label="きょうか" cols={5} value={s.bsubj} onPick={(v) => onChange({ bsubj: v })}
+          options={([{ v: 'mix', b: 'ミックス' }, { v: 'pref', b: '都道府県' }, { v: 'flag', b: '国旗' }, { v: 'kokugo', b: 'ことば' }, { v: 'rika', b: 'りか' }, { v: 'rekishi', b: 'れきし' }, { v: 'eigo', b: 'えいご' }, { v: 'calc', b: 'けいさん' }, { v: 'moji', b: 'もじあて' }] as { v: Settings['bsubj']; b: string }[])
             .concat(missN > 0 ? [{ v: 'miss' as Settings['bsubj'], b: 'まちがい' }] : [])} />}
 
         {/* ひとりモードは せいげん時間だけ。〇もん先取は 相手が いてこそ */}
