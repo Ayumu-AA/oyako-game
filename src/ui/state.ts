@@ -4,7 +4,7 @@ import type { Level, Mode } from '../game/types';
 import type { BattleSubj } from '../game/battle';
 
 export type Group = 'relay' | 'geo' | 'solo';
-export type Screen = 'title' | 'sub' | 'how' | 'count' | 'play' | 'geo' | 'battle' | 'cross' | 'numcross' | 'result' | 'bresult' | 'cresult' | 'rank';
+export type Screen = 'title' | 'level' | 'games' | 'sub' | 'how' | 'count' | 'play' | 'geo' | 'battle' | 'cross' | 'numcross' | 'result' | 'bresult' | 'cresult' | 'rank';
 
 export interface Settings {
   level: Level;
@@ -55,9 +55,3 @@ export interface CrossResult {
 }
 
 export function isGeo(mode: Mode) { return mode === 'geopref' || mode === 'geoflag'; }
-export function groupOfMode(mode: Mode): Group | null {
-  if (mode === 'math' || mode === 'numcross' || mode === 'battle1') return 'solo';
-  if (isGeo(mode)) return 'geo';
-  if (mode === 'battle' || mode === 'cross' || mode === 'miss') return null;
-  return 'relay';
-}

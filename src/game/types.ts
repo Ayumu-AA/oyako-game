@@ -7,9 +7,9 @@ export type Mode =
   | 'pref' | 'flag' | 'kokugo' | 'rika' | 'rekishi' | 'eigo'
   | 'math' | 'battle' | 'cross' | 'numcross'
   | 'geopref' | 'geoflag' | 'miss'
-  | 'battle1';   /* ホームの「ひとりであそぶ」に出す はやおしの入口。
-                    えらばれた瞬間に players=1 の 'battle' に読みかえるので、
-                    画面の状態が 'battle1' のままになることはない */
+  | 'battle1' | 'miss1';   /* ホームの「1人であそぶ」に出す 入口。えらばれた瞬間に
+                              'battle'（miss1 は さらに きょうか=まちがい）に読みかえるので、
+                              画面の状態が この2つのままに なることはない */
 
 /** 記録（まちがい帳・出題きろく）の教科キー。ちずクイズは pref/flag にまとめる */
 export type Subject = 'pref' | 'flag' | 'kokugo' | 'rika' | 'rekishi' | 'eigo' | 'math' | 'calc';

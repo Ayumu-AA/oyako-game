@@ -99,8 +99,8 @@
      色は プラウのロゴの 4色＋紺。面の色で 見分けられるので、ブースで
      先生が「赤いやつ」と 指させる。教科えらび（#s-sub）は 教科の絵を
      見せたいので これまでどおり 白いカードのまま */
-  #s-title .modes{grid-template-columns:1fr 1fr}
-  #s-title .mode{
+  .colortiles .modes{grid-template-columns:1fr 1fr}
+  .colortiles .mode{
     --c:var(--sea); --on:#fff;
     position:relative;
     flex-direction:column;align-items:stretch;justify-content:space-between;gap:0;
@@ -111,32 +111,38 @@
     box-shadow:0 3px 0 rgba(0,0,0,.18);
     transition:transform .08s ease, box-shadow .08s ease;
   }
-  #s-title .mode:hover{filter:brightness(1.06)}
-  #s-title .mode:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
-  #s-title .mode .icon{width:28px;height:28px;display:block}
-  #s-title .mode .icon svg{width:100%;height:100%;display:block;border:none;border-radius:0}
-  #s-title .mode b{font-size:15.5px;line-height:1.25;margin-top:7px}
-  #s-title .mode small{font-size:10.5px;font-weight:700;opacity:.92;margin-top:3px;color:inherit}
-  /* 横いっぱいの タイル（ひとりであそぶ・まちがい直し） */
-  #s-title .mode.wide{
+  .colortiles .mode:hover{filter:brightness(1.06)}
+  .colortiles .mode:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+  .colortiles .mode .icon{width:28px;height:28px;display:block}
+  .colortiles .mode .icon svg{width:100%;height:100%;display:block;border:none;border-radius:0}
+  .colortiles .mode b{font-size:15.5px;line-height:1.25;margin-top:7px}
+  .colortiles .mode small{font-size:10.5px;font-weight:700;opacity:.92;margin-top:3px;color:inherit}
+  /* 横いっぱいの タイル（がくねん・まちがい直し・数が 奇数のときの 最後の1つ） */
+  .colortiles .mode.wide{
     grid-column:1/-1;min-height:0;
-    flex-direction:row;align-items:center;gap:11px;padding:11px 13px;
+    flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;padding:11px 13px;
+    text-align:left;
   }
-  #s-title .mode.wide b{margin-top:0}
-  #s-title .mode[data-group="relay"]{--c:var(--plow-blue-bg)}
-  #s-title .mode[data-group="battle"]{--c:var(--plow-red-bg)}
-  #s-title .mode[data-group="cross"]{--c:var(--plow-green);--on:#0F3318}
-  #s-title .mode[data-group="geo"]{--c:var(--sea)}
-  #s-title .mode[data-group="solo"]{--c:var(--plow-purple-bg)}
-  #s-title .mode[data-mode="miss"]{--c:var(--plow-yellow);--on:#3D2A00}
-  /* 「2人で」は バッジに 出す。説明文を 短くして 2行に 折れないようにするため */
-  #s-title .mode .n{
-    position:absolute;top:11px;right:11px;
-    font-size:9.5px;font-weight:900;letter-spacing:.02em;
-    padding:2px 7px;border-radius:999px;
-    background:rgba(255,255,255,.22);color:inherit;
-  }
-  #s-title .mode[data-group="cross"] .n,#s-title .mode[data-mode="miss"] .n{background:rgba(0,0,0,.14)}
+  .colortiles .mode.wide b{margin-top:0}
+  .colortiles .mode.wide .icon{flex:none}
+  /* 1画面目の 2択は 大きく（指が とどきやすいように）。画面の高さに あわせて のびる */
+  .colortiles .mode.tall{min-height:clamp(150px,30vh,220px)}
+  .colortiles .mode.tall .icon{width:34px;height:34px}
+  .colortiles .mode.tall b{font-size:17px}
+  .colortiles .mode[data-tile="p2"],.colortiles .mode[data-tile="relay"],.colortiles .mode[data-tile="lv2"]{--c:var(--plow-blue-bg)}
+  .colortiles .mode[data-tile="p1"],.colortiles .mode[data-tile="math"]{--c:var(--plow-purple-bg)}
+  .colortiles .mode[data-tile="battle"],.colortiles .mode[data-tile="battle1"]{--c:var(--plow-red-bg)}
+  .colortiles .mode[data-tile="cross"],.colortiles .mode[data-tile="lv1"]{--c:var(--plow-green);--on:#0F3318}
+  .colortiles .mode[data-tile="geo"],.colortiles .mode[data-tile="numcross"]{--c:var(--sea)}
+  .colortiles .mode[data-tile="miss"],.colortiles .mode[data-tile="miss1"]{--c:var(--plow-yellow);--on:#3D2A00}
+
+  #title-q{margin:0;text-align:center;font-weight:800;color:var(--ink)}
+  /* がくねんは 大きな 2択（この画面は これしか ないので ゆったり） */
+  #s-level .mode.wide{min-height:84px;padding:14px 16px}
+  #s-level .mode.wide b{font-size:19px}
+  #s-level .mode.wide small{font-size:12px;margin-top:2px}
+  #s-level .mode.wide .icon{width:32px;height:32px}
+  #s-level .lede,#s-games .lede{margin-top:0}
 
   .settingrow{
     display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -571,7 +577,8 @@
     .rulesbtn{padding:7px 12px 7px 9px;font-size:12px}
     .foot{font-size:10px}
     .howttl h2{font-size:17px}
-    #s-title .modes{gap:5px}
+    .colortiles .modes{gap:5px}
+    #s-level .mode.wide{min-height:74px}
     #s-title .titlelede .lede{font-size:11.5px}
     .pickgrid button{min-height:38px}
     .howlede{padding:9px 12px;font-size:12.5px}

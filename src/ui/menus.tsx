@@ -1,4 +1,4 @@
-/* タイトル・グループ・あそびかた・カウントダウン・せってい・ルール */
+/* ホーム3ステップ（何人で → がくねん → ゲーム）・教科えらび・あそびかた・カウントダウン・せってい・ルール */
 import { useEffect, useRef, useState } from 'react';
 import { CONFIG, MODE_NAME, MODE_SUB, MODE_TAG, MODE_LABEL, GROUPS, HOW_LEDE, STEPS_MISS, STEPS_HINT, STEPS_GEO, STEPS_NUM, STEPS_CROSS, STEPS_BATTLE, STEPS_BATTLE1, STEPS_MATH } from '../data/texts';
 import { ICON, GROUP_ICON, TILE_ICON } from '../data/icons';
@@ -16,16 +16,55 @@ const G = GROUPS as Record<Group, { eyebrow: string; title: string; lede: string
 const ICONS: Record<string, string> = { ...(ICON as Record<string, string>), battle1: (GROUP_ICON as Record<string, string>).battle };
 const TI = TILE_ICON as Record<string, string>;
 
-/* ===== タイトル ===== */
-export function TitleScreen({ level, onLevel, onGroup, onMode, onSettings, onRank, missN }: {
-  level: Level; onLevel: (l: Level) => void; onGroup: (g: Group | 'battle' | 'cross') => void; onMode: (m: Mode) => void; onSettings: () => void; onRank: () => void; missN: number;
+/* タイルの絵。TILE_ICON に 無いものだけ ここで 作る（線の色は currentColor＝文字と同じ） */
+const svgText = (t: string, size: number) =>
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="17" text-anchor="middle" font-size="' + size +
+  '" font-weight="900" font-family="system-ui,sans-serif" fill="currentColor">' + t + '</text></svg>';
+const LINE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+const TILE_SVG: Record<string, string> = {
+  p2: TI.relay, p1: TI.solo,
+  lv1: svgText('1-3', 11), lv2: svgText('4-6', 11),
+  relay: TI.relay, battle: TI.battle, battle1: TI.battle, cross: TI.cross, geo: TI.geo,
+  math: svgText('=10', 12),
+  numcross: LINE + '<rect x="3.2" y="3.2" width="7.6" height="7.6"/><rect x="13.2" y="3.2" width="7.6" height="7.6"/><rect x="3.2" y="13.2" width="7.6" height="7.6"/><rect x="13.2" y="13.2" width="7.6" height="7.6"/></svg>',
+  miss: TI.miss, miss1: TI.miss,
+};
+
+/** ホームの タイル1つぶん。g（教科えらびへ）か m（あそびかたへ）の どちらかを 持つ */
+export interface Tile { k: string; g?: Group; m?: Mode; b: string; s: string }
+export const GAMES: Record<1 | 2, Tile[]> = {
+  2: [
+    { k: 'relay', g: 'relay', b: '親子ヒントリレー', s: '6つの きょうか' },
+    { k: 'battle', m: 'battle', b: 'はやおしバトル', s: '向かい合って 対戦' },
+    { k: 'cross', m: 'cross', b: '親子クロスワード', s: '力を合わせて 完成' },
+    { k: 'geo', g: 'geo', b: 'ちずクイズ', s: '地図で 場所さがし' },
+  ],
+  1: [
+    { k: 'battle1', m: 'battle1', b: 'はやおしクイズ', s: '4たくで 早おし' },
+    { k: 'math', m: 'math', b: '10を作る', s: '数で 10を つくる' },
+    { k: 'numcross', m: 'numcross', b: 'けいさんクロス', s: '計算を そろえる' },
+  ],
+};
+
+function TileBtn({ t, wide, onClick }: { t: Tile; wide?: boolean; onClick: () => void }) {
+  return (
+    <button className={'mode' + (wide ? ' wide' : '')} data-tile={t.k} data-group={t.g} data-mode={t.m} onClick={onClick}>
+      <Raw className="icon" html={TILE_SVG[t.k]} />
+      <span><b>{t.b}</b><small>{t.s}</small></span>
+    </button>
+  );
+}
+
+/* ===== 1．何人で あそぶ ===== */
+export function TitleScreen({ onPlayers, onSettings, onRank }: {
+  onPlayers: (p: 1 | 2) => void; onSettings: () => void; onRank: () => void;
 }) {
   return (
-    <section className="screen on" id="s-title">
+    <section className="screen on colortiles" id="s-title">
       <div className="howhead">
         <div className="brandmark">
           <Raw as="div" className="pin" html={plowMark(22)} />
-          <span id="brand-title">{[CONFIG.schoolName, CONFIG.eventName].filter(Boolean).join('　')}</span>
+          <span id="brand-title">{[CONFIG.schoolName, CONFIG.eventName].filter(Boolean).join('\u3000')}</span>
         </div>
         <button type="button" className="rulesbtn" id="btn-rank-title" onClick={onRank}>
           <span className="qm" aria-hidden="true">👑</span>ランキング
@@ -37,40 +76,70 @@ export function TitleScreen({ level, onLevel, onGroup, onMode, onSettings, onRan
       <div className="titlelede">
         <h1 className="display">親子ゲーム</h1>
       </div>
+      <p className="lede" id="title-q">何人で あそぶ？</p>
 
-      {/* 学年は いちばん 先に 決めるものなので いちばん 上に 置く */}
-      <PickGrid id="seg-level" label="がくねん" cols={2} value={level} onPick={onLevel}
-        options={[{ v: 1 as Level, b: 'ていがくねん', s: '1〜3年生' }, { v: 2 as Level, b: 'こうがくねん', s: '4〜6年生' }]} />
-
-      <div className="modes">
-        <button className="mode" data-group="relay" onClick={() => onGroup('relay')}>
-          <Raw className="icon" id="ico-relay" html={TI.relay} />
-          <span><b>親子ヒントリレー</b><small>6つの きょうか</small></span><span className="n">2人</span>
+      <div className="modes" id="players-modes">
+        <button className="mode tall" data-tile="p2" data-players="2" id="btn-p2" onClick={() => onPlayers(2)}>
+          <Raw className="icon" html={TILE_SVG.p2} />
+          <span><b>2人で あそぶ</b><small>おとなと こども</small></span>
         </button>
-        <button className="mode" data-group="battle" onClick={() => onGroup('battle')}>
-          <Raw className="icon" id="ico-battle" html={TI.battle} />
-          <span><b>はやおし親子バトル</b><small>向かい合って 対戦</small></span><span className="n">2人</span>
-        </button>
-        <button className="mode" data-group="cross" onClick={() => onGroup('cross')}>
-          <Raw className="icon" id="ico-cross" html={TI.cross} />
-          <span><b>親子クロスワード</b><small>力を合わせて 完成</small></span><span className="n">2人</span>
-        </button>
-        <button className="mode" data-group="geo" onClick={() => onGroup('geo')}>
-          <Raw className="icon" id="ico-geo" html={TI.geo} />
-          <span><b>ちずクイズ</b><small>地図で 場所さがし</small></span><span className="n">2人</span>
-        </button>
-        <button className="mode wide" data-group="solo" onClick={() => onGroup('solo')}>
-          <Raw className="icon" id="ico-solo" html={TI.solo} />
-          <span><b>ひとりであそぶ</b><small>算数と はやおし（ひとり）</small></span>
-        </button>
-        <button className="mode wide miss" data-mode="miss" id="card-miss" hidden={missN === 0} onClick={() => onMode('miss')}>
-          <Raw className="icon" id="ico-miss" html={TI.miss} />
-          <span><b>まちがい直し</b><small id="miss-sub">のこり {missN}もん</small></span>
+        <button className="mode tall" data-tile="p1" data-players="1" id="btn-p1" onClick={() => onPlayers(1)}>
+          <Raw className="icon" html={TILE_SVG.p1} />
+          <span><b>1人で あそぶ</b><small>じぶんの ペースで</small></span>
         </button>
       </div>
 
       <div className="spacer"></div>
       <p className="foot" id="brand-foot"><Raw as="span" className="footmark" html={plowMark(14)} />presented by {CONFIG.schoolName}</p>
+    </section>
+  );
+}
+
+/* ===== 2．がくねん ===== */
+export function LevelScreen({ players, onLevel, onBack }: { players: 1 | 2; onLevel: (l: Level) => void; onBack: () => void }) {
+  return (
+    <section className="screen on colortiles" id="s-level">
+      <p className="eyebrow" id="level-eyebrow">{players === 2 ? '2人で あそぶ' : '1人で あそぶ'}</p>
+      <h1 className="display">がくねんは？</h1>
+      <p className="lede">がくねんで 問題の むずかしさが かわります。</p>
+      <div className="modes" id="level-modes">
+        <button className="mode wide" data-tile="lv1" data-level="1" id="btn-lv1" onClick={() => onLevel(1)}>
+          <Raw className="icon" html={TILE_SVG.lv1} />
+          <span><b>ていがくねん</b><small>1〜3年生</small></span>
+        </button>
+        <button className="mode wide" data-tile="lv2" data-level="2" id="btn-lv2" onClick={() => onLevel(2)}>
+          <Raw className="icon" html={TILE_SVG.lv2} />
+          <span><b>こうがくねん</b><small>4〜6年生</small></span>
+        </button>
+      </div>
+      <div className="spacer"></div>
+      <button className="btn btn-ghost" id="btn-level-back" onClick={onBack}>もどる</button>
+    </section>
+  );
+}
+
+/* ===== 3．あそぶ ゲーム ===== */
+export function GamesScreen({ players, level, missN, onPick, onBack }: {
+  players: 1 | 2; level: Level; missN: number; onPick: (t: Tile) => void; onBack: () => void;
+}) {
+  const list = GAMES[players];
+  /* まちがい直しは 2人なら ヒントリレー方式、1人なら はやおしの「まちがい」で 出す */
+  const miss: Tile = players === 2
+    ? { k: 'miss', m: 'miss', b: 'まちがい直し', s: 'のこり ' + missN + 'もん' }
+    : { k: 'miss1', m: 'miss1', b: 'まちがい直し', s: 'のこり ' + missN + 'もん・はやおしで' };
+  return (
+    <section className="screen on colortiles" id="s-games">
+      <p className="eyebrow" id="games-eyebrow">{(players === 2 ? '2人で あそぶ' : '1人で あそぶ') + '・' + (level === 1 ? 'ていがくねん' : 'こうがくねん')}</p>
+      <h1 className="display">どれで あそぶ？</h1>
+      <div className="modes" id="game-modes">
+        {list.map((t, i) => (
+          /* 数が 奇数のときは 最後の1つを 横いっぱいにして すき間を 作らない */
+          <TileBtn key={t.k} t={t} wide={list.length % 2 === 1 && i === list.length - 1} onClick={() => onPick(t)} />
+        ))}
+        {missN > 0 && <TileBtn t={miss} wide onClick={() => onPick(miss)} />}
+      </div>
+      <div className="spacer"></div>
+      <button className="btn btn-ghost" id="btn-games-back" onClick={onBack}>もどる</button>
     </section>
   );
 }
@@ -203,9 +272,6 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
           <div className="rs yoko"><b>ヨコのカギ</b><span className="arrow">→</span><span className="who">こども</span></div>
           <div className="rs tate"><b>タテのカギ</b><span className="arrow">↓</span><span className="who">おとな</span></div>
         </div>
-
-        {isBattle && <PickGrid id="seg-players" label="何人で あそぶ" cols={2} value={s.players} onPick={(v) => onChange({ players: v })}
-          options={[{ v: 2 as 1 | 2, b: '2人で 対戦' }, { v: 1 as 1 | 2, b: 'ひとりで' }]} />}
 
         {isBattle && <PickGrid id="seg-subject" label="きょうか" cols={missN > 0 ? 5 : 4} value={s.bsubj} onPick={(v) => onChange({ bsubj: v })}
           options={([{ v: 'mix', b: 'ミックス' }, { v: 'pref', b: '都道府県' }, { v: 'flag', b: '国旗' }, { v: 'kokugo', b: 'ことば' }, { v: 'rika', b: 'りか' }, { v: 'rekishi', b: 'れきし' }, { v: 'eigo', b: 'えいご' }, { v: 'calc', b: 'けいさん' }] as { v: Settings['bsubj']; b: string }[])

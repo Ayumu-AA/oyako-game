@@ -8,6 +8,12 @@ async function open(page: Page, seed?: Record<string, string>) {
   await page.goto('./');
   await expect(page.locator('#s-title')).toBeVisible();
 }
+/** ホームの 2択（何人で → がくねん）を 通って ゲーム一覧まで 行く */
+async function nav(page: Page, players: 1 | 2 = 2, level: 1 | 2 = 2) {
+  await page.click(`[data-players="${players}"]`);
+  await page.click(`[data-level="${level}"]`);
+  await expect(page.locator('#s-games')).toBeVisible();
+}
 const noErrors = (page: Page) => {
   const errs: string[] = [];
   page.on('pageerror', (e) => errs.push(e.message));
@@ -23,6 +29,7 @@ async function numkey(page: Page, side: 'adult' | 'child', k: string) {
 test('親子ヒントリレー：正解・パス・結果・まちがい帳', async ({ page }) => {
   const errs = noErrors(page);
   await open(page);
+  await nav(page);
   await page.click('[data-group="relay"]');
   await expect(page.locator('#sub-title')).toHaveText('親子ヒントリレー');
   await page.click('[data-mode="pref"]');
@@ -45,19 +52,21 @@ test('親子ヒントリレー：正解・パス・結果・まちがい帳', as
   /* 時間切れを 待たずに 結果へ：残り時間を 0 に できないので 60秒設定で 待つのは 長い → タイトルへ戻って 記録だけ 確かめる */
   await page.click('#btn-pause'); await page.click('#btn-quit');
   await expect(page.locator('#s-title')).toBeVisible();
-  await expect(page.locator('#card-miss')).toBeVisible();
-  await expect(page.locator('#miss-sub')).toHaveText('のこり 1もん');
+  await nav(page);
+  await expect(page.locator('[data-tile="miss"]')).toBeVisible();
+  await expect(page.locator('[data-tile="miss"] small')).toHaveText('のこり 1もん');
   const miss = await page.evaluate(() => JSON.parse(localStorage.getItem('oyako-miss') || '{}'));
   expect(Object.keys(miss)).toEqual(['pref:' + missed.replace(/\s/g, '').replace(/[ぁ-ん]+/g, '')]);
   /* まちがい直し */
-  await page.click('#card-miss');
+  await page.click('[data-tile="miss"]');
   await expect(page.locator('#how-title')).toHaveText('まちがい直し');
   await expect(page.locator('#best-line')).toHaveText('まちがい帳に 1もん たまっています');
   await page.click('#btn-start');
   await expect(page.locator('#s-play')).toBeVisible({ timeout: 6000 });
   await page.click('#btn-ok');
   await page.click('#btn-pause'); await page.click('#btn-quit');
-  await expect(page.locator('#card-miss')).toBeHidden();
+  await nav(page);
+  await expect(page.locator('[data-tile="miss"]')).toBeHidden();
   expect(errs).toEqual([]);
 });
 
@@ -65,6 +74,7 @@ test('結果画面：ランクと じこベスト（60秒）', async ({ page }) 
   test.slow();
   await open(page);
   await page.click('#btn-settings'); await page.click('#seg-time button[data-v="60"]'); await page.click('#btn-set-close');
+  await nav(page);
   await page.click('[data-group="relay"]'); await page.click('[data-mode="rika"]'); await page.click('#btn-start');
   await expect(page.locator('#s-play')).toBeVisible({ timeout: 6000 });
   for (let i = 0; i < 4; i++) { await page.click('#btn-ok'); await page.waitForTimeout(150); }
@@ -131,7 +141,8 @@ test('ランキング：タイトルから 入って 名前を 決める・NGワ
 
 test('10を作る：式を組んで 判定', async ({ page }) => {
   await open(page);
-  await page.click('[data-group="solo"]'); await page.click('[data-mode="math"]'); await page.click('#btn-start');
+  await nav(page, 1);
+  await page.click('[data-mode="math"]'); await page.click('#btn-start');
   await expect(page.locator('#s-play')).toBeVisible({ timeout: 6000 });
   await expect(page.locator('#numtiles button')).toHaveCount(4);
   await page.click('#btn-ok');
@@ -154,7 +165,8 @@ test('10を作る：式を組んで 判定', async ({ page }) => {
 test('はやおしバトル：けいさんは テンキーで 桁数がそろったら 判定、3桁も 正しく', async ({ page }) => {
   const errs = noErrors(page);
   await open(page);
-  await page.click('[data-group="battle"]');
+  await nav(page);
+  await page.click('[data-mode="battle"]');
   await page.click('#seg-subject button[data-v="calc"]');
   await page.click('#seg-goal button[data-v="5"]');
   await page.click('#seg-handi button[data-v="0"]');
@@ -190,7 +202,8 @@ test('はやおしバトル：けいさんは テンキーで 桁数がそろっ
 
 test('はやおしバトル：4たくは 同じ種類の 選たく肢（れきし）・ハンデ 子2・親4', async ({ page }) => {
   await open(page);
-  await page.click('[data-group="battle"]');
+  await nav(page);
+  await page.click('[data-mode="battle"]');
   await page.click('#seg-subject button[data-v="rekishi"]');
   await page.click('#btn-start');
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
@@ -219,7 +232,8 @@ test('はやおしバトル：4たくは 同じ種類の 選たく肢（れき�
 test('はやおしバトル：ことばは 例文が 問題・意味が 選たく肢。こどもが 上・おとなが 下。まちがえた問題を もう一回', async ({ page }) => {
   const errs = noErrors(page);
   await open(page);
-  await page.click('[data-group="battle"]');
+  await nav(page);
+  await page.click('[data-mode="battle"]');
   await page.click('#seg-subject button[data-v="kokugo"]');
   await page.click('#seg-goal button[data-v="5"]');
   await page.click('#btn-start');
@@ -270,7 +284,8 @@ test('はやおしバトル：ことばは 例文が 問題・意味が 選た�
   const miss = JSON.parse(await page.evaluate(() => localStorage.getItem('oyako-miss') || '{}')) as Record<string, { n: number }>;
   expect(Object.keys(miss).filter((k) => k.startsWith('kokugo:') && miss[k].n > 0).length).toBe(1);
   /* 結果画面の ボタン（まちがい帳に 1つ あるので 出る） */
-  await page.click('[data-group="battle"]');
+  await nav(page);
+  await page.click('[data-mode="battle"]');
   await page.click('#seg-subject button[data-v="calc"]');
   await page.click('#seg-goal button[data-v="5"]'); await page.click('#seg-handi button[data-v="0"]');
   await page.click('#btn-start');
@@ -297,6 +312,7 @@ test('はやおしバトル：ことばは 例文が 問題・意味が 選た�
 
 test('ちずクイズ：4たく・パス・県庁所在地', async ({ page }) => {
   await open(page);
+  await nav(page);
   await page.click('[data-group="geo"]'); await page.click('[data-mode="geopref"]'); await page.click('#btn-start');
   await expect(page.locator('#s-geo')).toBeVisible({ timeout: 6000 });
   await expect(page.locator('.gchoice')).toHaveCount(4);
@@ -316,7 +332,8 @@ test('ちずクイズ：4たく・パス・県庁所在地', async ({ page }) =>
 test('クロスワード：ここを開く で 全部うめると 完成', async ({ page }) => {
   test.slow();
   await open(page);
-  await page.click('[data-group="cross"]'); await page.click('#btn-start');
+  await nav(page);
+  await page.click('[data-mode="cross"]'); await page.click('#btn-start');
   await expect(page.locator('#s-cross')).toBeVisible();
   const left0 = Number(await page.locator('#cw-left').innerText());
   expect(left0).toBeGreaterThan(0);
@@ -347,7 +364,8 @@ test('クロスワード：ここを開く で 全部うめると 完成', async
 test('クロスワード：さいしょから やりなおす は 同じ問題・フリック入力', async ({ page }) => {
   const errs = noErrors(page);
   await open(page);
-  await page.click('[data-group="cross"]');
+  await nav(page);
+  await page.click('[data-mode="cross"]');
   await page.click('#seg-kana button[data-v="F"]');
   expect(await page.evaluate(() => localStorage.getItem('oyako-kana'))).toBe('F');
   await page.click('#btn-start');
@@ -399,7 +417,8 @@ test('クロスワード：さいしょから やりなおす は 同じ問題�
 
 test('けいさんクロス：こたえあわせ', async ({ page }) => {
   await open(page);
-  await page.click('[data-group="solo"]'); await page.click('[data-mode="numcross"]'); await page.click('#btn-start');
+  await nav(page, 1);
+  await page.click('[data-mode="numcross"]'); await page.click('#btn-start');
   await expect(page.locator('#s-numcross')).toBeVisible();
   await page.click('#btn-nccheck');
   await expect(page.locator('#ncmsg')).toHaveText(/まだ 空いているマスが \d+こ あるよ/);
@@ -424,7 +443,9 @@ test('けいさんクロス：こたえあわせ', async ({ page }) => {
 
 test('せってい：おと・時間・記録を消す', async ({ page }) => {
   await open(page, { 'oyako-miss': JSON.stringify({ 'pref:北海道': { n: 1, t: 1 } }), 'oyako-seen': JSON.stringify({ 'pref:北海道': 1 }) });
-  await expect(page.locator('#miss-sub')).toHaveText('のこり 1もん');
+  await nav(page);
+  await expect(page.locator('[data-tile="miss"] small')).toHaveText('のこり 1もん');
+  await page.click('#btn-games-back'); await page.click('#btn-level-back');
   await page.click('#btn-settings');
   await expect(page.locator('#set-rec')).toHaveText('まちがい帳 1もん ／ 出題きろく 1もん');
   await page.click('#seg-sound button[data-v="0"]');
@@ -436,7 +457,8 @@ test('せってい：おと・時間・記録を消す', async ({ page }) => {
   await expect(page.locator('#set-rec')).toHaveText('まちがい帳 0もん ／ 出題きろく 0もん');
   await page.keyboard.press('Escape');
   await expect(page.locator('#set-ov')).toBeHidden();
-  await expect(page.locator('#card-miss')).toBeHidden();
+  await nav(page);
+  await expect(page.locator('[data-tile="miss"]')).toBeHidden();
 });
 
 for (const [w, h, tag] of VPS) {
@@ -446,17 +468,22 @@ for (const [w, h, tag] of VPS) {
     await open(page, { 'oyako-miss': JSON.stringify({ 'pref:北海道': { n: 1, t: 1 }, 'rika:てこ': { n: 1, t: 2 } }) });
     const sh = () => page.evaluate(() => document.documentElement.scrollHeight);
     const rows: [string, number][] = [];
-    rows.push(['タイトル（まちがい帳あり）', await sh()]);
-    await page.click('[data-group="battle"]'); rows.push(['あそびかた:battle', await sh()]);
-    await page.click('#btn-how-back'); await page.click('#card-miss'); rows.push(['あそびかた:miss', await sh()]);
-    await page.click('#btn-how-back'); await page.click('[data-group="cross"]'); rows.push(['あそびかた:cross', await sh()]);
+    rows.push(['1．何人で', await sh()]);
+    await page.click('[data-players="2"]'); rows.push(['2．がくねん', await sh()]);
+    await page.click('[data-level="2"]'); rows.push(['3．ゲーム一覧（2人・まちがい帳あり）', await sh()]);
+    await page.click('[data-mode="battle"]'); rows.push(['あそびかた:battle', await sh()]);
+    await page.click('#btn-how-back'); await page.click('[data-tile="miss"]'); rows.push(['あそびかた:miss', await sh()]);
+    await page.click('#btn-how-back'); await page.click('[data-mode="cross"]'); rows.push(['あそびかた:cross', await sh()]);
     await page.click('#btn-how-back'); await page.click('[data-group="relay"]'); rows.push(['グループ:relay', await sh()]);
     await page.click('[data-mode="pref"]'); rows.push(['あそびかた:pref', await sh()]);
     await page.click('#btn-start'); await expect(page.locator('#s-play')).toBeVisible({ timeout: 6000 });
     /* プレイ画面は ヒントの長さで 数px 変わる（v1 も同じ）。ここは 記録だけ */
     test.info().annotations.push({ type: 'プレイ:pref の高さ', description: String(await sh()) });
     await page.click('#btn-pause'); await page.click('#btn-quit');
-    await page.click('[data-group="battle"]'); await page.click('#seg-subject button[data-v="calc"]'); await page.click('#btn-start');
+    /* 1人の 一覧も 見ておく */
+    await page.click('[data-players="1"]'); await page.click('[data-level="1"]'); rows.push(['3．ゲーム一覧（1人）', await sh()]);
+    await page.click('#btn-games-back'); await page.click('#btn-level-back');
+    await nav(page); await page.click('[data-mode="battle"]'); await page.click('#seg-subject button[data-v="calc"]'); await page.click('#btn-start');
     await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 }); rows.push(['バトル:calc', await sh()]);
     const over = await page.evaluate(() => {
       const out: string[] = [];
@@ -479,11 +506,10 @@ for (const [w, h, tag] of VPS) {
 test('はやおし（ひとり）：1画面・回転なし・ランキングには 出さない', async ({ page }) => {
   const errs = noErrors(page);
   await open(page);
-  await page.click('[data-group="solo"]');
-  await expect(page.locator('#sub-title')).toHaveText('ひとりであそぶ');
+  await nav(page, 1);
   await page.click('[data-mode="battle1"]');
   await expect(page.locator('#how-title')).toHaveText('はやおし（ひとり）');
-  await expect(page.locator('#seg-players button[aria-pressed="true"]')).toHaveText(/ひとり/);
+  await expect(page.locator('#seg-players')).toHaveCount(0);   /* 人数は 1画面目で 決めたので ここには 出さない */
   await expect(page.locator('#seg-handi')).toHaveCount(0);   /* 相手が いないので ハンデは 出さない */
   await page.click('#seg-subject button[data-v="calc"]');
   await page.click('#seg-goal button[data-v="5"]');
@@ -521,7 +547,8 @@ test('はやおしバトル：まちがい直しは 帳から 出る・ランキ
   const miss: Record<string, { n: number; t: number }> = {};
   names.forEach((n) => { miss['rekishi:' + n] = { n: 1, t }; });
   await open(page, { 'oyako-miss': JSON.stringify(miss) });
-  await page.click('[data-group="battle"]');
+  await nav(page);
+  await page.click('[data-mode="battle"]');
   await expect(page.locator('#seg-subject button[data-v="miss"]')).toBeVisible();
   await page.click('#seg-subject button[data-v="miss"]');
   await page.click('#seg-goal button[data-v="5"]');

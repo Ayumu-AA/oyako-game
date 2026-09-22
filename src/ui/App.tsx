@@ -9,13 +9,13 @@ import { eventCode } from '../lib/config';
 import { rankOf } from '../game/rank';
 import { NameSheet, RankingScreen } from './Ranking';
 import type { Mode } from '../game/types';
-import { TitleScreen, SettingsOverlay, SubScreen, HowScreen, CountScreen } from './menus';
+import { TitleScreen, LevelScreen, GamesScreen, SettingsOverlay, SubScreen, HowScreen, CountScreen, type Tile } from './menus';
 import { PlayScreen } from './PlayScreen';
 import { ResultScreen } from './ResultScreen';
 import { GeoScreen } from './GeoScreen';
 import { BattleScreen, BResultScreen } from './BattleScreen';
 import { CrossScreen, NumCrossScreen, CResultScreen } from './CrossScreen';
-import { bestKey, groupOfMode, isGeo, loadSettings, type BattleResult, type CrossResult, type Group, type PlayResult, type Screen, type Settings } from './state';
+import { bestKey, isGeo, loadSettings, type BattleResult, type CrossResult, type Group, type PlayResult, type Screen, type Settings } from './state';
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('title');
@@ -39,7 +39,7 @@ export default function App() {
   const howGroup = useRef<Group | null>(null);   // あそびかた画面へ どこから来たか（もどる先）
 
   const change = useCallback((p: Partial<Settings>) => setS((x) => ({ ...x, ...p })), []);
-  const go = useCallback((sc: Screen) => { setScreen(sc); window.scrollTo(0, 0); if (sc === 'title') setMissN(missCount()); }, []);
+  const go = useCallback((sc: Screen) => { setScreen(sc); window.scrollTo(0, 0); if (sc === 'title' || sc === 'games') setMissN(missCount()); }, []);
   useEffect(() => { window.scrollTo(0, 0); }, [screen]);
   /* サーバーの記録を 取りこむ（取りこめたら まちがい帳の数を 出しなおす） */
   useEffect(() => { startSync(() => setMissN(missCount()), (n) => setNick(n)); }, []);
@@ -60,23 +60,23 @@ export default function App() {
   /* 結果画面の「ランキングを 見る」：名前が 無ければ 先に 決めてもらう */
   const rankFromResult = (m: Mode) => { if (getNick()) openRank(m); else askName(() => openRank(m)); };
 
-  /* 'battle1'（ひとりであそぶ の はやおし）は えらばれた時点で players=1 の 'battle' に 読みかえる。
-     まちがい帳が からに なっていたら きょうかも もどす */
+  /* ホームの 入口は 3つとも 'battle' に 読みかえる（人数は もう 1画面目で 決まっている）。
+     battle1 = 1人の はやおし、miss1 = 1人の まちがい直し（はやおしの きょうか＝まちがい） */
   const openHow = (m: Mode) => {
-    const miss = missCount() > 0;
-    if (m === 'battle1') { setS((x) => ({ ...x, players: 1, bsubj: (x.bsubj === 'miss' && !miss) ? 'mix' : x.bsubj })); setMode('battle'); }
-    else if (m === 'battle') { setS((x) => ({ ...x, players: 2, bsubj: (x.bsubj === 'miss' && !miss) ? 'mix' : x.bsubj })); setMode('battle'); }
+    const hasMiss = missCount() > 0;
+    if (m === 'miss1') { setS((x) => ({ ...x, bsubj: 'miss' })); setMode('battle'); }
+    else if (m === 'battle1' || m === 'battle') { setS((x) => ({ ...x, bsubj: (x.bsubj === 'miss' && !hasMiss) ? 'mix' : x.bsubj })); setMode('battle'); }
     else setMode(m);
-    if (m === 'battle1' || m === 'battle') howGroup.current = (m === 'battle1' ? 'solo' : null);
     go('how');
   };
-  const onGroup = (g: Group | 'battle' | 'cross') => {
-    if (g === 'battle' || g === 'cross') { howGroup.current = null; openHow(g); return; }
-    setGroup(g); go('sub');
+  /* ゲーム一覧で えらんだとき。教科が ある ゲーム（ヒントリレー・ちずクイズ）は もう1画面はさむ */
+  const pickGame = (t: Tile) => {
+    if (t.g) { howGroup.current = t.g; setGroup(t.g); go('sub'); return; }
+    howGroup.current = null;
+    openHow(t.m!);
   };
   const backFromHow = () => {
-    const g = howGroup.current || groupOfMode(mode);
-    if (!g) go('title'); else { setGroup(g); go('sub'); }
+    if (howGroup.current) { setGroup(howGroup.current); go('sub'); } else go('games');
   };
   const start = (same = false) => {
     if (mode === 'miss' && missCount() === 0) { go('title'); return; }
@@ -124,10 +124,12 @@ export default function App() {
   return (
     <div className="wrap">
       {screen === 'title' && <>
-        <TitleScreen level={s.level} onLevel={(l) => change({ level: l })} onGroup={onGroup} onMode={(m) => { howGroup.current = null; openHow(m); }} onSettings={() => setSetOpen(true)} onRank={() => openRank(mode)} missN={missN} />
+        <TitleScreen onPlayers={(p) => { change({ players: p }); go('level'); }} onSettings={() => setSetOpen(true)} onRank={() => openRank(mode)} />
         <SettingsOverlay open={setOpen} seconds={s.seconds} onSeconds={(v) => change({ seconds: v })} onClose={() => setSetOpen(false)} onCleared={() => setMissN(0)} nick={nick} onName={() => askName(() => undefined)} />
       </>}
-      {screen === 'sub' && <SubScreen group={group} onMode={(m) => { howGroup.current = group; openHow(m); }} onBack={() => go('title')} />}
+      {screen === 'level' && <LevelScreen players={s.players} onLevel={(l) => { change({ level: l }); go('games'); }} onBack={() => go('title')} />}
+      {screen === 'games' && <GamesScreen players={s.players} level={s.level} missN={missN} onPick={pickGame} onBack={() => go('level')} />}
+      {screen === 'sub' && <SubScreen group={group} onMode={(m) => { howGroup.current = group; openHow(m); }} onBack={() => go('games')} />}
       {screen === 'how' && <HowScreen mode={mode} s={s} onChange={change} onStart={() => start()} onBack={backFromHow} />}
       {screen === 'count' && <CountScreen mode={mode} role={s.role} players={s.players} onDone={afterCount} />}
       {screen === 'play' && <PlayScreen key={round} mode={mode} level={s.level} seconds={s.seconds} role={s.role} onFinish={finishPlay} onRestart={restart} onQuit={quit} onEmpty={() => go('title')} />}

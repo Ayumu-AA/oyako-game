@@ -25,6 +25,7 @@ test('一度 開いたあと オフラインでも 起動して 遊べる', asyn
   await page.reload();
   await expect(page.locator('#s-title')).toBeVisible({ timeout: 15000 });
   /* えいご（絵は キャッシュから） */
+  await page.click('[data-players="2"]'); await page.click('[data-level="2"]');
   await page.click('[data-group="relay"]'); await page.click('[data-mode="eigo"]'); await page.click('#btn-start');
   await expect(page.locator('#s-play')).toBeVisible({ timeout: 8000 });
   await expect(page.locator('#flagbox img')).toBeVisible();
