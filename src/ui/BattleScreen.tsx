@@ -3,9 +3,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BattleSession, BATTLE_CAP, NUMKEYS, ANSWER_MS } from '../game/battle';
 
 const REVEAL_MS = 70;   /* 問題文を 1文字ずつ 出す はやさ（クイズ番組ふう） */
-/** 少しずつ 出すのは 文だけの問題（絵・テンキー・もじあては そのまま 全部出す） */
-const isProg = (q: BattleQ | null) => !!(q && !q.num && !q.chars && !q.art);
+/** 少しずつ 出すのは けいさん いがい ぜんぶ（もじあて・国旗・えいごも 文は 少しずつ） */
+const isProg = (q: BattleQ | null) => !!(q && !q.num);
 import { furi, furiName, cutFuri, plainLen } from '../game/furigana';
+import { esc } from '../game/util';
 import { artHTML } from '../game/art';
 import { rankOf, rankNext, rankLine, rankMsg } from '../game/rank';
 import { missCount } from '../game/records';
@@ -55,12 +56,19 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
 
   /* 問題文を 左から 少しずつ 出す。だれかが 赤いボタンを 取ったら 止める */
   const stopRev = useCallback(() => { if (revTimer.current) { clearInterval(revTimer.current); revTimer.current = null; } }, []);
-  const runRev = useCallback((q: BattleQ | null) => {
+  const revDoneRef = useRef<() => void>(() => undefined);
+  const revPos = useRef(0);
+  /** from を わたすと そこから、わたさないと 止まったところから つづける */
+  const runRev = useCallback((q: BattleQ | null, from?: number) => {
     stopRev();
-    if (!isProg(q)) { setRev(999); return; }
+    if (!isProg(q)) { revPos.current = 999; setRev(999); revDoneRef.current(); return; }
+    if (from !== undefined) { revPos.current = from; setRev(from); }
     const len = plainLen(q!.text);
+    if (revPos.current >= len) { revDoneRef.current(); return; }
     revTimer.current = window.setInterval(() => {
-      setRev((r) => { const n = r + 1; if (n >= len) stopRev(); return n; });
+      revPos.current += 1;
+      setRev(revPos.current);
+      if (revPos.current >= len) { stopRev(); revDoneRef.current(); }
     }, REVEAL_MS);
   }, [stopRev]);
 
@@ -109,8 +117,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     const s = sess.current!;
     const { q, opts, wait } = s.next();
     setQ(q);
-    setRev(isProg(q) ? 0 : 999);
-    runRev(q);
+    runRev(q, 0);
     syncTurn(s);
     setUi({
       adult: { opts: opts.adult, flash: false, locked: false, waiting: wait > 0, input: '' },
@@ -118,9 +125,8 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     });
     /* ハンデは「おとなだけ しばらく 赤いボタンを 押せない」にする（けいさんは 選たく肢が ないので） */
     if (wait > 0) later(() => setSide('adult', { waiting: false }), wait);
-    /* ひとりモードの もじあては 赤いボタンが ないので、出たらすぐ 1文字目の 3秒がはじまる */
+    /* ひとりモードは 赤いボタンが ないので、文が 出そろった 時点から 3秒 */
     stopAns();
-    if (players === 1 && q.chars) startAns('child');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [players, startAns, stopAns, runRev]);
 
@@ -156,11 +162,11 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     setSide(side, { locked: true, input: '' });
     later(() => {
       setSide(side, { locked: false });
-      if (both && !finished.current) { nextBattle(); return; }
-      /* ひとりモードの もじあては 同じ問題に もう一度 挑戦できるので、3秒も 出しなおす */
-      if (players === 1 && sess.current && sess.current.q && sess.current.q.chars && !finished.current) startAns('child');
+      if (finished.current) return;
+      /* ひとりモードは 3秒で 区切るので、まちがえたら つぎの問題へ（同じ問題を くり返さない） */
+      if (both || players === 1) { nextBattle(); return; }
       /* 2人で 相手が まだ 押していないなら、問題文の つづきを 出す */
-      if (!both && players === 2 && !finished.current && isProg(sess.current && sess.current.q)) runRev(sess.current!.q);
+      if (isProg(sess.current && sess.current.q)) runRev(sess.current!.q);
     }, 1500);
   };
   const onChoice = (side: Side, a: string) => {
@@ -218,6 +224,13 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
 
   /* 3秒で こたえられなかった＝おてつき あつかい */
   timeUpRef.current = (side: Side) => { if (!finished.current && !pausedRef.current) battleWrong(side); };
+  /* 文が 出そろったら、ひとりモードは そこから 3秒 */
+  revDoneRef.current = () => {
+    if (players !== 1 || finished.current || pausedRef.current) return;
+    const s2 = sess.current; if (!s2 || !s2.q || s2.done) return;
+    if (uiRef.current.child.locked) return;
+    startAns('child');
+  };
   const ansSide: Side | null = players === 1 ? 'child' : turn.owner;
 
   const pause = useCallback(() => {
@@ -232,7 +245,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     const s = sess.current;
     if (s && s.q && !s.done) {
       if (players === 2 && s.owner) startAns(s.owner);
-      else if (players === 1 && s.q.chars) startAns('child');
+      else if (players === 1) startAns('child');
       if (!(players === 2 && s.owner)) runRev(s.q);
     }
   }, [paused, startTimer, players, startAns, runRev]);
@@ -301,14 +314,11 @@ function BattleSide({ side, q, u, players, turn, ans, rev, onChoice, onBuzz, onC
             <Raw as="p" className={'qtext live' + (q && q.disp ? ' long' : '')} html={q ? furi(cutFuri(q.text, rev)) : ''} />
           </div>
         ) : <Raw as="p" className={'qtext' + (q && q.disp ? ' long' : '')} html={q ? furi(q.text) : ''} />}
-      {/* 「〇文字目が『が』の都道府県は？」の ときは、同じ条件の 仲間を 見せておく */}
+      {/* 「〇文字目が『が』の都道府県は？」の ときは、同じ条件の 仲間を 大きく 見せておく
+          （写真の 山形・新潟 と 同じ。あてはまる 字は 赤く） */}
       {q && q.shown && q.shown.length ? (
         <div className="mshown">
-          {q.shown.map((x) => (
-            <span key={x.name} className="ms">
-              <Raw as="b" html={furiName(x.name, x.yomi)} />
-            </span>
-          ))}
+          {q.shown.map((x) => <Raw as="span" className="ms" key={x.name} html={hitRuby(x.name, x.yomi, q.hit)} />)}
         </div>
       ) : null}
       {turn.reveal
@@ -353,6 +363,14 @@ function BattleSide({ side, q, u, players, turn, ans, rev, onChoice, onBuzz, onC
     </div>
   );
 }
+/** 名前＋よみ。よみの n文字目だけ 赤くする（「がた」の「が」） */
+function hitRuby(name: string, yomi: string, hit?: number): string {
+  const rt = hit === undefined || hit >= yomi.length
+    ? esc(yomi)
+    : esc(yomi.slice(0, hit)) + '<i class="hit">' + esc(yomi[hit]) + '</i>' + esc(yomi.slice(hit + 1));
+  return '<ruby>' + esc(name) + '<rt>' + rt + '</rt></ruby>';
+}
+
 function ChoiceBtn({ a, html, imi, onClick }: { a: string; html: string; imi?: boolean; onClick: () => void }) {
   return <button type="button" className={'choice' + (imi ? ' imi' : '')} data-a={a} onClick={onClick} dangerouslySetInnerHTML={{ __html: html }} />;
 }

@@ -1,6 +1,12 @@
+import { execSync } from 'node:child_process';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+
+/* 「直したのに 反映されてない？」を すぐ 確かめられるように、
+   せってい画面に 出す ばんごう（作った日時＋コミット） */
+const sha = (() => { try { return execSync('git rev-parse --short HEAD').toString().trim(); } catch { return 'dev'; } })();
+const stamp = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(2, 16).replace('T', ' ') + ' ' + sha;
 
 // GitHub Pages: https://ayumu-aa.github.io/oyako-game/
 export default defineConfig({
@@ -25,6 +31,7 @@ export default defineConfig({
       devOptions: { enabled: false },
     }),
   ],
+  define: { __BUILD__: JSON.stringify(stamp) },
   base: '/oyako-game/',
   build: {
     chunkSizeWarningLimit: 2000,

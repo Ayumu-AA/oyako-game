@@ -183,6 +183,7 @@ export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared, 
               if (sure === 1) { clearRecords(); setRec({ miss: 0, seen: 0 }); setSure(2); onCleared(); setTimeout(() => setSure(0), 1600); }
             }}>{clearLabel}</button>
         </div>
+        <p className="setnote" id="build-id" style={{ textAlign: 'center', opacity: .7 }}>ばんごう {__BUILD__}</p>
         <button className="btn btn-ok" id="btn-set-close" style={{ fontSize: 18, padding: '15px 18px' }} ref={closeBtn} onClick={onClose}>とじる</button>
       </div>
     </div>

@@ -658,3 +658,20 @@ test('はやおしバトル：問題文が 左から 少しずつ 出る', async
   expect(d).toBe(c);
   expect(errs).toEqual([]);
 });
+
+test('はやおし（ひとり）：どの きょうかでも 3秒で 区切られる', async ({ page }) => {
+  const errs = noErrors(page);
+  await open(page);
+  await nav(page, 1);
+  await page.click('[data-mode="battle1"]');
+  await page.click('#seg-subject button[data-v="rekishi"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  /* 文が 出そろうまでは 時間は 動かず、出そろってから 3秒 */
+  await expect(page.locator('#anst-child')).toBeVisible({ timeout: 8000 });
+  const first = await page.locator('#side-child .qprog .ghost').textContent();
+  /* 何も しないと おてつき → つぎの問題へ */
+  await expect(page.locator('#side-child')).toHaveClass(/locked/, { timeout: 6000 });
+  await expect(page.locator('#side-child .qprog .ghost')).not.toHaveText(first!, { timeout: 6000 });
+  expect(errs).toEqual([]);
+});

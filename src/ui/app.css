@@ -695,10 +695,11 @@
   .qprog .live{position:absolute;inset:0;margin:0}
   /* 同じ条件の 仲間（すでに 見せておく 都道府県） */
   .mshown{
-    flex:none;display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:center;
-    font-size:clamp(15px,3.6vw,20px);font-weight:900;color:var(--ink);
+    flex:none;display:flex;flex-wrap:wrap;gap:4px 18px;justify-content:center;align-items:flex-end;
+    font-size:clamp(24px,6.4vw,36px);font-weight:900;color:var(--ink);line-height:1.15;
   }
-  .mshown .ms{background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:4px 10px}
+  .mshown .ms rt{font-size:.36em;font-weight:800;color:var(--muted)}
+  .mshown .ms rt .hit{color:var(--vermilion);font-style:normal}
   /* もじあて（みんはや式）：こたえの わく と 1文字ぶんの 4たく */
   .mojiwrap{flex:none;display:flex;flex-direction:column;align-items:center;gap:10px;width:100%}
   .mojiword{display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap}
