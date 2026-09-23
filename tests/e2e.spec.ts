@@ -690,3 +690,22 @@ test('はやおし（ひとり）：どの きょうかでも 5秒で 区切ら�
   await expect(page.locator('#side-child .qprog .ghost')).not.toHaveText(first!, { timeout: 6000 });
   expect(errs).toEqual([]);
 });
+
+test('はやおし（ひとり）：けいさんにも 5秒の もちじかんが つく', async ({ page }) => {
+  const errs = noErrors(page);
+  await open(page);
+  await nav(page, 1);
+  await page.click('[data-mode="battle1"]');
+  await page.click('#seg-subject button[data-v="calc"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  /* けいさんは 文を 少しずつ 出さないので、出た その時から もちじかんが 走る */
+  await expect(page.locator('#anst-child')).toBeVisible({ timeout: 4000 });
+  const first = await page.locator('#side-child .qtext.num').textContent();
+  await page.waitForTimeout(3500);
+  await expect(page.locator('#side-child')).not.toHaveClass(/locked/);
+  /* 何も 押さないと 時間ぎれ → つぎの問題へ */
+  await expect(page.locator('#side-child')).toHaveClass(/locked/, { timeout: 6000 });
+  await expect(page.locator('#side-child .qtext.num')).not.toHaveText(first!, { timeout: 6000 });
+  expect(errs).toEqual([]);
+});

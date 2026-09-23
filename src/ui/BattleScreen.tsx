@@ -46,6 +46,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
   const capSec = goal ? BATTLE_CAP : seconds;
   const finished = useRef(false);
   const timers = useRef<number[]>([]);
+  const timersRef = timers;
   const root = useRef<HTMLElement>(null);
   const onFinishRef = useRef(onFinish); onFinishRef.current = onFinish;
   const pausedRef = useRef(paused); pausedRef.current = paused;
@@ -61,9 +62,15 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
   const revDoneRef = useRef<() => void>(() => undefined);
   const revPos = useRef(0);
   /** from を わたすと そこから、わたさないと 止まったところから つづける */
+  /* けいさんは 文を 少しずつ 出さないので、合図は つぎの ひとまわり あとに 出す
+     （その場で 出すと、あとに つづく setUi / stopAns に かき消されて もちじかんが 走らない） */
+  const revDoneSoon = useCallback(() => {
+    const id = window.setTimeout(() => revDoneRef.current(), 0);
+    timersRef.current.push(id);
+  }, []);
   const runRev = useCallback((q: BattleQ | null, from?: number) => {
     stopRev();
-    if (!isProg(q)) { revPos.current = 999; setRev(999); revDoneRef.current(); return; }
+    if (!isProg(q)) { revPos.current = 999; setRev(999); revDoneSoon(); return; }
     if (from !== undefined) { revPos.current = from; setRev(from); }
     const len = plainLen(q!.text);
     if (revPos.current >= len) { revDoneRef.current(); return; }
@@ -72,7 +79,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
       setRev(revPos.current);
       if (revPos.current >= len) { stopRev(); revDoneRef.current(); }
     }, REVEAL_MS);
-  }, [stopRev]);
+  }, [stopRev, revDoneSoon]);
 
   /* こたえる もちじかん（ひとり5秒／2人3秒）。赤いボタンを 取ったとき と、もじあての 1文字ごとに 動かす */
   const stopAns = useCallback(() => {
@@ -119,8 +126,9 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
   const nextBattle = useCallback(() => {
     const s = sess.current!;
     const { q, opts, wait } = s.next();
+    /* まえの問題の もちじかんは ここで 止める（あとで 止めると 新しい問題の ぶんまで 消える） */
+    stopAns();
     setQ(q);
-    runRev(q, 0);
     syncTurn(s);
     setUi({
       adult: { opts: opts.adult, flash: false, locked: false, waiting: wait > 0, input: '' },
@@ -128,8 +136,9 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     });
     /* ハンデは「おとなだけ しばらく 赤いボタンを 押せない」にする（けいさんは 選たく肢が ないので） */
     if (wait > 0) later(() => setSide('adult', { waiting: false }), wait);
-    /* ひとりモードは 赤いボタンが ないので、文が 出そろった 時点から 5秒 */
-    stopAns();
+    /* ひとりモードは 赤いボタンが ないので、文が 出そろった 時点から 5秒。
+       けいさんは 少しずつ 出さないので、出た その時から 5秒 */
+    runRev(q, 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [players, startAns, stopAns, runRev]);
 
@@ -231,7 +240,6 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
   revDoneRef.current = () => {
     if (players !== 1 || finished.current || pausedRef.current) return;
     const s2 = sess.current; if (!s2 || !s2.q || s2.done) return;
-    if (uiRef.current.child.locked) return;
     startAns('child');
   };
   const ansSide: Side | null = players === 1 ? 'child' : turn.owner;
