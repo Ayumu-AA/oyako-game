@@ -669,7 +669,7 @@ test('はやおしバトル：問題文が 左から 少しずつ 出る', async
   expect(errs).toEqual([]);
 });
 
-test('はやおし（ひとり）：どの きょうかでも 3秒で 区切られる', async ({ page }) => {
+test('はやおし（ひとり）：どの きょうかでも 5秒で 区切られる', async ({ page }) => {
   const errs = noErrors(page);
   await open(page);
   await nav(page, 1);
@@ -677,11 +677,16 @@ test('はやおし（ひとり）：どの きょうかでも 3秒で 区切ら�
   await page.click('#seg-subject button[data-v="rekishi"]');
   await page.click('#btn-start');
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
-  /* 文が 出そろうまでは 時間は 動かず、出そろってから 3秒 */
+  /* 文が 出そろうまでは 時間は 動かず、出そろってから 5秒 */
   await expect(page.locator('#anst-child')).toBeVisible({ timeout: 8000 });
   const first = await page.locator('#side-child .qprog .ghost').textContent();
-  /* 何も しないと おてつき → つぎの問題へ */
+  /* 3.5秒では まだ 切られない（2人の 3秒より 長い）*/
+  const t0 = Date.now();
+  await page.waitForTimeout(3500);
+  await expect(page.locator('#side-child')).not.toHaveClass(/locked/);
+  /* 何も しないと おてつき → つぎの問題へ。5秒あたりで 切られる */
   await expect(page.locator('#side-child')).toHaveClass(/locked/, { timeout: 6000 });
+  expect(Date.now() - t0).toBeGreaterThan(1000);
   await expect(page.locator('#side-child .qprog .ghost')).not.toHaveText(first!, { timeout: 6000 });
   expect(errs).toEqual([]);
 });

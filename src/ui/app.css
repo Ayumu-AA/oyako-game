@@ -682,7 +682,7 @@
     align-items:center;justify-content:center;
     font-size:clamp(17px,3.2vh,24px);font-weight:900;letter-spacing:.08em;
   }
-  /* こたえる もちじかん（3秒）の バー。側の 上ふちに ぴったり */
+  /* こたえる もちじかん（ひとり5秒／2人3秒）の バー。側の 上ふちに ぴったり */
   .anstimer{
     position:absolute;top:0;left:0;right:0;height:6px;
     background:rgba(27,73,101,.14);border-radius:0 0 4px 4px;overflow:hidden;z-index:3;

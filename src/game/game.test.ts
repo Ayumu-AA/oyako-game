@@ -4,7 +4,7 @@ import { reloadRecords, markMiss, markHit, missCount, markSeen, seenAt, clearRec
 import { evalTokens, makePuzzle, checkMath, type Token } from './math10';
 import { rankOf, rankNext } from './rank';
 import { plain, furi, furiName, FURI_RE } from './furigana';
-import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, splitYomi, charOptions, mojiGroups } from './battle';
+import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, ANSWER_MS_SOLO, splitYomi, charOptions, mojiGroups } from './battle';
 import { cutFuri, plainLen } from './furigana';
 import { relayDeck as deckOf } from './decks';
 import { relayDeck, deckFor, hints3, missDeck } from './decks';
@@ -431,7 +431,11 @@ describe('もじあて（みんはや式）と 3秒ルール', () => {
       q.charOpts!.forEach((o) => o.forEach((c) => expect(small).not.toContain(c)));
     }
   });
-  it('こたえる もちじかんは 3秒', () => { expect(ANSWER_MS).toBe(3000); });
+  it('こたえる もちじかんは 2人が 3秒・ひとりが 5秒', () => {
+    expect(ANSWER_MS).toBe(3000);
+    expect(ANSWER_MS_SOLO).toBe(5000);
+    expect(ANSWER_MS_SOLO).toBeGreaterThan(ANSWER_MS);
+  });
 });
 
 

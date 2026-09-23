@@ -1,10 +1,12 @@
 /* はやおし親子バトル */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BattleSession, BATTLE_CAP, NUMKEYS, ANSWER_MS } from '../game/battle';
+import { BattleSession, BATTLE_CAP, NUMKEYS, ANSWER_MS, ANSWER_MS_SOLO } from '../game/battle';
 
 const REVEAL_MS = 70;   /* 問題文を 1文字ずつ 出す はやさ（クイズ番組ふう） */
 /** 少しずつ 出すのは けいさん いがい ぜんぶ（もじあて・国旗・えいごも 文は 少しずつ） */
 const isProg = (q: BattleQ | null) => !!(q && !q.num);
+/** こたえる もちじかん。ひとりは 5秒、2人の 取り合いは 3秒 */
+const ansMsOf = (players: 1 | 2) => (players === 1 ? ANSWER_MS_SOLO : ANSWER_MS);
 import { furi, furiName, cutFuri, plainLen } from '../game/furigana';
 import { esc } from '../game/util';
 import { artHTML } from '../game/art';
@@ -72,7 +74,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     }, REVEAL_MS);
   }, [stopRev]);
 
-  /* こたえる もちじかん（3秒）。赤いボタンを 取ったとき と、もじあての 1文字ごとに 動かす */
+  /* こたえる もちじかん（ひとり5秒／2人3秒）。赤いボタンを 取ったとき と、もじあての 1文字ごとに 動かす */
   const stopAns = useCallback(() => {
     if (ansTimer.current) { clearInterval(ansTimer.current); ansTimer.current = null; }
     setAnsLeft(0);
@@ -82,14 +84,15 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
   const startAns = useCallback((side: Side) => {
     if (ansTimer.current) clearInterval(ansTimer.current);
     ansSideRef.current = side;
-    ansEnd.current = Date.now() + ANSWER_MS;
-    setAnsLeft(ANSWER_MS);
+    const full = ansMsOf(players);
+    ansEnd.current = Date.now() + full;
+    setAnsLeft(full);
     ansTimer.current = window.setInterval(() => {
       const l = Math.max(0, ansEnd.current - Date.now());
       setAnsLeft(l);
       if (l <= 0) { stopAns(); const sd = ansSideRef.current; if (sd) timeUpRef.current(sd); }
     }, 100);
-  }, [stopAns]);
+  }, [stopAns, players]);
 
   /* バトルは 時間切れの瞬間に 全画面の「しゅうりょう！」で タップを受けとめてから結果へ */
   const battleFinish = useCallback(() => {
@@ -125,7 +128,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     });
     /* ハンデは「おとなだけ しばらく 赤いボタンを 押せない」にする（けいさんは 選たく肢が ないので） */
     if (wait > 0) later(() => setSide('adult', { waiting: false }), wait);
-    /* ひとりモードは 赤いボタンが ないので、文が 出そろった 時点から 3秒 */
+    /* ひとりモードは 赤いボタンが ないので、文が 出そろった 時点から 5秒 */
     stopAns();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [players, startAns, stopAns, runRev]);
@@ -163,7 +166,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     later(() => {
       setSide(side, { locked: false });
       if (finished.current) return;
-      /* ひとりモードは 3秒で 区切るので、まちがえたら つぎの問題へ（同じ問題を くり返さない） */
+      /* ひとりモードは もちじかんで 区切るので、まちがえたら つぎの問題へ（同じ問題を くり返さない） */
       if (both || players === 1) { nextBattle(); return; }
       /* 2人で 相手が まだ 押していないなら、問題文の つづきを 出す */
       if (isProg(sess.current && sess.current.q)) runRev(sess.current!.q);
@@ -180,9 +183,9 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     const s = sess.current; if (!s || s.done || pausedRef.current || !s.q) return;
     const u = uiRef.current[side];
     if (u.locked || u.waiting) return;
-    if (s.claim(side)) { syncTurn(s); stopRev(); startAns(side); }   /* 取ったら 文は 止まり、3秒で こたえる */
+    if (s.claim(side)) { syncTurn(s); stopRev(); startAns(side); }   /* 取ったら 文は 止まり、もちじかんの うちに こたえる */
   };
-  /* もじあて：1文字えらぶ。合っていれば つぎの1文字へ（3秒 出しなおし） */
+  /* もじあて：1文字えらぶ。合っていれば つぎの1文字へ（もちじかんを 出しなおし） */
   const onChar = (side: Side, ch: string) => {
     const s = sess.current; if (!s || s.done || pausedRef.current || !s.q) return;
     if (uiRef.current[side].locked) return;
@@ -222,9 +225,9 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* 3秒で こたえられなかった＝おてつき あつかい */
+  /* もちじかんに こたえられなかった＝おてつき あつかい */
   timeUpRef.current = (side: Side) => { if (!finished.current && !pausedRef.current) battleWrong(side); };
-  /* 文が 出そろったら、ひとりモードは そこから 3秒 */
+  /* 文が 出そろったら、ひとりモードは そこから 5秒 */
   revDoneRef.current = () => {
     if (players !== 1 || finished.current || pausedRef.current) return;
     const s2 = sess.current; if (!s2 || !s2.q || s2.done) return;
@@ -241,7 +244,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
   const resume = useCallback(() => {
     if (!paused) return;
     setPaused(false); startTimer(remain.current);
-    /* こたえる もちじかんは 出しなおし（止めたぶん 得しないように 3秒から） */
+    /* こたえる もちじかんは 出しなおし（止めたぶん 得しないように はじめから） */
     const s = sess.current;
     if (s && s.q && !s.done) {
       if (players === 2 && s.owner) startAns(s.owner);
@@ -301,9 +304,9 @@ function BattleSide({ side, q, u, players, turn, ans, rev, onChoice, onBuzz, onC
   return (
     <div className={cls} data-side={side} id={'side-' + side}>
       <span className="sidetag">{tag || (side === 'adult' ? 'おとな' : 'こども')}</span>
-      {/* こたえる もちじかん（3秒）。のこりが 見えるように */}
+      {/* こたえる もちじかん（ひとり5秒／2人3秒）。のこりが 見えるように */}
       <div className="anstimer" id={'anst-' + side} hidden={ans <= 0}>
-        <div style={{ width: Math.max(0, Math.min(100, (ans / 3000) * 100)).toFixed(1) + '%' }}></div>
+        <div style={{ width: Math.max(0, Math.min(100, (ans / ansMsOf(players)) * 100)).toFixed(1) + '%' }}></div>
       </div>
       {q && q.art ? <Raw as="div" className="qart" html={artHTML(q.art)} /> : <div className="qart" hidden></div>}
       {q && q.num ? <p className="qtext num">{q.text}</p>
