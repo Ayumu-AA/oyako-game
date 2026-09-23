@@ -412,7 +412,7 @@ export function BResultScreen({ r, onAgain, onMiss, onTitle, onRank }: { r: Batt
         : <Hee prefix="b" name="はやおしのコツ" text="あせってまちがえると1.5秒お休み。あわてず確実にいくほうが速いことが多い。" />}
       <Promo prefix="b" />
       <button className="btn btn-go" id="btn-bagain" onClick={onAgain} disabled={lock > 0}>{lock > 0 ? 'けっかを 見てね… ' + lock : 'もういちど'}</button>
-      {onRank && !solo && !r.miss && <button className="btn btn-rank" id="btn-brank-view" onClick={onRank} disabled={lock > 0}>ランキングを 見る</button>}
+      {onRank && solo && !r.miss && <button className="btn btn-rank" id="btn-brank-view" onClick={onRank} disabled={lock > 0}>ランキングを 見る</button>}
       <button className="btn btn-sea" id="btn-bmiss" hidden={missN === 0} onClick={onMiss} disabled={lock > 0}>まちがえた問題を もう一回</button>
       <button className="btn btn-ghost" data-back="s-title" onClick={onTitle}>さいしょの画面へ</button>
     </section>

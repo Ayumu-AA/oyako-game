@@ -13,6 +13,7 @@ export const SOLO_OPTS = 4;   /* ひとりモードの 選たく肢の 数 */
 export const ANSWER_MS = 3000;   /* 赤いボタンを 取ってから／もじあての 1文字ぶんの もちじかん */
 export const MOJI_OPTS = 4;      /* もじあて（都道府県）の 1文字ぶんの 選たく肢の 数 */
 export const MOJI_OPTS_FLAG = 2; /* 国旗は 小学生には むずかしい国が まざるので 2たくに する */
+export const SOLO_SECONDS = 90;  /* ひとりの はやおしは いつも 90秒（ランキングを くらべられるように） */
 export const BATTLE_CAP = 180;   /* 〇もん先取でも これ以上は つづけない（秒） */
 export const BSUBJ_ALL: (Subject)[] = ['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo', 'calc'];
 export type BattleSubj = 'mix' | 'miss' | 'moji' | Subject;   /* miss = まちがい帳から / moji = もじあて */

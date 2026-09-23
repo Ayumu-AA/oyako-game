@@ -112,8 +112,8 @@ test('ランキング：タイトルから 入って 名前を 決める・NGワ
   await open(page, { 'oyako-names-home': JSON.stringify(['ぱんだ', 'みどりのかに']) });
   await page.click('#btn-rank-title');
   await expect(page.locator('#s-rank')).toBeVisible();
-  await page.click('#seg-rank-mode button[data-v="battle"]');
-  await expect(page.locator('#rank-title')).toHaveText('はやおし親子バトル');
+  await page.click('#seg-rank-mode button[data-v="battle1"]');
+  await expect(page.locator('#rank-title')).toHaveText('はやおし（ひとり）');
   await page.click('#btn-rank-name');
   await page.fill('#nick-input', 'ばかもの'); await page.click('#btn-nick-ok');
   await expect(page.locator('#nick-hint')).toHaveText('そのことばは つかえないよ');
@@ -204,6 +204,10 @@ test('はやおしバトル：けいさんは テンキーで 桁数がそろっ
   await expect(page.locator('#bwin')).toHaveText('こどもの かち');
   await expect(page.locator('#bs-child')).toHaveText('5');
   await expect(page.locator('#brank-pace')).toHaveText(/2人あわせて \d+秒で 5もん（5もん先取）/);
+  /* 2人バトルは ランキングに 出さない（参加賞あつかい） */
+  await expect(page.locator('#btn-brank-view')).toHaveCount(0);
+  const q2 = await page.evaluate(() => JSON.parse(localStorage.getItem('oyako-queue') || '[]'));
+  expect(q2.some((x: { k?: string; row?: { mode?: string } }) => x.k === 'score' && x.row?.mode === 'battle')).toBe(false);
   expect(errs).toEqual([]);
   test.info().annotations.push({ type: '3桁', description: String(saw3) });
 });
@@ -521,7 +525,7 @@ for (const [w, h, tag] of VPS) {
   });
 }
 
-test('はやおし（ひとり）：1画面・回転なし・せいげん時間だけ・ランキングには 出さない', async ({ page }) => {
+test('はやおし（ひとり）：1画面・回転なし・90秒・ランキングに のる', async ({ page }) => {
   const errs = noErrors(page);
   await page.clock.install(); await page.clock.resume();   /* 90秒を 早送りして 結果画面まで 見る */
   await open(page);
@@ -556,9 +560,15 @@ test('はやおし（ひとり）：1画面・回転なし・せいげん時間�
   await expect(page.locator('#bwin')).toHaveText('ひとりで はやおし');
   await expect(page.locator('#bs-solo')).toHaveText('3');
   await expect(page.locator('#bs-adult')).toHaveCount(0);
-  await expect(page.locator('#btn-brank-view')).toHaveCount(0);
+  await expect(page.locator('#btn-brank-view')).toBeVisible();   /* ひとりは ランキングに のる */
   /* じこベストが この端末に のこる（90秒・こうがくねん） */
   expect(await page.evaluate(() => localStorage.getItem('oyako-battle1-2-90'))).toBe('3');
+  /* 名前を 決めると、ひとりの 記録（battle1）が 送るキューに 積まれる */
+  await page.click('#btn-brank-view');
+  await page.fill('#nick-input', 'そら'); await page.click('#btn-nick-ok');
+  await expect(page.locator('#s-rank')).toBeVisible({ timeout: 6000 });
+  const q = await page.evaluate(() => JSON.parse(localStorage.getItem('oyako-queue') || '[]'));
+  expect(q.some((x: { k?: string; row?: { mode?: string; score?: number } }) => x.k === 'score' && x.row?.mode === 'battle1' && x.row?.score === 3)).toBe(true);
   expect(errs).toEqual([]);
 });
 

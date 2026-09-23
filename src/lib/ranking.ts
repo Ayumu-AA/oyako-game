@@ -21,7 +21,7 @@ export const RANK_MODES: { mode: Mode; label: string }[] = [
   { mode: 'pref', label: '都道府県' }, { mode: 'flag', label: '世界の国旗' }, { mode: 'kokugo', label: 'ことば' },
   { mode: 'rika', label: 'りか' }, { mode: 'rekishi', label: 'れきし' }, { mode: 'eigo', label: 'えいご' },
   { mode: 'geopref', label: 'ちずクイズ 都道府県' }, { mode: 'geoflag', label: 'ちずクイズ 世界' },
-  { mode: 'math', label: '10を作る' }, { mode: 'battle', label: 'はやおし親子バトル' },
+  { mode: 'math', label: '10を作る' }, { mode: 'battle1', label: 'はやおし（ひとり）' },
 ];
 /** ランキングに 出るモードか（クロスワード系は 時間制で 別ものなので 出さない） */
 export function rankable(mode: Mode): boolean { return RANK_MODES.some((m) => m.mode === mode); }

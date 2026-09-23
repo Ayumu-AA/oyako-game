@@ -58,7 +58,7 @@ export function NameSheet({ open, level, initial, onDone, onCancel }: { open: bo
 
 /* ===== 一覧 ===== */
 function fmtRow(mode: Mode, r: { score: number; seconds: number }) {
-  return mode === 'battle' ? `${r.score}もん ／ ${r.seconds}秒` : `${r.score}もん`;
+  return mode === 'battle1' ? `${r.score}もん ／ ${r.seconds}秒` : `${r.score}もん`;
 }
 export function RankingScreen({ mode0, level0, nick, onBack, onName }: { mode0: Mode; level0: Level; nick: string | null; onBack: () => void; onName: () => void }) {
   const [mode, setMode] = useState<Mode>(mode0);

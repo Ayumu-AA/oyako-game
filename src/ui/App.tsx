@@ -7,6 +7,7 @@ import { getNick } from '../lib/nickname';
 import { rankable } from '../lib/ranking';
 import { eventCode } from '../lib/config';
 import { rankOf } from '../game/rank';
+import { SOLO_SECONDS } from '../game/battle';
 import { NameSheet, RankingScreen } from './Ranking';
 import type { Mode } from '../game/types';
 import { TitleScreen, LevelScreen, GamesScreen, SettingsOverlay, SubScreen, HowScreen, CountScreen, type Tile } from './menus';
@@ -107,18 +108,14 @@ export default function App() {
   };
   const finishBattle = (r: BattleResult) => {
     setBr(r); setMissN(missCount()); go('bresult');
-    /* ランキングは「2人で 対戦・ふつうの出題」だけ。ひとりモードと まちがい直しは
-       出題も 点の意味も ちがうので、同じ表に まぜない */
-    if (r.players === 1 || r.miss) { pendingScore.current = null; }
-    else {
-      const tot = r.adult + r.child;
-      submitScore({ event_code: eventCode(), mode: 'battle', level: s.level, seconds: r.seconds, score: tot, rank_i: rankOf('battle', tot, r.seconds).i, nickname: '' });
-    }
-    /* ひとりモードは いつも せいげん時間。この端末の ベストを のこす */
+    /* ランキングは「ひとりの はやおし・ふつうの出題」だけ。
+       2人バトルは 勝ち負けを 楽しむもの（参加賞）で、2人ぶんの 合計点なので 同じ表に まぜない。
+       まちがい直しは 人によって 出る問題が ちがうので くらべられない */
     if (r.players === 1 && !r.miss) {
+      submitScore({ event_code: eventCode(), mode: 'battle1', level: s.level, seconds: r.seconds, score: r.child, rank_i: rankOf('relay', r.child, r.seconds).i, nickname: '' });
       const key = bestKey('battle1', s.level, r.seconds);
       if (r.child > Number(store(key) || 0)) store(key, String(r.child));
-    }
+    } else pendingScore.current = null;
   };
 
   return (
@@ -134,11 +131,12 @@ export default function App() {
       {screen === 'count' && <CountScreen mode={mode} role={s.role} players={s.players} onDone={afterCount} />}
       {screen === 'play' && <PlayScreen key={round} mode={mode} level={s.level} seconds={s.seconds} role={s.role} onFinish={finishPlay} onRestart={restart} onQuit={quit} onEmpty={() => go('title')} />}
       {screen === 'geo' && <GeoScreen key={round} mode={mode} level={s.level} seconds={s.seconds} onFinish={finishPlay} onRestart={restart} onQuit={quit} />}
-      {screen === 'battle' && <BattleScreen key={round} level={s.level} seconds={s.seconds} bsubj={s.bsubj} handi={s.handi} goal={s.players === 1 ? 0 : s.goal} players={s.players} onFinish={finishBattle} onRestart={restart} onQuit={quit} />}
+      {screen === 'battle' && <BattleScreen key={round} level={s.level} bsubj={s.bsubj} handi={s.handi} goal={s.players === 1 ? 0 : s.goal} players={s.players}
+        seconds={s.players === 1 ? SOLO_SECONDS : s.seconds} onFinish={finishBattle} onRestart={restart} onQuit={quit} />}
       {screen === 'cross' && <CrossScreen key={round} level={s.level} kana={s.kana} players={s.players} prevIdx={cwIdx} forceIdx={cwForce} onIdx={(i) => { cwCur.current = i; }} onFinish={(r) => { setCr(r); if (r.idx !== undefined) setCwIdx(r.idx); go('cresult'); }} onRestart={restart} onQuit={quit} />}
       {screen === 'numcross' && <NumCrossScreen key={round} level={s.level} onFinish={(r) => { setCr(r); go('cresult'); }} onRestart={restart} onQuit={quit} />}
       {screen === 'result' && pr && <ResultScreen r={pr} onAgain={() => go('how')} onMiss={() => { if (missCount()) openHow('miss'); }} onTitle={() => go('title')} onRank={rankable(pr.mode) ? () => rankFromResult(pr.mode) : undefined} />}
-      {screen === 'bresult' && br && <BResultScreen r={br} onAgain={() => go('how')} onMiss={() => { if (missCount()) openHow('miss'); }} onTitle={() => go('title')} onRank={() => rankFromResult('battle')} />}
+      {screen === 'bresult' && br && <BResultScreen r={br} onAgain={() => go('how')} onMiss={() => { if (missCount()) openHow('miss'); }} onTitle={() => go('title')} onRank={() => rankFromResult('battle1')} />}
       {screen === 'rank' && <RankingScreen mode0={rankMode} level0={s.level} nick={nick} onBack={() => go('title')} onName={() => askName(() => undefined)} />}
       <NameSheet open={nameOpen} level={s.level} onDone={onNamed} onCancel={() => { setNameOpen(false); nameThen.current = null; }} />
       {screen === 'cresult' && cr && <CResultScreen r={cr} onAgain={() => { setRound((r) => r + 1); go(mode === 'numcross' ? 'numcross' : 'cross'); }} onTitle={() => go('title')} />}

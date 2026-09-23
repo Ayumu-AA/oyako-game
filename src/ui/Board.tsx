@@ -84,7 +84,7 @@ export function Board() {
                   <span className="bno">{k + 1}</span>
                   <span className="bname">{r.nickname}</span>
                   <span className="bbadge" style={{ background: rk.c }}>{rk.n}級</span>
-                  <span className="bscore">{r.score}<small>もん</small>{cur.mode === 'battle' && <em>{r.seconds}秒</em>}</span>
+                  <span className="bscore">{r.score}<small>もん</small>{cur.mode === 'battle1' && <em>{r.seconds}秒</em>}</span>
                 </li>
               );
             })}

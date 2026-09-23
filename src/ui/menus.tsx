@@ -9,6 +9,7 @@ import type { Level, Mode } from '../game/types';
 import { PickGrid, Raw } from './parts';
 import { plowMark } from '../data/logo';
 import { bestKey, isGeo, type Group, type Settings } from './state';
+import { SOLO_SECONDS } from '../game/battle';
 
 const MN = MODE_NAME as Record<string, string>;
 const G = GROUPS as Record<Group, { eyebrow: string; title: string; lede: string; note: string; modes: string[] }>;
@@ -228,10 +229,10 @@ function stepsFor(mode: Mode, players: 1 | 2): string[] {
 }
 export function bestLine(mode: Mode, s: Settings): string {
   if (mode === 'battle' && s.bsubj === 'miss') return 'まちがい帳に ' + missCount() + 'もん たまっています';
-  /* はやおし（ひとり）は いつも せいげん時間。この端末の ベストを 出す */
+  /* はやおし（ひとり）は いつも 90秒。この端末の ベストを 出す */
   if (mode === 'battle' && s.players === 1) {
-    const b = store(bestKey('battle1', s.level, s.seconds));
-    return b ? 'この端末のベスト　' + s.seconds + '秒で ' + b + 'もん' : 'この端末にはまだ記録がありません';
+    const b = store(bestKey('battle1', s.level, SOLO_SECONDS));
+    return b ? 'この端末のベスト　90秒で ' + b + 'もん' : 'この端末にはまだ記録がありません';
   }
   if (mode === 'battle' || mode === 'cross' || mode === 'numcross' || mode === 'miss') {
     return mode === 'miss' ? 'まちがい帳に ' + missCount() + 'もん たまっています' : '';
