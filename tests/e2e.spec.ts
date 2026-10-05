@@ -204,8 +204,10 @@ test('はやおしバトル：けいさんは テンキーで 桁数がそろっ
   await expect(page.locator('#bwin')).toHaveText('こどもの かち');
   await expect(page.locator('#bs-child')).toHaveText('5');
   await expect(page.locator('#brank-pace')).toHaveText(/2人あわせて \d+秒で 5もん（5もん先取）/);
-  /* 2人バトルは ランキングに 出さない（参加賞あつかい） */
-  await expect(page.locator('#btn-brank-view')).toHaveCount(0);
+  /* 2人バトルも 結果のつぎに「ランキング」「練習する」は 出す。
+     ただし 2人の 点数は ランキングに 送らない（参加賞あつかい） */
+  await expect(page.locator('#btn-brank-view')).toHaveCount(1);
+  await expect(page.locator('#btn-bpractice')).toHaveCount(1);
   const q2 = await page.evaluate(() => JSON.parse(localStorage.getItem('oyako-queue') || '[]'));
   expect(q2.some((x: { k?: string; row?: { mode?: string } }) => x.k === 'score' && x.row?.mode === 'battle')).toBe(false);
   expect(errs).toEqual([]);

@@ -387,7 +387,10 @@ function ChoiceBtn({ a, html, imi, onClick }: { a: string; html: string; imi?: b
 }
 
 /* ===== 結果 ===== */
-export function BResultScreen({ r, onAgain, onMiss, onTitle, onRank }: { r: BattleResult; onAgain: () => void; onMiss: () => void; onTitle: () => void; onRank?: () => void }) {
+export function BResultScreen({ r, practice, onAgain, onPractice, onMiss, onTitle, onRank }: {
+  r: BattleResult; practice?: boolean;
+  onAgain: () => void; onPractice?: () => void; onMiss: () => void; onTitle: () => void; onRank?: () => void;
+}) {
   const a = r.adult, c = r.child;
   const missN = missCount();
   const solo = r.players === 1;
@@ -404,7 +407,7 @@ export function BResultScreen({ r, onAgain, onMiss, onTitle, onRank }: { r: Batt
   return (
     <section className={'screen on' + (lock > 0 ? ' reslock' : '')} id="s-bresult">
       <div className="rankcard">
-        <span className="rankbadge" id="bwin" style={{ background: solo ? '#7E5BB5' : win.bg }}>{solo ? (r.miss ? 'まちがい直し' : 'ひとりで はやおし') : win.t}</span>
+        <span className="rankbadge" id="bwin" style={{ background: solo ? '#7E5BB5' : win.bg }}>{practice ? 'れんしゅう' : solo ? (r.miss ? 'まちがい直し' : 'ひとりで はやおし') : win.t}</span>
         {solo
           ? <div className="vs"><div><span className="n display" id="bs-solo">{c}</span><span className="who">せいかい</span></div></div>
           : <div className="vs">
@@ -423,7 +426,9 @@ export function BResultScreen({ r, onAgain, onMiss, onTitle, onRank }: { r: Batt
         : <Hee prefix="b" name="はやおしのコツ" text="あせってまちがえると1.5秒お休み。あわてず確実にいくほうが速いことが多い。" />}
       <Promo prefix="b" />
       <button className="btn btn-go" id="btn-bagain" onClick={onAgain} disabled={lock > 0}>{lock > 0 ? 'けっかを 見てね… ' + lock : 'もういちど'}</button>
-      {onRank && solo && !r.miss && <button className="btn btn-rank" id="btn-brank-view" onClick={onRank} disabled={lock > 0}>ランキングを 見る</button>}
+      {/* 「ランキング」と「練習する」は どちらのモードでも 出す（まちがい直しの ときだけ 出さない） */}
+      {onRank && !r.miss && <button className="btn btn-rank" id="btn-brank-view" onClick={onRank} disabled={lock > 0}>ランキングを 見る</button>}
+      {onPractice && !r.miss && <button className="btn btn-sea" id="btn-bpractice" onClick={onPractice} disabled={lock > 0}>練習する（きろくに のこらない）</button>}
       <button className="btn btn-sea" id="btn-bmiss" hidden={missN === 0} onClick={onMiss} disabled={lock > 0}>まちがえた問題を もう一回</button>
       <button className="btn btn-ghost" data-back="s-title" onClick={onTitle}>さいしょの画面へ</button>
     </section>

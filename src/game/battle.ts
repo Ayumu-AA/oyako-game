@@ -20,6 +20,11 @@ export const BSUBJ_ALL: (Subject)[] = ['pref', 'flag', 'kokugo', 'rika', 'rekish
 export type BattleSubj = 'mix' | 'miss' | 'moji' | Subject;   /* miss = まちがい帳から / moji = もじあて */
 /* ミックスに 出るもの。もじあても 仲間に 入れる */
 export const MIX_ALL: BattleSubj[] = ['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo', 'calc', 'moji'];
+/* 低学年には むずかしすぎるので ていがくねんでは 出さない ジャンル */
+export const LV1_SKIP: BattleSubj[] = ['rika', 'rekishi', 'eigo'];
+export const okSubj = (v: BattleSubj, lv: Level) => lv === 2 || !LV1_SKIP.includes(v);
+/** そのがくねんで ミックスに 出る ジャンル */
+export const mixFor = (lv: Level): BattleSubj[] => MIX_ALL.filter((v) => okSubj(v, lv));
 
 /* もじあて：こたえの よみを 「本体」と「県・都・府・道」に 分ける。
    青森県 → あおもり ＋ 県 ／ 北海道 → ほっかい ＋ 道 ／ 国旗は そのまま */
@@ -188,7 +193,7 @@ export class BattleSession {
       const deck = this.pools[key] || this.missPool;
       return this.buildQ(key, q, deck);
     }
-    const keys: BattleSubj[] = this.opts.bsubj === 'mix' ? MIX_ALL : [this.opts.bsubj];
+    const keys: BattleSubj[] = this.opts.bsubj === 'mix' ? mixFor(this.opts.level) : [this.opts.bsubj];
     const key = keys[Math.floor(rng() * keys.length)] as Subject | 'moji';
     if (key === 'moji') return this.mojiQ();
     if (key === 'calc') return calcQuestion(this.opts.level);

@@ -1106,3 +1106,87 @@
     #s-title .brandmark span{font-size:12px}
   }
   @media (max-width:380px){ #s-title #brand-title{display:none} }   /* せまい画面では 塾名の 文字だけ 隠す（ロゴマークは 残す）。塾名は 下の presented by に ある */
+
+  /* ================= 学校モチーフの うごく背景（ホーム系の画面） ================= */
+  .schoolbg{
+    position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none;
+    background:
+      radial-gradient(120% 80% at 18% 8%, #1b4f9c 0%, rgba(27,79,156,0) 55%),
+      radial-gradient(100% 70% at 88% 18%, #8d1230 0%, rgba(141,18,48,0) 48%),
+      radial-gradient(130% 90% at 50% 110%, #0a2a63 0%, rgba(10,42,99,0) 60%),
+      linear-gradient(170deg, #071a3c 0%, #0a2250 45%, #07152f 100%);
+  }
+  .schoolbg .sb-grid{
+    position:absolute; inset:-10%;
+    background-image:
+      repeating-linear-gradient(to right, rgba(140,200,255,.10) 0 1px, transparent 1px 58px),
+      repeating-linear-gradient(to bottom, rgba(140,200,255,.10) 0 1px, transparent 1px 58px);
+    animation:sbGrid 90s linear infinite;
+  }
+  @keyframes sbGrid{ to{ transform:translate3d(58px,58px,0); } }
+  /* ななめの 光。ゆっくり 横切る */
+  .schoolbg .sb-beam{
+    position:absolute; top:-40%; width:46%; height:180%;
+    background:linear-gradient(90deg, rgba(120,190,255,0) 0%, rgba(120,190,255,.16) 50%, rgba(120,190,255,0) 100%);
+    filter:blur(26px); transform:rotate(16deg);
+  }
+  .schoolbg .sb-b1{ left:-20%; animation:sbBeam 34s ease-in-out infinite; }
+  .schoolbg .sb-b2{ left:40%; animation:sbBeam 47s ease-in-out infinite reverse; }
+  @keyframes sbBeam{ 0%,100%{ transform:rotate(16deg) translateX(-14%); } 50%{ transform:rotate(16deg) translateX(34%); } }
+  /* 右上の 大きな PLOW */
+  .schoolbg .sb-word{
+    position:absolute; right:1.5%; top:7%;
+    font-family:"Yusei Magic",system-ui,sans-serif;
+    font-size:clamp(54px,14vw,104px); line-height:1.02; letter-spacing:.04em;
+    color:rgba(150,205,255,.09); writing-mode:vertical-rl; text-orientation:upright;
+  }
+  /* ヘッダーの ボタンに かぶらないよう、すこし 下に さげる */
+  .schoolbg .sb-tag{
+    position:absolute; right:4.5%; top:6.5%;
+    font-size:8.5px; font-weight:700; letter-spacing:.3em; line-height:1.8;
+    color:rgba(190,225,255,.34); text-align:right;
+  }
+  /* ただよう 学用品 */
+  .schoolbg .sb-bit{
+    position:absolute; display:block; color:#bfe0ff;
+    animation-name:sbDrift; animation-timing-function:ease-in-out;
+    animation-iteration-count:infinite; animation-direction:alternate;
+  }
+  .schoolbg .sb-bit svg{ width:100%; height:auto; display:block; }
+  @keyframes sbDrift{
+    from{ transform:translate3d(0,0,0) rotate(0deg); }
+    to  { transform:translate3d(var(--dx),var(--dy),0) rotate(var(--rot)); }
+  }
+  @media (prefers-reduced-motion:reduce){
+    .schoolbg .sb-grid,.schoolbg .sb-beam,.schoolbg .sb-bit{ animation:none; }
+  }
+
+  /* ---- 背景が くらい ときの 文字と タイル ---- */
+  .wrap{ position:relative; z-index:1; }
+  .wrap.night{ color:#eaf3ff; }
+  .wrap.night h1,.wrap.night .display,.wrap.night #title-q,.wrap.night .lede,
+  .wrap.night .picklabel,.wrap.night .eyebrow,.wrap.night .foot,.wrap.night .sub{ color:#eaf3ff; }
+  .wrap.night .lede b{ color:#fff; }
+  .wrap.night .eyebrow{ color:#9fd0ff; }
+  .wrap.night .foot{ opacity:.8; }
+  .wrap.night .brandmark,.wrap.night #brand-title{
+    color:#eaf3ff; text-shadow:0 1px 6px rgba(0,0,0,.45);
+  }
+  .wrap.night .rulesbtn{
+    background:rgba(255,255,255,.93); color:#13243a; border-color:transparent;
+    box-shadow:0 2px 10px rgba(0,0,0,.22);
+  }
+  /* ガラスっぽい タイル。色つきタイルは そのままの 色で 浮かせる */
+  .wrap.night .colortiles .mode{
+    box-shadow:0 6px 18px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.22);
+  }
+  .wrap.night .colortiles .mode[data-tile="lv1"],
+  .wrap.night .colortiles .mode[data-tile="lv2"]{
+    --c:rgba(255,255,255,.92); --on:#13243a;
+  }
+  .wrap.night .colortiles .mode[aria-pressed="true"][data-tile="lv1"],
+  .wrap.night .colortiles .mode[aria-pressed="true"][data-tile="lv2"]{
+    --c:#123a63; --on:#fff;
+  }
+  .wrap.night .btn-ghost{ color:#cfe4ff; border-color:rgba(207,228,255,.4); }
+  .wrap.night .pickrow .picklabel{ color:#9fd0ff; }

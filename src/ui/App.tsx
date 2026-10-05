@@ -15,6 +15,8 @@ import { PlayScreen } from './PlayScreen';
 import { ResultScreen } from './ResultScreen';
 import { GeoScreen } from './GeoScreen';
 import { BattleScreen, BResultScreen } from './BattleScreen';
+import { SchoolBg } from './SchoolBg';
+import { startBgm } from '../lib/sound';
 import { CrossScreen, NumCrossScreen, CResultScreen } from './CrossScreen';
 import { bestKey, isGeo, loadSettings, type BattleResult, type CrossResult, type Group, type PlayResult, type Screen, type Settings } from './state';
 
@@ -38,6 +40,7 @@ export default function App() {
   const pendingScore = useRef<ScoreRow | null>(null);        // 名前が 無くて 送れなかった 今回の点数
   const [rankMode, setRankMode] = useState<Mode>('pref');
   const howGroup = useRef<Group | null>(null);   // あそびかた画面へ どこから来たか（もどる先）
+  const practice = useRef(false);                // れんしゅう中は ランキングに 送らない
 
   const change = useCallback((p: Partial<Settings>) => setS((x) => ({ ...x, ...p })), []);
   const go = useCallback((sc: Screen) => { setScreen(sc); window.scrollTo(0, 0); if (sc === 'title' || sc === 'games') setMissN(missCount()); }, []);
@@ -81,6 +84,7 @@ export default function App() {
   };
   const start = (same = false) => {
     if (mode === 'miss' && missCount() === 0) { go('title'); return; }
+    practice.current = false;
     setRound((r) => r + 1);
     if (mode === 'cross') { setCwForce(same ? cwCur.current : null); go('cross'); return; }
     if (mode === 'numcross') { go('numcross'); return; }
@@ -111,22 +115,34 @@ export default function App() {
     /* ランキングは「ひとりの はやおし・ふつうの出題」だけ。
        2人バトルは 勝ち負けを 楽しむもの（参加賞）で、2人ぶんの 合計点なので 同じ表に まぜない。
        まちがい直しは 人によって 出る問題が ちがうので くらべられない */
-    if (r.players === 1 && !r.miss) {
+    if (r.players === 1 && !r.miss && !practice.current) {
       submitScore({ event_code: eventCode(), mode: 'battle1', level: s.level, seconds: r.seconds, score: r.child, rank_i: rankOf('relay', r.child, r.seconds).i, nickname: '' });
       const key = bestKey('battle1', s.level, r.seconds);
       if (r.child > Number(store(key) || 0)) store(key, String(r.child));
     } else pendingScore.current = null;
   };
 
+  /* ブラウザは 画面を さわる前に 音を 鳴らさせてくれないので、さいしょの タップで BGM を 始める */
+  useEffect(() => {
+    const go1 = () => startBgm();
+    window.addEventListener('pointerdown', go1, { once: true });
+    return () => window.removeEventListener('pointerdown', go1);
+  }, []);
+
+  /* ホーム系の画面だけ、うごく背景の うえに 置く（遊ぶ画面は 読みやすさ優先で 明るいまま） */
+  const night = screen === 'title' || screen === 'level' || screen === 'games' || screen === 'sub';
+
   return (
-    <div className="wrap">
+    <>
+    {night && <SchoolBg />}
+    <div className={'wrap' + (night ? ' night' : '')}>
       {screen === 'title' && <>
         <TitleScreen onPlayers={(p) => { change({ players: p }); go('level'); }} onSettings={() => setSetOpen(true)} onRank={() => openRank(mode)} />
         <SettingsOverlay open={setOpen} seconds={s.seconds} onSeconds={(v) => change({ seconds: v })} onClose={() => setSetOpen(false)} onCleared={() => setMissN(0)} nick={nick} onName={() => askName(() => undefined)} />
       </>}
       {screen === 'level' && <LevelScreen players={s.players} onLevel={(l) => { change({ level: l }); go('games'); }} onBack={() => go('title')} />}
       {screen === 'games' && <GamesScreen players={s.players} level={s.level} missN={missN} onPick={pickGame} onBack={() => go('level')} />}
-      {screen === 'sub' && <SubScreen group={group} onMode={(m) => { howGroup.current = group; openHow(m); }} onBack={() => go('games')} />}
+      {screen === 'sub' && <SubScreen group={group} level={s.level} onMode={(m) => { howGroup.current = group; openHow(m); }} onBack={() => go('games')} />}
       {screen === 'how' && <HowScreen mode={mode} s={s} onChange={change} onStart={() => start()} onBack={backFromHow} />}
       {screen === 'count' && <CountScreen mode={mode} role={s.role} players={s.players} onDone={afterCount} />}
       {screen === 'play' && <PlayScreen key={round} mode={mode} level={s.level} seconds={s.seconds} role={s.role} onFinish={finishPlay} onRestart={restart} onQuit={quit} onEmpty={() => go('title')} />}
@@ -136,10 +152,11 @@ export default function App() {
       {screen === 'cross' && <CrossScreen key={round} level={s.level} kana={s.kana} players={s.players} prevIdx={cwIdx} forceIdx={cwForce} onIdx={(i) => { cwCur.current = i; }} onFinish={(r) => { setCr(r); if (r.idx !== undefined) setCwIdx(r.idx); go('cresult'); }} onRestart={restart} onQuit={quit} />}
       {screen === 'numcross' && <NumCrossScreen key={round} level={s.level} onFinish={(r) => { setCr(r); go('cresult'); }} onRestart={restart} onQuit={quit} />}
       {screen === 'result' && pr && <ResultScreen r={pr} onAgain={() => go('how')} onMiss={() => { if (missCount()) openHow('miss'); }} onTitle={() => go('title')} onRank={rankable(pr.mode) ? () => rankFromResult(pr.mode) : undefined} />}
-      {screen === 'bresult' && br && <BResultScreen r={br} onAgain={() => go('how')} onMiss={() => { if (missCount()) openHow('miss'); }} onTitle={() => go('title')} onRank={() => rankFromResult('battle1')} />}
+      {screen === 'bresult' && br && <BResultScreen r={br} practice={practice.current} onAgain={() => go('how')} onPractice={() => { practice.current = true; setRound((r) => r + 1); go('battle'); }} onMiss={() => { if (missCount()) openHow('miss'); }} onTitle={() => go('title')} onRank={() => rankFromResult('battle1')} />}
       {screen === 'rank' && <RankingScreen mode0={rankMode} level0={s.level} nick={nick} onBack={() => go('title')} onName={() => askName(() => undefined)} />}
       <NameSheet open={nameOpen} level={s.level} onDone={onNamed} onCancel={() => { setNameOpen(false); nameThen.current = null; }} />
       {screen === 'cresult' && cr && <CResultScreen r={cr} onAgain={() => { setRound((r) => r + 1); go(mode === 'numcross' ? 'numcross' : 'cross'); }} onTitle={() => go('title')} />}
     </div>
+    </>
   );
 }

@@ -4,12 +4,13 @@ import { CONFIG, MODE_NAME, MODE_SUB, MODE_TAG, MODE_LABEL, GROUPS, HOW_LEDE, ST
 import { ICON, GROUP_ICON, TILE_ICON } from '../data/icons';
 import { missCount, seenCount, clearRecords } from '../game/records';
 import { store } from '../lib/storage';
-import { soundOn, setSound } from '../lib/sound';
+import { soundOn, setSound, bgmOn, setBgm } from '../lib/sound';
 import type { Level, Mode } from '../game/types';
 import { PickGrid, Raw } from './parts';
 import { plowMark } from '../data/logo';
 import { bestKey, isGeo, type Group, type Settings } from './state';
-import { SOLO_SECONDS } from '../game/battle';
+import { SOLO_SECONDS, okSubj, LV1_SKIP } from '../game/battle';
+import type { BattleSubj } from '../game/battle';
 
 const MN = MODE_NAME as Record<string, string>;
 const G = GROUPS as Record<Group, { eyebrow: string; title: string; lede: string; note: string; modes: string[] }>;
@@ -35,7 +36,7 @@ const TILE_SVG: Record<string, string> = {
 export interface Tile { k: string; g?: Group; m?: Mode; b: string; s: string }
 export const GAMES: Record<1 | 2, Tile[]> = {
   2: [
-    { k: 'relay', g: 'relay', b: '親子ヒントリレー', s: '6つの きょうか' },
+    { k: 'relay', g: 'relay', b: '親子ヒントリレー', s: '6つの ジャンル' },
     { k: 'battle', m: 'battle', b: 'はやおしバトル', s: '向かい合って 対戦' },
     { k: 'cross', m: 'cross', b: '親子クロスワード', s: '力を合わせて 完成' },
     { k: 'geo', g: 'geo', b: 'ちずクイズ', s: '地図で 場所さがし' },
@@ -125,7 +126,9 @@ export function LevelScreen({ players, onLevel, onBack }: { players: 1 | 2; onLe
 export function GamesScreen({ players, level, missN, onPick, onBack }: {
   players: 1 | 2; level: Level; missN: number; onPick: (t: Tile) => void; onBack: () => void;
 }) {
-  const list = GAMES[players];
+  /* ていがくねんは りか・れきし・えいごを 出さないので、ジャンルの数も それに あわせる */
+  const relayN = (G.relay.modes as string[]).filter((m) => level === 2 || !(LV1_SKIP as string[]).includes(m)).length;
+  const list = GAMES[players].map((t) => (t.k === 'relay' ? { ...t, s: relayN + 'つの ジャンル' } : t));
   /* まちがい直しは 2人なら ヒントリレー方式、1人なら はやおしの「まちがい」で 出す */
   const miss: Tile = players === 2
     ? { k: 'miss', m: 'miss', b: 'まちがい直し', s: 'のこり ' + missN + 'もん' }
@@ -150,6 +153,7 @@ export function GamesScreen({ players, level, missN, onPick, onBack }: {
 /* ===== せってい ===== */
 export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared, nick, onName }: { open: boolean; seconds: number; onSeconds: (s: number) => void; onClose: () => void; onCleared: () => void; nick: string | null; onName: () => void }) {
   const [snd, setSnd] = useState(soundOn());
+  const [bgm, setBgm2] = useState(bgmOn());
   const [rec, setRec] = useState({ miss: 0, seen: 0 });
   const [sure, setSure] = useState<0 | 1 | 2>(0);
   const closeBtn = useRef<HTMLButtonElement>(null);
@@ -167,8 +171,10 @@ export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared, 
     <div className="overlay" id="set-ov" hidden={!open} role="dialog" aria-modal="true" aria-labelledby="set-title" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="sheet setsheet">
         <h2 className="display" id="set-title">せってい</h2>
-        <PickGrid id="seg-sound" label="おと" cols={2} value={snd ? '1' : '0'} onPick={(v) => { setSound(v === '1'); setSnd(v === '1'); }}
+        <PickGrid id="seg-sound" label="おと（せいかいの音）" cols={2} value={snd ? '1' : '0'} onPick={(v) => { setSound(v === '1'); setSnd(v === '1'); }}
           options={[{ v: '1', b: 'あり' }, { v: '0', b: 'なし' }]} />
+        <PickGrid id="seg-bgm" label="BGM" cols={2} value={bgm ? '1' : '0'} onPick={(v) => { setBgm(v === '1'); setBgm2(v === '1'); }}
+          options={[{ v: '1', b: 'ながす' }, { v: '0', b: 'とめる' }]} />
         <PickGrid id="seg-time" label="せいげん時間" cols={3} value={seconds} onPick={onSeconds}
           options={[{ v: 60, b: '60秒' }, { v: 90, b: '90秒' }, { v: 120, b: '120秒' }]} />
         <div className="pickrow">
@@ -192,15 +198,17 @@ export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared, 
 }
 
 /* ===== グループの中身 ===== */
-export function SubScreen({ group, onMode, onBack }: { group: Group; onMode: (m: Mode) => void; onBack: () => void }) {
+export function SubScreen({ group, level, onMode, onBack }: { group: Group; level: Level; onMode: (m: Mode) => void; onBack: () => void }) {
   const g = G[group];
+  /* ていがくねんには りか・れきし・えいごは 出さない */
+  const modes = g.modes.filter((m) => level === 2 || !(LV1_SKIP as string[]).includes(m));
   return (
     <section className="screen on" id="s-sub">
       <p className="eyebrow" id="sub-eyebrow">{g.eyebrow}</p>
       <h1 className="display" id="sub-title">{g.title}</h1>
       <Raw as="p" className="lede" id="sub-lede" html={g.lede} />
       <div className="modes" id="sub-modes">
-        {g.modes.map((m) => (
+        {modes.map((m) => (
           <button className="mode" data-mode={m} key={m} onClick={() => onMode(m as Mode)}>
             <Raw className="icon" html={ICONS[m]} />
             <span><b>{(MODE_LABEL as Record<string, string>)[m]}</b><small>{(MODE_TAG as Record<string, string>)[m] || (MODE_SUB as Record<string, string>)[m]}</small></span>
@@ -279,8 +287,9 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
           <div className="rs tate"><b>タテのカギ</b><span className="arrow">↓</span><span className="who">おとな</span></div>
         </div>
 
-        {isBattle && <PickGrid id="seg-subject" label="きょうか" cols={5} value={s.bsubj} onPick={(v) => onChange({ bsubj: v })}
-          options={([{ v: 'mix', b: 'ミックス' }, { v: 'pref', b: '都道府県' }, { v: 'flag', b: '国旗' }, { v: 'kokugo', b: 'ことば' }, { v: 'rika', b: 'りか' }, { v: 'rekishi', b: 'れきし' }, { v: 'eigo', b: 'えいご' }, { v: 'calc', b: 'けいさん' }, { v: 'moji', b: 'もじあて' }] as { v: Settings['bsubj']; b: string }[])
+        {isBattle && <PickGrid id="seg-subject" label="ジャンル" cols={5} value={s.bsubj} onPick={(v) => onChange({ bsubj: v })}
+          options={([{ v: 'mix', b: 'ミックス' }, { v: 'pref', b: '都道府県' }, { v: 'flag', b: '国旗' }, { v: 'kokugo', b: 'ことば' }, { v: 'rika', b: 'りか' }, { v: 'rekishi', b: 'れきし' }, { v: 'eigo', b: 'えいご' }, { v: 'calc', b: 'けいさん' }, { v: 'moji', b: 'もじうめ' }] as { v: Settings['bsubj']; b: string }[])
+            .filter((o) => okSubj(o.v as BattleSubj, s.level))   /* ていがくねんには りか・れきし・えいごを 出さない */
             .concat(missN > 0 ? [{ v: 'miss' as Settings['bsubj'], b: 'まちがい' }] : [])} />}
 
         {/* ひとりモードは せいげん時間だけ。〇もん先取は 相手が いてこそ */}
