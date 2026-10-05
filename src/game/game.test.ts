@@ -4,7 +4,7 @@ import { reloadRecords, markMiss, markHit, missCount, markSeen, seenAt, clearRec
 import { evalTokens, makePuzzle, checkMath, type Token } from './math10';
 import { rankOf, rankNext } from './rank';
 import { plain, furi, furiName, FURI_RE } from './furigana';
-import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, ANSWER_MS_SOLO, splitYomi, charOptions, mojiGroups } from './battle';
+import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, ANSWER_MS_SOLO, HINT_STEP_MS, PTS_BY_STAGE, ptsAtStage, MIX_ALL, splitYomi, charOptions, mojiGroups } from './battle';
 import { cutFuri, plainLen } from './furigana';
 import { relayDeck as deckOf } from './decks';
 import { relayDeck, deckFor, hints3, missDeck } from './decks';
@@ -431,10 +431,22 @@ describe('もじあて（みんはや式）と 3秒ルール', () => {
       q.charOpts!.forEach((o) => o.forEach((c) => expect(small).not.toContain(c)));
     }
   });
-  it('こたえる もちじかんは 2人が 3秒・ひとりが 5秒', () => {
+  it('こたえる もちじかんは 2人が 3秒・ひとりは ヒント3つぶん（9秒）', () => {
     expect(ANSWER_MS).toBe(3000);
-    expect(ANSWER_MS_SOLO).toBe(5000);
+    expect(ANSWER_MS_SOLO).toBe(HINT_STEP_MS * 3);
     expect(ANSWER_MS_SOLO).toBeGreaterThan(ANSWER_MS);
+  });
+  it('ポイントは 早いほど 高い（3→2→1）', () => {
+    expect(PTS_BY_STAGE).toEqual([3, 2, 1]);
+    expect(ptsAtStage(0)).toBe(3);
+    expect(ptsAtStage(1)).toBe(2);
+    expect(ptsAtStage(2)).toBe(1);
+    expect(ptsAtStage(9)).toBe(1);   /* それ以上 下がらない */
+  });
+  it('ミックスに もじうめは 入れない（都道府県と 国旗の 中で 出す）', () => {
+    expect(MIX_ALL).not.toContain('moji');
+    expect(MIX_ALL).toContain('pref');
+    expect(MIX_ALL).toContain('flag');
   });
 });
 

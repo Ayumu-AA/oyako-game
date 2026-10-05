@@ -112,13 +112,15 @@ export default function App() {
   };
   const finishBattle = (r: BattleResult) => {
     setBr(r); setMissN(missCount()); go('bresult');
-    /* ランキングは「ひとりの はやおし・ふつうの出題」だけ。
-       2人バトルは 勝ち負けを 楽しむもの（参加賞）で、2人ぶんの 合計点なので 同じ表に まぜない。
-       まちがい直しは 人によって 出る問題が ちがうので くらべられない */
-    if (r.players === 1 && !r.miss && !practice.current) {
-      submitScore({ event_code: eventCode(), mode: 'battle1', level: s.level, seconds: r.seconds, score: r.child, rank_i: rankOf('relay', r.child, r.seconds).i, nickname: '' });
+    /* ランキングは「ひとりの はやおし・ミックス・ふつうの出題」だけ。
+       ・2人バトルは 勝ち負けを 楽しむもの（参加賞）。2人ぶんの 合計なので 同じ表に まぜない
+       ・ジャンルを 1つに しぼると 出る問題が ちがうので、ミックスだけを くらべる
+       ・まちがい直しは 人によって 出る問題が ちがう
+       のせる 数字は「とくてん」（早く こたえるほど 高い） */
+    if (r.players === 1 && !r.miss && !practice.current && r.bsubj === 'mix') {
+      submitScore({ event_code: eventCode(), mode: 'battle1', level: s.level, seconds: r.seconds, score: r.ptsChild, rank_i: rankOf('relay', r.child, r.seconds).i, nickname: '' });
       const key = bestKey('battle1', s.level, r.seconds);
-      if (r.child > Number(store(key) || 0)) store(key, String(r.child));
+      if (r.ptsChild > Number(store(key) || 0)) store(key, String(r.ptsChild));
     } else pendingScore.current = null;
   };
 

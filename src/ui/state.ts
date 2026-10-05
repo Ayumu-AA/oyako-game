@@ -41,7 +41,9 @@ export interface PlayResult {
   geoGot?: string[];
 }
 export interface BattleResult {
-  adult: number; child: number; goal: number; seconds: number;   // seconds = 実際にかかった秒（先取）か 制限時間
+  adult: number; child: number; goal: number; seconds: number;
+  ptsAdult: number; ptsChild: number;   // とくてん（早いほど 高い）
+  bsubj?: string;                       // どの ジャンルで あそんだか（ランキングは ミックスだけ）   // seconds = 実際にかかった秒（先取）か 制限時間
   players: 1 | 2;   // 1 = ひとりモード（こども側の 点だけを 見る）
   miss?: boolean;   // まちがい直しで あそんだか
   last: { answer: string; fact: string } | null;

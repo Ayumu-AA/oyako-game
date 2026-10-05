@@ -32,8 +32,15 @@ const TILE_SVG: Record<string, string> = {
   miss: TI.miss, miss1: TI.miss,
 };
 
-/** ホームの タイル1つぶん。g（教科えらびへ）か m（あそびかたへ）の どちらかを 持つ */
-export interface Tile { k: string; g?: Group; m?: Mode; b: string; s: string }
+/** ホームの タイル1つぶん。g（ジャンルえらびへ）か m（あそびかたへ）の どちらかを 持つ */
+export interface Tile { k: string; g?: Group; m?: Mode; b: string; s: string; soon?: boolean }
+/* 当日（12月のイベント）に あそべる ゲーム。ここに 無いものは「COMING SOON」で 押せない。
+   当日が すんだら ONLY を null に すれば ぜんぶ もどる */
+export const EVENT_ONLY: string[] | null = ['battle', 'battle1', 'miss', 'miss1'];
+/** ぜんぶ あそべるように する つまみ（作っている あいだ と テスト用）。
+    せってい画面には 出さない。localStorage に oyako-allgames=1 を 入れると ひらく */
+export const allGames = () => store('oyako-allgames') === '1';
+export const playable = (k: string) => allGames() || !EVENT_ONLY || EVENT_ONLY.includes(k);
 export const GAMES: Record<1 | 2, Tile[]> = {
   2: [
     { k: 'relay', g: 'relay', b: '親子ヒントリレー', s: '6つの ジャンル' },
@@ -51,10 +58,12 @@ export const GAMES: Record<1 | 2, Tile[]> = {
 };
 
 function TileBtn({ t, wide, onClick }: { t: Tile; wide?: boolean; onClick: () => void }) {
+  const soon = !!t.soon;
   return (
-    <button className={'mode' + (wide ? ' wide' : '')} data-tile={t.k} data-group={t.g} data-mode={t.m} onClick={onClick}>
+    <button className={'mode' + (wide ? ' wide' : '') + (soon ? ' soon' : '')} data-tile={t.k} data-group={t.g} data-mode={t.m}
+      disabled={soon} aria-disabled={soon} onClick={soon ? undefined : onClick}>
       <Raw className="icon" html={TILE_SVG[t.k]} />
-      <span><b>{t.b}</b><small>{t.s}</small></span>
+      <span>{soon && <em className="soontag">COMING SOON</em>}<b>{t.b}</b><small>{soon ? 'いまは あそべません' : t.s}</small></span>
     </button>
   );
 }
@@ -128,7 +137,11 @@ export function GamesScreen({ players, level, missN, onPick, onBack }: {
 }) {
   /* ていがくねんは りか・れきし・えいごを 出さないので、ジャンルの数も それに あわせる */
   const relayN = (G.relay.modes as string[]).filter((m) => level === 2 || !(LV1_SKIP as string[]).includes(m)).length;
-  const list = GAMES[players].map((t) => (t.k === 'relay' ? { ...t, s: relayN + 'つの ジャンル' } : t));
+  const list = GAMES[players]
+    .map((t) => (t.k === 'relay' ? { ...t, s: relayN + 'つの ジャンル' } : t))
+    .map((t) => ({ ...t, soon: !playable(t.k) }))
+    /* あそべるものを 先に ならべる（当日 まよわないように） */
+    .sort((a, b) => Number(a.soon) - Number(b.soon));
   /* まちがい直しは 2人なら ヒントリレー方式、1人なら はやおしの「まちがい」で 出す */
   const miss: Tile = players === 2
     ? { k: 'miss', m: 'miss', b: 'まちがい直し', s: 'のこり ' + missN + 'もん' }
@@ -288,7 +301,7 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
         </div>
 
         {isBattle && <PickGrid id="seg-subject" label="ジャンル" cols={5} value={s.bsubj} onPick={(v) => onChange({ bsubj: v })}
-          options={([{ v: 'mix', b: 'ミックス' }, { v: 'pref', b: '都道府県' }, { v: 'flag', b: '国旗' }, { v: 'kokugo', b: 'ことば' }, { v: 'rika', b: 'りか' }, { v: 'rekishi', b: 'れきし' }, { v: 'eigo', b: 'えいご' }, { v: 'calc', b: 'けいさん' }, { v: 'moji', b: 'もじうめ' }] as { v: Settings['bsubj']; b: string }[])
+          options={([{ v: 'mix', b: 'ミックス' }, { v: 'pref', b: '都道府県' }, { v: 'flag', b: '国旗' }, { v: 'kokugo', b: 'ことば' }, { v: 'rika', b: 'りか' }, { v: 'rekishi', b: 'れきし' }, { v: 'eigo', b: 'えいご' }, { v: 'calc', b: 'けいさん' }] as { v: Settings['bsubj']; b: string }[])
             .filter((o) => okSubj(o.v as BattleSubj, s.level))   /* ていがくねんには りか・れきし・えいごを 出さない */
             .concat(missN > 0 ? [{ v: 'miss' as Settings['bsubj'], b: 'まちがい' }] : [])} />}
 

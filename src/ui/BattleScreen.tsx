@@ -1,6 +1,6 @@
 /* はやおし親子バトル */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BattleSession, BATTLE_CAP, NUMKEYS, ANSWER_MS, ANSWER_MS_SOLO } from '../game/battle';
+import { BattleSession, BATTLE_CAP, NUMKEYS, ANSWER_MS, ANSWER_MS_SOLO, HINT_STEP_MS, ptsAtStage } from '../game/battle';
 
 const REVEAL_MS = 70;   /* 問題文を 1文字ずつ 出す はやさ（クイズ番組ふう） */
 /** 少しずつ 出すのは けいさん いがい ぜんぶ（もじあて・国旗・えいごも 文は 少しずつ） */
@@ -34,9 +34,13 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
   const [q, setQ] = useState<BattleQ | null>(null);
   const [ui, setUi] = useState<Record<Side, SideUI>>({ adult: sideZero(), child: sideZero() });
   const [score, setScore] = useState({ adult: '0', child: '0' });
+  const [pts, setPts] = useState({ adult: 0, child: 0 });
   const [turn, setTurn] = useState<Turn>({ owner: null, tried: { adult: false, child: false }, reveal: false });
   const [ansLeft, setAnsLeft] = useState(0);            /* こたえる もちじかん（ミリ秒）。0 = はかっていない */
   const [rev, setRev] = useState(999);                  /* 問題文を 何文字 出したか */
+  const [stage, setStage] = useState(0);                /* 0→1→2。3秒ごとに 進む。ヒントが ふえ ポイントが へる */
+  const stageTimer = useRef<number | null>(null);
+  const stageRef = useRef(0); stageRef.current = stage;
   const revTimer = useRef<number | null>(null);
   const ansEnd = useRef(0), ansTimer = useRef<number | null>(null);
   const [left, setLeft] = useState(seconds * 1000);
@@ -54,7 +58,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
 
   const stopTimer = () => { if (timer.current) { clearInterval(timer.current); timer.current = null; } };
   const setSide = (side: Side, p: Partial<SideUI>) => setUi((u) => ({ ...u, [side]: { ...u[side], ...p } }));
-  const drawScore = (s: BattleSession) => setScore({ adult: s.scoreText('adult'), child: s.scoreText('child') });
+  const drawScore = (s: BattleSession) => { setScore({ adult: s.scoreText('adult'), child: s.scoreText('child') }); setPts({ ...s.pts }); };
   const syncTurn = (s: BattleSession, reveal = false) => setTurn({ owner: s.owner, tried: { ...s.tried }, reveal });
 
   /* 問題文を 左から 少しずつ 出す。だれかが 赤いボタンを 取ったら 止める */
@@ -80,6 +84,21 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
       if (revPos.current >= len) { stopRev(); revDoneRef.current(); }
     }, REVEAL_MS);
   }, [stopRev, revDoneSoon]);
+
+  /* ヒントと ポイントの だんかい。問題文が 出そろったら 動きだし、3秒ごとに 1つ 進む。
+     赤いボタンを 取られたら そこで 止める（取った ときの だんかいで 点が 決まる） */
+  const stopStage = useCallback(() => {
+    if (stageTimer.current) { clearInterval(stageTimer.current); stageTimer.current = null; }
+  }, []);
+  const startStage = useCallback(() => {
+    stopStage();
+    stageRef.current = 0; setStage(0);
+    stageTimer.current = window.setInterval(() => {
+      const n = Math.min(stageRef.current + 1, 2);
+      stageRef.current = n; setStage(n);
+      if (n >= 2) stopStage();
+    }, HINT_STEP_MS);
+  }, [stopStage]);
 
   /* こたえる もちじかん（ひとり5秒／2人3秒）。赤いボタンを 取ったとき と、もじあての 1文字ごとに 動かす */
   const stopAns = useCallback(() => {
@@ -112,7 +131,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     later(() => {
       setFin(false);
       const sec = goal ? Math.max(1, Math.round((Date.now() - (t0.current || Date.now())) / 1000)) : seconds;
-      onFinishRef.current({ adult: s.score.adult, child: s.score.child, goal, seconds: sec, players, miss: bsubj === 'miss', last: s.last ? { answer: s.last.answer, fact: s.last.fact || '' } : null });
+      onFinishRef.current({ adult: s.score.adult, child: s.score.child, ptsAdult: s.pts.adult, ptsChild: s.pts.child, bsubj, goal, seconds: sec, players, miss: bsubj === 'miss', last: s.last ? { answer: s.last.answer, fact: s.last.fact || '' } : null });
     }, 1400);
   }, [goal, seconds, players, bsubj, stopAns, stopRev]);
 
@@ -127,7 +146,8 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     const s = sess.current!;
     const { q, opts, wait } = s.next();
     /* まえの問題の もちじかんは ここで 止める（あとで 止めると 新しい問題の ぶんまで 消える） */
-    stopAns();
+    stopAns(); stopStage();
+    stageRef.current = 0; setStage(0);
     setQ(q);
     syncTurn(s);
     setUi({
@@ -150,15 +170,15 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     t0.current = Date.now();
     startTimer(capSec * 1000);
     const tm = timers.current;
-    return () => { stopTimer(); stopAns(); stopRev(); tm.forEach(clearTimeout); };
+    return () => { stopTimer(); stopAns(); stopRev(); stopStage(); tm.forEach(clearTimeout); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const uiRef = useRef(ui); uiRef.current = ui;
   const battleCorrect = (side: Side) => {
     const s = sess.current!;
-    stopAns();
-    const reached = s.correct(side);
+    stopAns(); stopStage();
+    const reached = s.correct(side, ptsAtStage(stageRef.current));
     drawScore(s);
     setSide(side, { flash: true });
     if (reached) { stopTimer(); later(battleFinish, 420); return; }   /* 〇もん先取モードは とどいた時点で おわり */
@@ -192,7 +212,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     const s = sess.current; if (!s || s.done || pausedRef.current || !s.q) return;
     const u = uiRef.current[side];
     if (u.locked || u.waiting) return;
-    if (s.claim(side)) { syncTurn(s); stopRev(); startAns(side); }   /* 取ったら 文は 止まり、もちじかんの うちに こたえる */
+    if (s.claim(side)) { syncTurn(s); stopRev(); stopStage(); startAns(side); }   /* 取ったら 文は 止まり、もちじかんの うちに こたえる */
   };
   /* もじあて：1文字えらぶ。合っていれば つぎの1文字へ（もちじかんを 出しなおし） */
   const onChar = (side: Side, ch: string) => {
@@ -238,17 +258,18 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
   timeUpRef.current = (side: Side) => { if (!finished.current && !pausedRef.current) battleWrong(side); };
   /* 文が 出そろったら、ひとりモードは そこから 5秒 */
   revDoneRef.current = () => {
-    if (players !== 1 || finished.current || pausedRef.current) return;
+    if (finished.current || pausedRef.current) return;
     const s2 = sess.current; if (!s2 || !s2.q || s2.done) return;
-    startAns('child');
+    startStage();                       /* ヒントと ポイントの だんかいは 2人でも 動かす */
+    if (players === 1) startAns('child');
   };
   const ansSide: Side | null = players === 1 ? 'child' : turn.owner;
 
   const pause = useCallback(() => {
     if (paused || !timer.current) return;
     setPaused(true); remain.current = Math.max(0, endAt.current - Date.now());
-    stopTimer(); stopAns(); stopRev();
-  }, [paused, stopAns, stopRev]);
+    stopTimer(); stopAns(); stopRev(); stopStage();
+  }, [paused, stopAns, stopRev, stopStage]);
   const resume = useCallback(() => {
     if (!paused) return;
     setPaused(false); startTimer(remain.current);
@@ -265,21 +286,22 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
   const ratio = left / (capSec * 1000);
   const s = sess.current;
   const info = 'のこり ' + Math.ceil(remain.current / 1000) + '秒'
-    + (s ? (solo ? ' ／ とくてん ' + s.score.child : ' ／ おとな ' + s.score.adult + ' − こども ' + s.score.child) : '');
+    + (s ? (solo ? ' ／ ' + s.pts.child + '点' : ' ／ おとな ' + s.score.adult + ' − こども ' + s.score.child) : '');
 
   return (
     <section className={'screen on' + (solo ? ' solo' : '')} id="s-battle" ref={root}>
       {/* 2人：こどもが 上（180度回転）、おとなが 下（スマホを持つ人。まん中の 時間・一時停止も おとな向き）
           ひとり：こども側 だけを 回転なしで 下に 出す（時間は 上） */}
-      {!solo && <BattleSide side="child" q={q} u={ui.child} players={players} turn={turn} rev={rev} ans={ansSide === 'child' ? ansLeft : 0} onChoice={onChoice} onBuzz={onBuzz} onChar={onChar} />}
+      {!solo && <BattleSide side="child" q={q} u={ui.child} players={players} turn={turn} rev={rev} stage={stage} ans={ansSide === 'child' ? ansLeft : 0} onChoice={onChoice} onBuzz={onBuzz} onChar={onChar} />}
       <div className="mid">
         {!solo && <span className="mscore flip"><span id="sc-child">{score.child}</span><small>こども</small></span>}
         <div className="mtimer"><div id="btimer" className={left <= 10000 ? 'warn' : ''} style={{ width: (ratio * 100).toFixed(1) + '%' }}></div></div>
-        <span className="mscore"><span id={solo ? 'sc-solo' : 'sc-adult'}>{solo ? score.child : score.adult}</span><small>{solo ? 'とくてん' : 'おとな'}</small></span>
+        <span className="mscore"><span id={solo ? 'sc-solo' : 'sc-adult'}>{solo ? score.child : score.adult}</span><small>{solo ? 'せいかい' : 'おとな'}</small></span>
+        <span className="mpts" id="b-pts">{solo ? pts.child : pts.adult + pts.child}<small>点</small></span>
         <PauseButton id="btn-bpause" onClick={pause} />
       </div>
-      {solo ? <BattleSide side="child" q={q} u={ui.child} players={players} turn={turn} rev={rev} ans={ansLeft} onChoice={onChoice} onBuzz={onBuzz} onChar={onChar} tag="あなた" />
-        : <BattleSide side="adult" q={q} u={ui.adult} players={players} turn={turn} rev={rev} ans={ansSide === 'adult' ? ansLeft : 0} onChoice={onChoice} onBuzz={onBuzz} onChar={onChar} />}
+      {solo ? <BattleSide side="child" q={q} u={ui.child} players={players} turn={turn} rev={rev} stage={stage} ans={ansLeft} onChoice={onChoice} onBuzz={onBuzz} onChar={onChar} tag="あなた" />
+        : <BattleSide side="adult" q={q} u={ui.adult} players={players} turn={turn} rev={rev} stage={stage} ans={ansSide === 'adult' ? ansLeft : 0} onChoice={onChoice} onBuzz={onBuzz} onChar={onChar} />}
       <div className={'bfin' + (fin ? ' on' : '')} id="bfin" aria-hidden="true">
         {!solo && <div className="half up"><span className="big">しゅうりょう！</span><span className="sub">手を とめて けっかを 見よう</span></div>}
         <div className="half"><span className="big">しゅうりょう！</span><span className="sub">手を とめて けっかを 見よう</span></div>
@@ -289,8 +311,8 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
   );
 }
 
-function BattleSide({ side, q, u, players, turn, ans, rev, onChoice, onBuzz, onChar, tag }: {
-  side: Side; q: BattleQ | null; u: SideUI; players: 1 | 2; turn: Turn; ans: number; rev: number;
+function BattleSide({ side, q, u, players, turn, ans, rev, stage, onChoice, onBuzz, onChar, tag }: {
+  side: Side; q: BattleQ | null; u: SideUI; players: 1 | 2; turn: Turn; ans: number; rev: number; stage: number;
   onChoice: (side: Side, a: string) => void; onBuzz: (side: Side) => void; onChar: (side: Side, ch: string) => void; tag?: string;
 }) {
   /* こたえ見せの あいだは「おてつき！」を どけて、2人とも こたえが 読めるようにする */
@@ -327,6 +349,15 @@ function BattleSide({ side, q, u, players, turn, ans, rev, onChoice, onBuzz, onC
         ) : <Raw as="p" className={'qtext' + (q && q.disp ? ' long' : '')} html={q ? furi(q.text) : ''} />}
       {/* 「〇文字目が『が』の都道府県は？」の ときは、同じ条件の 仲間を 大きく 見せておく
           （写真の 山形・新潟 と 同じ。あてはまる 字は 赤く） */}
+      {/* 3秒ごとに ふえる ヒント。いま こたえると 何点かも ここに 出す */}
+      {q && !q.num && !turn.reveal ? (
+        <div className="hintbox">
+          <span className="ptsnow" id={'pts-' + side}>{ptsAtStage(stage)}点</span>
+          {(q.hints || []).slice(0, stage).map((h, i) => (
+            <Raw as="span" className="hintline" key={i} html={'ヒント' + (i + 2) + '：' + furi(h)} />
+          ))}
+        </div>
+      ) : null}
       {q && q.shown && q.shown.length ? (
         <div className="mshown">
           {q.shown.map((x) => <Raw as="span" className="ms" key={x.name} html={hitRuby(x.name, x.yomi, q.hit)} />)}
@@ -409,12 +440,17 @@ export function BResultScreen({ r, practice, onAgain, onPractice, onMiss, onTitl
       <div className="rankcard">
         <span className="rankbadge" id="bwin" style={{ background: solo ? '#7E5BB5' : win.bg }}>{practice ? 'れんしゅう' : solo ? (r.miss ? 'まちがい直し' : 'ひとりで はやおし') : win.t}</span>
         {solo
-          ? <div className="vs"><div><span className="n display" id="bs-solo">{c}</span><span className="who">せいかい</span></div></div>
+          ? <div className="vs">
+            <div><span className="n display" id="bs-pts">{r.ptsChild}</span><span className="who">とくてん</span></div>
+            <span className="dash">／</span>
+            <div><span className="n display" id="bs-solo">{c}</span><span className="who">せいかい</span></div>
+          </div>
           : <div className="vs">
             <div><span className="n display" id="bs-adult">{a}</span><span className="who">おとな</span></div>
             <span className="dash">−</span>
             <div><span className="n display" id="bs-child">{c}</span><span className="who">こども</span></div>
           </div>}
+        {!solo && <p className="lede" id="bpts-line" style={{ margin: '6px 0 0', fontWeight: 700 }}>とくてん　おとな {r.ptsAdult}点 ／ こども {r.ptsChild}点</p>}
         <p className="lede" id="bmsg" style={{ margin: '10px 0 0' }}>{solo ? rankMsg('relay', rk.i) : win.m}</p>
         <div className="ranksash">
           <span className="rankbadge" id="brank" style={{ background: rk.color }}>{rk.name}</span>

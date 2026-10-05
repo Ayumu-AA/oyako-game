@@ -4,7 +4,10 @@ import { test, expect, type Page } from '@playwright/test';
 const VPS = [[390, 844, 'iPhone14'], [375, 667, 'iPhoneSE'], [430, 932, 'ProMax'], [360, 640, 'Android小']] as const;
 
 async function open(page: Page, seed?: Record<string, string>) {
-  if (seed) await page.addInitScript((s) => { for (const k in s) localStorage.setItem(k, s[k]); }, seed);
+  /* 当日は 早押しだけ あそべる 設定に しているので、テストでは ぜんぶ ひらく
+     （coming soon そのものは 専用の テストで たしかめる） */
+  const all = { 'oyako-allgames': '1', ...(seed || {}) };
+  await page.addInitScript((s) => { for (const k in s) localStorage.setItem(k, s[k]); }, all);
   await page.goto('./');
   await expect(page.locator('#s-title')).toBeVisible();
 }
@@ -527,7 +530,7 @@ for (const [w, h, tag] of VPS) {
   });
 }
 
-test('はやおし（ひとり）：1画面・回転なし・90秒・ランキングに のる', async ({ page }) => {
+test('はやおし（ひとり）：1画面・回転なし・90秒。ジャンルを しぼったら ランキングに のらない', async ({ page }) => {
   const errs = noErrors(page);
   await page.clock.install(); await page.clock.resume();   /* 90秒を 早送りして 結果画面まで 見る */
   await open(page);
@@ -562,15 +565,30 @@ test('はやおし（ひとり）：1画面・回転なし・90秒・ランキ�
   await expect(page.locator('#bwin')).toHaveText('ひとりで はやおし');
   await expect(page.locator('#bs-solo')).toHaveText('3');
   await expect(page.locator('#bs-adult')).toHaveCount(0);
-  await expect(page.locator('#btn-brank-view')).toBeVisible();   /* ひとりは ランキングに のる */
-  /* じこベストが この端末に のこる（90秒・こうがくねん） */
-  expect(await page.evaluate(() => localStorage.getItem('oyako-battle1-2-90'))).toBe('3');
-  /* 名前を 決めると、ひとりの 記録（battle1）が 送るキューに 積まれる */
+  await expect(page.locator('#btn-brank-view')).toBeVisible();   /* ボタンは 出る */
+  /* けいさんだけで あそんだので、ランキングには 送らない（ミックスだけが 対象） */
+  const q = await page.evaluate(() => JSON.parse(localStorage.getItem('oyako-queue') || '[]'));
+  expect(q.some((x: { k?: string; row?: { mode?: string } }) => x.k === 'score' && x.row?.mode === 'battle1')).toBe(false);
+  expect(errs).toEqual([]);
+});
+
+test('はやおし（ひとり）：ミックスは ランキングに のる（とくてんで）', async ({ page }) => {
+  const errs = noErrors(page);
+  await page.clock.install(); await page.clock.resume();
+  await open(page);
+  await nav(page, 1);
+  await page.click('[data-mode="battle1"]');
+  await page.click('#seg-subject button[data-v="mix"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  await page.clock.fastForward(95000);
+  await expect(page.locator('#s-bresult')).toBeVisible({ timeout: 8000 });
+  await expect(page.locator('#bs-pts')).toBeVisible();          /* とくてんが 出る */
   await page.click('#btn-brank-view');
   await page.fill('#nick-input', 'そら'); await page.click('#btn-nick-ok');
   await expect(page.locator('#s-rank')).toBeVisible({ timeout: 6000 });
   const q = await page.evaluate(() => JSON.parse(localStorage.getItem('oyako-queue') || '[]'));
-  expect(q.some((x: { k?: string; row?: { mode?: string; score?: number } }) => x.k === 'score' && x.row?.mode === 'battle1' && x.row?.score === 3)).toBe(true);
+  expect(q.some((x: { k?: string; row?: { mode?: string } }) => x.k === 'score' && x.row?.mode === 'battle1')).toBe(true);
   expect(errs).toEqual([]);
 });
 
@@ -620,18 +638,18 @@ test('1人でも クロスワードと ちずクイズが あそべる（役わ�
   expect(errs).toEqual([]);
 });
 
-test('はやおしバトル：赤いボタンを 取ったら 3秒以内・もじあては 1文字ずつ 4たく', async ({ page }) => {
+test('はやおしバトル：赤いボタンを 取ったら 3秒以内・もじうめは 1文字ずつ 4たく', async ({ page }) => {
   const errs = noErrors(page);
-  await open(page);
+  await open(page, { 'oyako-mojirate': '1' });
   await nav(page);
   await page.click('[data-mode="battle"]');
-  await page.click('#seg-subject button[data-v="moji"]');
+  /* もじうめは 1つの ジャンルでは なく 都道府県の 出題の 一部。テストでは かならず 出す */
+  await page.click('#seg-subject button[data-v="pref"]');
   await page.click('#btn-start');
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
   /* 取る前は こたえも もちじかんも 出ていない */
   await expect(page.locator('#anst-adult')).toBeHidden();
   await buzz(page, 'adult');
-  /* こたえの わくが 文字数ぶん、選たく肢は 1文字ぶんの 4つ（相手には 出ない） */
   const n = await page.locator('#side-adult .mchar').count();
   expect(n).toBeGreaterThan(1);
   /* 都道府県は 4たく、国旗は 2たく（どちらが 出るかは そのとき しだい） */
@@ -671,7 +689,7 @@ test('はやおしバトル：問題文が 左から 少しずつ 出る', async
   expect(errs).toEqual([]);
 });
 
-test('はやおし（ひとり）：どの きょうかでも 5秒で 区切られる', async ({ page }) => {
+test('はやおし（ひとり）：どの ジャンルでも ヒント3つぶん（9秒）で 区切られる', async ({ page }) => {
   const errs = noErrors(page);
   await open(page);
   await nav(page, 1);
@@ -679,21 +697,21 @@ test('はやおし（ひとり）：どの きょうかでも 5秒で 区切ら�
   await page.click('#seg-subject button[data-v="rekishi"]');
   await page.click('#btn-start');
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
-  /* 文が 出そろうまでは 時間は 動かず、出そろってから 5秒 */
+  /* 文が 出そろうまでは 時間は 動かず、出そろってから 9秒（ヒント3つぶん） */
   await expect(page.locator('#anst-child')).toBeVisible({ timeout: 8000 });
   const first = await page.locator('#side-child .qprog .ghost').textContent();
   /* 3.5秒では まだ 切られない（2人の 3秒より 長い）*/
   const t0 = Date.now();
   await page.waitForTimeout(3500);
   await expect(page.locator('#side-child')).not.toHaveClass(/locked/);
-  /* 何も しないと おてつき → つぎの問題へ。5秒あたりで 切られる */
-  await expect(page.locator('#side-child')).toHaveClass(/locked/, { timeout: 6000 });
-  expect(Date.now() - t0).toBeGreaterThan(1000);
+  /* 何も しないと おてつき → つぎの問題へ。9秒あたりで 切られる */
+  await expect(page.locator('#side-child')).toHaveClass(/locked/, { timeout: 9000 });
+  expect(Date.now() - t0).toBeGreaterThan(3000);
   await expect(page.locator('#side-child .qprog .ghost')).not.toHaveText(first!, { timeout: 6000 });
   expect(errs).toEqual([]);
 });
 
-test('はやおし（ひとり）：けいさんにも 5秒の もちじかんが つく', async ({ page }) => {
+test('はやおし（ひとり）：けいさんにも もちじかんが つく', async ({ page }) => {
   const errs = noErrors(page);
   await open(page);
   await nav(page, 1);
@@ -707,7 +725,31 @@ test('はやおし（ひとり）：けいさんにも 5秒の もちじかん�
   await page.waitForTimeout(3500);
   await expect(page.locator('#side-child')).not.toHaveClass(/locked/);
   /* 何も 押さないと 時間ぎれ → つぎの問題へ */
-  await expect(page.locator('#side-child')).toHaveClass(/locked/, { timeout: 6000 });
+  await expect(page.locator('#side-child')).toHaveClass(/locked/, { timeout: 9000 });
   await expect(page.locator('#side-child .qtext.num')).not.toHaveText(first!, { timeout: 6000 });
+  expect(errs).toEqual([]);
+});
+
+test('当日は 早押しだけ あそべる（ほかは COMING SOON）', async ({ page }) => {
+  const errs = noErrors(page);
+  await page.goto('./');
+  await expect(page.locator('#s-title')).toBeVisible();
+  await page.click('[data-players="2"]');
+  await page.click('[data-level="2"]');
+  await expect(page.locator('#s-games')).toBeVisible();
+  await expect(page.locator('[data-tile="battle"]')).toBeEnabled();
+  for (const k of ['relay', 'cross', 'geo']) {
+    await expect(page.locator(`[data-tile="${k}"]`)).toBeDisabled();
+  }
+  await expect(page.locator('[data-tile="relay"] .soontag')).toHaveText('COMING SOON');
+  /* 1人も 早押しだけ */
+  await page.click('#btn-games-back');
+  await page.click('#btn-level-back');
+  await page.click('[data-players="1"]');
+  await page.click('[data-level="2"]');
+  await expect(page.locator('[data-tile="battle1"]')).toBeEnabled();
+  for (const k of ['geo', 'math', 'numcross', 'cross']) {
+    await expect(page.locator(`[data-tile="${k}"]`)).toBeDisabled();
+  }
   expect(errs).toEqual([]);
 });

@@ -49,6 +49,7 @@ export interface BattleQ {
   sub?: Subject;
   disp?: Record<string, string>;   // 選たく肢の 表示（ことば：名前 → 意味）。answer/pool は 名前のまま
   /* もじあて：よみの 一部を ? にして、そこを 1文字ずつ 4たく（国旗は2たく）で うめる */
+  hints?: string[];   /* 3秒ごとに 1つずつ 出す ヒント（問題文の あとに つづく） */
   chars?: string[];                // こたえの よみ（ぜんぶ。? のところも 入っている）
   holes?: number[];                // ? のいち。この順に こたえる
   charOpts?: string[][];           // holes と 同じ数の 選たく肢

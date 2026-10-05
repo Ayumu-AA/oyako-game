@@ -6,6 +6,8 @@ test('一度 開いたあと オフラインでも 起動して 遊べる', asyn
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
   const page = await ctx.newPage();
   const errs: string[] = []; page.on('pageerror', (e) => errs.push(e.message));
+  /* 当日は 早押しだけ あそべる 設定なので、テストでは ぜんぶ ひらく */
+  await page.addInitScript(() => localStorage.setItem('oyako-allgames', '1'));
   await page.goto('./');
   await expect(page.locator('#s-title')).toBeVisible();
   /* SW が 入って 先読みが 終わるまで 待つ */

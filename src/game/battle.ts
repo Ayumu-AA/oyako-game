@@ -11,7 +11,15 @@ export const HANDI_WAIT = [0, 800, 1600];   /* けいさんのときの おと�
 export const NUMKEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 export const SOLO_OPTS = 4;   /* ひとりモードの 選たく肢の 数 */
 export const ANSWER_MS = 3000;        /* 2人：赤いボタンを 取ってから／もじあての 1文字ぶんの もちじかん */
-export const ANSWER_MS_SOLO = 5000;   /* ひとり：ひとりで じっくり 考えられるように 5秒 */
+export const ANSWER_MS_SOLO = 9000;   /* ひとり：ヒントが 3つ 出そろうまで（3秒×3） */
+/* ================= ポイント制 =================
+   問題文が 出そろった ときから 3秒ごとに 1だんかい 進む。
+   だんかいが 進むと ヒントが 1つ ふえ、とれる ポイントは へる。
+   → 早く こたえるほど 高い。ヒントは 3秒に 1つ、ぜんぶで 3つまで。 */
+export const HINT_STEP_MS = 3000;
+export const HINT_MAX = 3;                 /* 問題文（ヒント1）＋ あとから 出る 2つ */
+export const PTS_BY_STAGE = [3, 2, 1];     /* 0〜3秒＝3点、3〜6秒＝2点、6秒〜＝1点 */
+export const ptsAtStage = (st: number) => PTS_BY_STAGE[Math.min(st, PTS_BY_STAGE.length - 1)];
 export const MOJI_OPTS = 4;      /* もじあて（都道府県）の 1文字ぶんの 選たく肢の 数 */
 export const MOJI_OPTS_FLAG = 2; /* 国旗は 小学生には むずかしい国が まざるので 2たくに する */
 export const SOLO_SECONDS = 90;  /* ひとりの はやおしは いつも 90秒（ランキングを くらべられるように） */
@@ -19,7 +27,14 @@ export const BATTLE_CAP = 180;   /* 〇もん先取でも これ以上は つづ
 export const BSUBJ_ALL: (Subject)[] = ['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo', 'calc'];
 export type BattleSubj = 'mix' | 'miss' | 'moji' | Subject;   /* miss = まちがい帳から / moji = もじあて */
 /* ミックスに 出るもの。もじあても 仲間に 入れる */
-export const MIX_ALL: BattleSubj[] = ['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo', 'calc', 'moji'];
+export const MIX_ALL: BattleSubj[] = ['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo', 'calc'];
+/* もじうめは 1つの ジャンルでは なく、都道府県と 国旗の 出題の 一部として 出す（この わりあい） */
+export const MOJI_RATE = 0.34;
+/** もじうめを 出す わりあい。テストのときだけ 端末の つまみで 固定できる */
+export function mojiRate(): number {
+  try { const v = localStorage.getItem('oyako-mojirate'); if (v) return Number(v); } catch { /* つかえない端末 */ }
+  return MOJI_RATE;
+}
 /* 低学年には むずかしすぎるので ていがくねんでは 出さない ジャンル */
 export const LV1_SKIP: BattleSubj[] = ['rika', 'rekishi', 'eigo'];
 export const okSubj = (v: BattleSubj, lv: Level) => lv === 2 || !LV1_SKIP.includes(v);
@@ -135,6 +150,7 @@ export class BattleSession {
   pools: Partial<Record<Subject, RelayQ[]>> = {};
   recent: Record<string, string[]> = {};
   score: Record<Side, number> = { adult: 0, child: 0 };
+  pts: Record<Side, number> = { adult: 0, child: 0 };   /* とくてん（早いほど 高い） */
   input: Record<Side, string> = { adult: '', child: '' };
   q: BattleQ | null = null;
   last: BattleQ | null = null;   // へぇ 用（fact を持つ 最後の正解）
@@ -197,6 +213,11 @@ export class BattleSession {
     const key = keys[Math.floor(rng() * keys.length)] as Subject | 'moji';
     if (key === 'moji') return this.mojiQ();
     if (key === 'calc') return calcQuestion(this.opts.level);
+    /* 都道府県・国旗は ときどき もじうめ（〇文字目が『か』の県は？／国名の もじうめ）で 出す */
+    if ((key === 'pref' || key === 'flag') && rng() < mojiRate()) {
+      const mq = this.mojiQ(key);
+      if (mq.chars) return mq;        /* 作れなかった ときは ふつうの問題に もどす */
+    }
     const deck = this.pools[key];
     if (!deck || !deck.length) return calcQuestion(this.opts.level);
     const q = this.pickFromDeck(key, deck);
@@ -204,8 +225,8 @@ export class BattleSession {
   }
 
   /** もじあて（みんはや式）。都道府県か 国の名前を、よみの 1文字ずつ 4たくで えらぶ */
-  mojiQ(): BattleQ {
-    const key: Subject = rng() < 0.5 ? 'pref' : 'flag';
+  mojiQ(only?: 'pref' | 'flag'): BattleQ {
+    const key: Subject = only || (rng() < 0.5 ? 'pref' : 'flag');
     const deck = this.pools[key];
     if (!deck || !deck.length) return calcQuestion(this.opts.level);
     const q = this.pickFromDeck(key, deck);
@@ -263,11 +284,15 @@ export class BattleSession {
       disp = {};
       deck.forEach((x) => { const r = KOKUGO_REI[x.name]; if (r) disp![x.name] = r.imi; });
     }
-    else { text = pickN(q.hints, 2).join('・'); }
+    else { text = q.hints[0] || ''; }
+    /* 3秒ごとに 1つずつ 出す ヒント。問題文に つかった ぶんは のぞく */
+    const used = key === 'pref' || key === 'rika' || key === 'rekishi' ? 1 : 0;
+    const more = q.hints.slice(used).filter((h) => h && h !== text);
+    const hints = pickN(more, Math.max(0, HINT_MAX - 1)).slice(0, HINT_MAX - 1);
     const pool = battlePool(key, deck, q);
     const ymap: Record<string, string> = {};
     deck.forEach((x) => { ymap[x.name] = x.yomi; });
-    return { art, text, num: false, answer: q.name, pool, fact: q.fact, yomi: ymap, sub: key, disp };
+    return { art, text, num: false, answer: q.name, pool, fact: q.fact, yomi: ymap, sub: key, disp, hints };
   }
 
   /** つぎの問題へ。両側の選たく肢も ここで決める */
@@ -302,10 +327,11 @@ export class BattleSession {
   bothTried(): boolean { return this.tried.adult && this.tried.child; }
 
   /** 正解。戻り値 true なら 〇もん先取に とどいた */
-  correct(side: Side): boolean {
+  correct(side: Side, gain = PTS_BY_STAGE[0]): boolean {
     const q = this.q!;
     this.done = true;
     this.score[side]++;
+    this.pts[side] += gain;
     if (q.fact) this.last = q;
     markHit(q.sub, q.answer);
     return !!this.opts.goal && this.score[side] >= this.opts.goal;
