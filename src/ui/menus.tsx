@@ -264,8 +264,12 @@ export function bestLine(mode: Mode, s: Settings): string {
 
 export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; s: Settings; onChange: (p: Partial<Settings>) => void; onStart: () => void; onBack: () => void }) {
   const [rules, setRules] = useState(false);
+  /* ひとりの はやおしは「ランキングに のる」か「れんしゅう」かを 先に えらぶ */
+  const [entry, setEntry] = useState<'none' | 'rank' | 'practice'>('none');
   const isBattle = mode === 'battle', isCross = mode === 'cross', isNum = mode === 'numcross', isMath = mode === 'math', geo = isGeo(mode);
   const solo = isBattle && s.players === 1;
+  /* まちがい直しは えらぶ 余地が ないので 今までどおり */
+  const twoWay = solo && s.bsubj !== 'miss';
   const soloCross = isCross && s.players === 1;   /* 1人の クロスワード：役わりの わりふりは 出さない */
   const missN = missCount();
   const showRole = !(isMath || isBattle || isCross || isNum || geo);
@@ -300,7 +304,7 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
           <div className="rs tate"><b>タテのカギ</b><span className="arrow">↓</span><span className="who">おとな</span></div>
         </div>
 
-        {isBattle && <PickGrid id="seg-subject" label="ジャンル" cols={5} value={s.bsubj} onPick={(v) => onChange({ bsubj: v })}
+        {isBattle && (!twoWay || entry === 'practice') && <PickGrid id="seg-subject" label="ジャンル" cols={5} value={s.bsubj} onPick={(v) => onChange({ bsubj: v })}
           options={([{ v: 'mix', b: 'ミックス' }, { v: 'pref', b: '都道府県' }, { v: 'flag', b: '国旗' }, { v: 'kokugo', b: 'ことば' }, { v: 'rika', b: 'りか' }, { v: 'rekishi', b: 'れきし' }, { v: 'eigo', b: 'えいご' }, { v: 'calc', b: 'けいさん' }] as { v: Settings['bsubj']; b: string }[])
             .filter((o) => okSubj(o.v as BattleSubj, s.level))   /* ていがくねんには りか・れきし・えいごを 出さない */
             .concat(missN > 0 ? [{ v: 'miss' as Settings['bsubj'], b: 'まちがい' }] : [])} />}
@@ -329,10 +333,33 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
           </div>
         </div>
 
-        <p className="best" id="best-line">{bestLine(mode, s)}</p>
+        {twoWay && entry === 'none' && (
+          <div className="modes colortiles" id="solo-entry">
+            <button className="mode wide" data-tile="battle1" data-entry="rank" id="btn-entry-rank"
+              onClick={() => { onChange({ bsubj: 'mix', practice: false }); setEntry('rank'); }}>
+              <Raw className="icon" html={TILE_SVG.battle1} />
+              <span><b>ランキング</b><small>ミックス・90秒・とくてんで きそう</small></span>
+            </button>
+            <button className="mode wide" data-tile="miss1" data-entry="practice" id="btn-entry-practice"
+              onClick={() => { onChange({ practice: true }); setEntry('practice'); }}>
+              <Raw className="icon" html={TILE_SVG.battle} />
+              <span><b>練習</b><small>ジャンルを えらぶ・きろくに のこりません</small></span>
+            </button>
+          </div>
+        )}
+
+        {twoWay && entry === 'rank' && (
+          <div className="entrynote" id="rank-note">
+            <b>ランキングに のる モード</b>
+            <p>ジャンルは <b>ミックス</b>、時間は <b>90秒</b>。早く こたえるほど とくてんが 高くなります。</p>
+          </div>
+        )}
+
+        <p className="best" id="best-line">{twoWay && entry === 'none' ? '' : bestLine(mode, s)}</p>
         <div className="spacer"></div>
-        <button className="btn btn-go" id="btn-start" onClick={onStart}>はじめる</button>
-        <button className="btn btn-ghost" id="btn-how-back" onClick={onBack}>もどる</button>
+        {(!twoWay || entry !== 'none') && <button className="btn btn-go" id="btn-start" onClick={onStart}>はじめる</button>}
+        <button className="btn btn-ghost" id="btn-how-back"
+          onClick={() => { if (twoWay && entry !== 'none') { onChange({ practice: false }); setEntry('none'); } else onBack(); }}>もどる</button>
       </section>
 
       <div className="overlay" id="rules-ov" hidden={!rules} role="dialog" aria-modal="true" aria-labelledby="rules-title" onClick={(e) => { if (e.target === e.currentTarget) setRules(false); }}>

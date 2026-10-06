@@ -40,7 +40,6 @@ export default function App() {
   const pendingScore = useRef<ScoreRow | null>(null);        // 名前が 無くて 送れなかった 今回の点数
   const [rankMode, setRankMode] = useState<Mode>('pref');
   const howGroup = useRef<Group | null>(null);   // あそびかた画面へ どこから来たか（もどる先）
-  const practice = useRef(false);                // れんしゅう中は ランキングに 送らない
 
   const change = useCallback((p: Partial<Settings>) => setS((x) => ({ ...x, ...p })), []);
   const go = useCallback((sc: Screen) => { setScreen(sc); window.scrollTo(0, 0); if (sc === 'title' || sc === 'games') setMissN(missCount()); }, []);
@@ -68,6 +67,7 @@ export default function App() {
      battle1 = 1人の はやおし、miss1 = 1人の まちがい直し（はやおしの きょうか＝まちがい） */
   const openHow = (m: Mode) => {
     const hasMiss = missCount() > 0;
+    setS((x) => ({ ...x, practice: false }));
     if (m === 'miss1') { setS((x) => ({ ...x, bsubj: 'miss' })); setMode('battle'); }
     else if (m === 'battle1' || m === 'battle') { setS((x) => ({ ...x, bsubj: (x.bsubj === 'miss' && !hasMiss) ? 'mix' : x.bsubj })); setMode('battle'); }
     else setMode(m);
@@ -84,7 +84,6 @@ export default function App() {
   };
   const start = (same = false) => {
     if (mode === 'miss' && missCount() === 0) { go('title'); return; }
-    practice.current = false;
     setRound((r) => r + 1);
     if (mode === 'cross') { setCwForce(same ? cwCur.current : null); go('cross'); return; }
     if (mode === 'numcross') { go('numcross'); return; }
@@ -117,7 +116,7 @@ export default function App() {
        ・ジャンルを 1つに しぼると 出る問題が ちがうので、ミックスだけを くらべる
        ・まちがい直しは 人によって 出る問題が ちがう
        のせる 数字は「とくてん」（早く こたえるほど 高い） */
-    if (r.players === 1 && !r.miss && !practice.current && r.bsubj === 'mix') {
+    if (r.players === 1 && !r.miss && !r.practice && r.bsubj === 'mix') {
       submitScore({ event_code: eventCode(), mode: 'battle1', level: s.level, seconds: r.seconds, score: r.ptsChild, rank_i: rankOf('relay', r.child, r.seconds).i, nickname: '' });
       const key = bestKey('battle1', s.level, r.seconds);
       if (r.ptsChild > Number(store(key) || 0)) store(key, String(r.ptsChild));
@@ -149,12 +148,12 @@ export default function App() {
       {screen === 'count' && <CountScreen mode={mode} role={s.role} players={s.players} onDone={afterCount} />}
       {screen === 'play' && <PlayScreen key={round} mode={mode} level={s.level} seconds={s.seconds} role={s.role} onFinish={finishPlay} onRestart={restart} onQuit={quit} onEmpty={() => go('title')} />}
       {screen === 'geo' && <GeoScreen key={round} mode={mode} level={s.level} seconds={s.seconds} onFinish={finishPlay} onRestart={restart} onQuit={quit} />}
-      {screen === 'battle' && <BattleScreen key={round} level={s.level} bsubj={s.bsubj} handi={s.handi} goal={s.players === 1 ? 0 : s.goal} players={s.players}
+      {screen === 'battle' && <BattleScreen key={round} level={s.level} bsubj={s.bsubj} handi={s.handi} goal={s.players === 1 ? 0 : s.goal} players={s.players} practice={s.practice}
         seconds={s.players === 1 ? SOLO_SECONDS : s.seconds} onFinish={finishBattle} onRestart={restart} onQuit={quit} />}
       {screen === 'cross' && <CrossScreen key={round} level={s.level} kana={s.kana} players={s.players} prevIdx={cwIdx} forceIdx={cwForce} onIdx={(i) => { cwCur.current = i; }} onFinish={(r) => { setCr(r); if (r.idx !== undefined) setCwIdx(r.idx); go('cresult'); }} onRestart={restart} onQuit={quit} />}
       {screen === 'numcross' && <NumCrossScreen key={round} level={s.level} onFinish={(r) => { setCr(r); go('cresult'); }} onRestart={restart} onQuit={quit} />}
       {screen === 'result' && pr && <ResultScreen r={pr} onAgain={() => go('how')} onMiss={() => { if (missCount()) openHow('miss'); }} onTitle={() => go('title')} onRank={rankable(pr.mode) ? () => rankFromResult(pr.mode) : undefined} />}
-      {screen === 'bresult' && br && <BResultScreen r={br} practice={practice.current} onAgain={() => go('how')} onPractice={() => { practice.current = true; setRound((r) => r + 1); go('battle'); }} onMiss={() => { if (missCount()) openHow('miss'); }} onTitle={() => go('title')} onRank={() => rankFromResult('battle1')} />}
+      {screen === 'bresult' && br && <BResultScreen r={br} practice={!!br.practice} onAgain={() => go('how')} onPractice={() => { change({ practice: true }); setRound((r) => r + 1); go('battle'); }} onMiss={() => { if (missCount()) openHow('miss'); }} onTitle={() => go('title')} onRank={() => rankFromResult('battle1')} />}
       {screen === 'rank' && <RankingScreen mode0={rankMode} level0={s.level} nick={nick} onBack={() => go('title')} onName={() => askName(() => undefined)} />}
       <NameSheet open={nameOpen} level={s.level} onDone={onNamed} onCancel={() => { setNameOpen(false); nameThen.current = null; }} />
       {screen === 'cresult' && cr && <CResultScreen r={cr} onAgain={() => { setRound((r) => r + 1); go(mode === 'numcross' ? 'numcross' : 'cross'); }} onTitle={() => go('title')} />}

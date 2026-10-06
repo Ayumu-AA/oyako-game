@@ -18,7 +18,7 @@ import { Hee, PauseButton, PauseOverlay, Promo, Raw, usePauseKeys, useResultLock
 import type { BattleResult } from './state';
 
 export interface BattleProps {
-  level: Level; seconds: number; bsubj: BattleSubj; handi: number; goal: number;
+  level: Level; seconds: number; bsubj: BattleSubj; handi: number; goal: number; practice?: boolean;
   players: 1 | 2;   /* 1 = ひとりモード。こども側だけを 回転なしで 出す */
   onFinish: (r: BattleResult) => void; onRestart: () => void; onQuit: () => void;
 }
@@ -28,7 +28,7 @@ const sideZero = (): SideUI => ({ opts: [], flash: false, locked: false, waiting
 /** 回答権の ようす。2人のときだけ 意味がある */
 type Turn = { owner: Side | null; tried: Record<Side, boolean>; reveal: boolean };
 
-export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFinish, onRestart, onQuit }: BattleProps) {
+export function BattleScreen({ level, seconds, bsubj, handi, goal, players, practice, onFinish, onRestart, onQuit }: BattleProps) {
   const solo = players === 1;
   const sess = useRef<BattleSession | null>(null);
   const [q, setQ] = useState<BattleQ | null>(null);
@@ -131,7 +131,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, onFi
     later(() => {
       setFin(false);
       const sec = goal ? Math.max(1, Math.round((Date.now() - (t0.current || Date.now())) / 1000)) : seconds;
-      onFinishRef.current({ adult: s.score.adult, child: s.score.child, ptsAdult: s.pts.adult, ptsChild: s.pts.child, bsubj, goal, seconds: sec, players, miss: bsubj === 'miss', last: s.last ? { answer: s.last.answer, fact: s.last.fact || '' } : null });
+      onFinishRef.current({ adult: s.score.adult, child: s.score.child, ptsAdult: s.pts.adult, ptsChild: s.pts.child, bsubj, practice, goal, seconds: sec, players, miss: bsubj === 'miss', last: s.last ? { answer: s.last.answer, fact: s.last.fact || '' } : null });
     }, 1400);
   }, [goal, seconds, players, bsubj, stopAns, stopRev]);
 

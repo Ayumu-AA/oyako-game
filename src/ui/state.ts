@@ -15,6 +15,7 @@ export interface Settings {
   goal: number;              // 0 = じかん
   players: 1 | 2;            // はやおし：2人で対戦 ／ ひとりであそぶ
   kana: 'R' | 'L' | 'F';       // 50音の ならび：みぎから／ひだりから／フリック
+  practice: boolean;         // れんしゅう＝ランキングに 送らない
 }
 
 export function loadSettings(): Settings {
@@ -24,6 +25,7 @@ export function loadSettings(): Settings {
     level: 2, seconds: 90, role: 'child', bsubj: 'mix', handi: 1, players: 2,
     goal: (g !== null && g !== '') ? Number(g) : 10,
     kana: (k === 'R' || k === 'L' || k === 'F') ? k : 'R',
+    practice: false,
   };
 }
 
@@ -43,7 +45,8 @@ export interface PlayResult {
 export interface BattleResult {
   adult: number; child: number; goal: number; seconds: number;
   ptsAdult: number; ptsChild: number;   // とくてん（早いほど 高い）
-  bsubj?: string;                       // どの ジャンルで あそんだか（ランキングは ミックスだけ）   // seconds = 実際にかかった秒（先取）か 制限時間
+  bsubj?: string;                       // どの ジャンルで あそんだか（ランキングは ミックスだけ）
+  practice?: boolean;                   // れんしゅう＝ランキングに 送らない   // seconds = 実際にかかった秒（先取）か 制限時間
   players: 1 | 2;   // 1 = ひとりモード（こども側の 点だけを 見る）
   miss?: boolean;   // まちがい直しで あそんだか
   last: { answer: string; fact: string } | null;

@@ -540,6 +540,9 @@ test('はやおし（ひとり）：1画面・回転なし・90秒。ジャン�
   await expect(page.locator('#seg-players')).toHaveCount(0);   /* 人数は 1画面目で 決めた */
   await expect(page.locator('#seg-goal')).toHaveCount(0);      /* 5もん・10もんは なし。せいげん時間だけ */
   await expect(page.locator('#seg-handi')).toHaveCount(0);     /* 相手が いないので ハンデも なし */
+  /* 入口の 2択。ジャンルを えらぶのは「練習」のほう */
+  await expect(page.locator('#seg-subject')).toHaveCount(0);
+  await page.click('#btn-entry-practice');
   await page.click('#seg-subject button[data-v="calc"]');
   await page.click('#btn-start');
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
@@ -562,7 +565,7 @@ test('はやおし（ひとり）：1画面・回転なし・90秒。ジャン�
   }
   await page.clock.fastForward(95000);
   await expect(page.locator('#s-bresult')).toBeVisible({ timeout: 8000 });
-  await expect(page.locator('#bwin')).toHaveText('ひとりで はやおし');
+  await expect(page.locator('#bwin')).toHaveText('れんしゅう');   /* 練習の 入口から 入った */
   await expect(page.locator('#bs-solo')).toHaveText('3');
   await expect(page.locator('#bs-adult')).toHaveCount(0);
   await expect(page.locator('#btn-brank-view')).toBeVisible();   /* ボタンは 出る */
@@ -578,7 +581,9 @@ test('はやおし（ひとり）：ミックスは ランキングに のる（
   await open(page);
   await nav(page, 1);
   await page.click('[data-mode="battle1"]');
-  await page.click('#seg-subject button[data-v="mix"]');
+  await page.click('#btn-entry-rank');
+  await expect(page.locator('#rank-note')).toBeVisible();   /* 「開始」と「もどる」だけの 画面 */
+  await expect(page.locator('#seg-subject')).toHaveCount(0);
   await page.click('#btn-start');
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
   await page.clock.fastForward(95000);
@@ -694,6 +699,7 @@ test('はやおし（ひとり）：どの ジャンルでも ヒント3つぶ�
   await open(page);
   await nav(page, 1);
   await page.click('[data-mode="battle1"]');
+  await page.click('#btn-entry-practice');
   await page.click('#seg-subject button[data-v="rekishi"]');
   await page.click('#btn-start');
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
@@ -716,6 +722,7 @@ test('はやおし（ひとり）：けいさんにも もちじかんが つく
   await open(page);
   await nav(page, 1);
   await page.click('[data-mode="battle1"]');
+  await page.click('#btn-entry-practice');
   await page.click('#seg-subject button[data-v="calc"]');
   await page.click('#btn-start');
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
