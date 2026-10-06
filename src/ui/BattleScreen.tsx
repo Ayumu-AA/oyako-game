@@ -3,6 +3,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BattleSession, BATTLE_CAP, NUMKEYS, ANSWER_MS, ANSWER_MS_SOLO, HINT_STEP_MS, ptsAtStage } from '../game/battle';
 
 const REVEAL_MS = 70;   /* 問題文を 1文字ずつ 出す はやさ（クイズ番組ふう） */
+/* まちがえた（または 時間ぎれ）の あと、こたえを 見せておく 時間。
+   つぎの問題に 行く前に かならず 答えが 目に 入るように する */
+const ANS_SHOW_MS = 2000;
+const NEXT_WAIT_MS = 1500;   /* 2人で 相手に 回るときは こたえを 見せないので みじかく */
 /** 少しずつ 出すのは けいさん いがい ぜんぶ（もじあて・国旗・えいごも 文は 少しずつ） */
 const isProg = (q: BattleQ | null) => !!(q && !q.num);
 /** こたえる もちじかん。ひとりは 5秒、2人の 取り合いは 3秒 */
@@ -187,19 +191,23 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
   const battleWrong = (side: Side) => {
     const s = sess.current!;
     s.wrong(side);
-    /* 2人とも まちがえたら こたえを 見せて つぎの問題へ。1人なら 同じ問題を もう一度 */
+    /* つぎの問題に 行く前に こたえを 見せるのは、
+       ・ひとりモードで まちがえた（または 時間ぎれ）とき
+       ・2人とも まちがえたとき
+       2人で 相手に 回るときは、まだ こたえを 見せない */
     const both = players === 2 && s.bothTried();
-    stopAns();
-    syncTurn(s, both);
+    const show = both || players === 1;
+    stopAns(); stopStage();
+    syncTurn(s, show);
     setSide(side, { locked: true, input: '' });
     later(() => {
       setSide(side, { locked: false });
       if (finished.current) return;
       /* ひとりモードは もちじかんで 区切るので、まちがえたら つぎの問題へ（同じ問題を くり返さない） */
-      if (both || players === 1) { nextBattle(); return; }
+      if (show) { nextBattle(); return; }
       /* 2人で 相手が まだ 押していないなら、問題文の つづきを 出す */
       if (isProg(sess.current && sess.current.q)) runRev(sess.current!.q);
-    }, 1500);
+    }, show ? ANS_SHOW_MS : NEXT_WAIT_MS);
   };
   const onChoice = (side: Side, a: string) => {
     const s = sess.current; if (!s || s.done || pausedRef.current || !s.q) return;

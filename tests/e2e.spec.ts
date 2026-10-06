@@ -713,8 +713,8 @@ test('はやおし（ひとり）：どの ジャンルでも ヒント3つぶ�
   const t0 = Date.now();
   await page.waitForTimeout(3500);
   await expect(page.locator('#side-child')).not.toHaveClass(/locked/);
-  /* 何も しないと おてつき → つぎの問題へ。9秒あたりで 切られる */
-  await expect(page.locator('#side-child')).toHaveClass(/locked/, { timeout: 9000 });
+  /* 何も しないと 時間ぎれ。こたえを 数秒 見せてから つぎの問題へ */
+  await expect(page.locator('#side-child .bans')).toBeVisible({ timeout: 9000 });
   expect(Date.now() - t0).toBeGreaterThan(3000);
   await expect(page.locator('#side-child .qprog .ghost')).not.toHaveText(first!, { timeout: 6000 });
   expect(errs).toEqual([]);
@@ -734,8 +734,8 @@ test('はやおし（ひとり）：けいさんにも もちじかんが つく
   const first = await page.locator('#side-child .qtext.num').textContent();
   await page.waitForTimeout(3500);
   await expect(page.locator('#side-child')).not.toHaveClass(/locked/);
-  /* 何も 押さないと 時間ぎれ → つぎの問題へ */
-  await expect(page.locator('#side-child')).toHaveClass(/locked/, { timeout: 9000 });
+  /* 何も 押さないと 時間ぎれ。こたえを 見せてから つぎの問題へ */
+  await expect(page.locator('#side-child .bans')).toBeVisible({ timeout: 9000 });
   await expect(page.locator('#side-child .qtext.num')).not.toHaveText(first!, { timeout: 6000 });
   expect(errs).toEqual([]);
 });
@@ -761,5 +761,26 @@ test('当日は 早押しだけ あそべる（ほかは COMING SOON）', async 
   for (const k of ['geo', 'math', 'numcross', 'cross']) {
     await expect(page.locator(`[data-tile="${k}"]`)).toBeDisabled();
   }
+  expect(errs).toEqual([]);
+});
+
+test('ひとりで まちがえたら こたえを 数秒 見せてから つぎへ', async ({ page }) => {
+  const errs = noErrors(page);
+  await open(page);
+  await nav(page, 1);
+  await page.click('[data-mode="battle1"]');
+  await page.click('#btn-entry-practice');
+  await page.click('#seg-subject button[data-v="rekishi"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  const q1 = await page.locator('#side-child .qprog .ghost').textContent();
+  /* 何も しないと 時間ぎれ → こたえが 出る */
+  await expect(page.locator('#side-child .bans')).toBeVisible({ timeout: 12000 });
+  await expect(page.locator('#side-child .bans')).toContainText('こたえは');
+  /* こたえを 見せている あいだは「おてつき」の 色に しない（読めるように） */
+  await expect(page.locator('#side-child')).not.toHaveClass(/locked/);
+  /* そのあと つぎの問題へ */
+  await expect(page.locator('#side-child .bans')).toHaveCount(0, { timeout: 6000 });
+  await expect(page.locator('#side-child .qprog .ghost')).not.toHaveText(q1!, { timeout: 6000 });
   expect(errs).toEqual([]);
 });
