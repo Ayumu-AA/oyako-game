@@ -60,4 +60,4 @@ export interface BattleQ {
 
 export type Side = 'adult' | 'child';
 
-export type RankKind = 'relay' | 'math' | 'battle';
+export type RankKind = 'relay' | 'math' | 'battle' | 'battle1';

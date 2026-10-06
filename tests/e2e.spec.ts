@@ -603,8 +603,11 @@ test('はやおしバトル：まちがい直しは 帳から 出る・ランキ
   await open(page, { 'oyako-miss': JSON.stringify({ 'rekishi:徳川家康': { n: 1, t: Date.now() } }) });
   await nav(page);
   await page.click('[data-mode="battle"]');
-  await expect(page.locator('#seg-subject button[data-v="miss"]')).toBeVisible();
-  await page.click('#seg-subject button[data-v="miss"]');
+  /* まちがい直しは ジャンルでは なく「べつわく」のボタン */
+  await expect(page.locator('#seg-subject button[data-v="miss"]')).toHaveCount(0);
+  await expect(page.locator('#btn-miss-only')).toBeVisible();
+  await page.click('#btn-miss-only');
+  await expect(page.locator('#btn-miss-only')).toHaveAttribute('aria-pressed', 'true');
   await page.click('#seg-goal button[data-v="5"]');
   await page.click('#btn-start');
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });

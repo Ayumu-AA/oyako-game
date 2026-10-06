@@ -349,13 +349,14 @@ function BattleSide({ side, q, u, players, turn, ans, rev, stage, onChoice, onBu
         ) : <Raw as="p" className={'qtext' + (q && q.disp ? ' long' : '')} html={q ? furi(q.text) : ''} />}
       {/* 「〇文字目が『が』の都道府県は？」の ときは、同じ条件の 仲間を 大きく 見せておく
           （写真の 山形・新潟 と 同じ。あてはまる 字は 赤く） */}
-      {/* 3秒ごとに ふえる ヒント。いま こたえると 何点かも ここに 出す */}
+      {/* 3秒ごとに 入れかわる ヒント（前のは 消える）。いま こたえると 何点かも ここに 出す */}
       {q && !q.num && !turn.reveal ? (
         <div className="hintbox">
           <span className="ptsnow" id={'pts-' + side}>{ptsAtStage(stage)}点</span>
-          {(q.hints || []).slice(0, stage).map((h, i) => (
-            <Raw as="span" className="hintline" key={i} html={'ヒント' + (i + 2) + '：' + furi(h)} />
-          ))}
+          {stage > 0 && (q.hints || [])[stage - 1]
+            ? <Raw as="span" className="hintline" key={stage} id={'hint-' + side}
+              html={'<i>ヒント' + (stage + 1) + '</i>' + furi((q.hints || [])[stage - 1])} />
+            : <span className="hintwait">わかったら はやく！</span>}
         </div>
       ) : null}
       {q && q.shown && q.shown.length ? (
@@ -430,7 +431,7 @@ export function BResultScreen({ r, practice, onAgain, onPractice, onMiss, onTitl
   const win = a > c ? { t: 'おとなの かち', bg: '#1B4965', m: 'さすが。つぎはハンデを増やしてみよう。' }
     : c > a ? { t: 'こどもの かち', bg: '#E0452F', m: 'はやい！おとなに勝ったね。' }
       : { t: 'ひきわけ', bg: '#7E93A0', m: 'いい勝負。もう一回やって決着をつけよう。' };
-  const kind = solo ? 'relay' : 'battle';
+  const kind = solo ? 'battle1' : 'battle';
   const tot = solo ? c : a + c;
   const rk = rankOf(kind, tot, r.seconds);
   const nx = rankNext(kind, tot, r.seconds);
@@ -451,7 +452,7 @@ export function BResultScreen({ r, practice, onAgain, onPractice, onMiss, onTitl
             <div><span className="n display" id="bs-child">{c}</span><span className="who">こども</span></div>
           </div>}
         {!solo && <p className="lede" id="bpts-line" style={{ margin: '6px 0 0', fontWeight: 700 }}>とくてん　おとな {r.ptsAdult}点 ／ こども {r.ptsChild}点</p>}
-        <p className="lede" id="bmsg" style={{ margin: '10px 0 0' }}>{solo ? rankMsg('relay', rk.i) : win.m}</p>
+        <p className="lede" id="bmsg" style={{ margin: '10px 0 0' }}>{solo ? rankMsg('battle1', rk.i) : win.m}</p>
         <div className="ranksash">
           <span className="rankbadge" id="brank" style={{ background: rk.color }}>{rk.name}</span>
           <p className="rankpace" id="brank-pace">{solo ? '' : '2人あわせて '}{rankLine(tot, r.seconds)}{r.goal ? '（' + r.goal + 'もん' + (solo ? 'で おわり' : '先取') + '）' : ''}</p>
@@ -459,7 +460,7 @@ export function BResultScreen({ r, practice, onAgain, onPractice, onMiss, onTitl
         </div>
       </div>
       {r.last ? <Hee prefix="b" name={r.last.answer} text={r.last.fact + '。'} />
-        : <Hee prefix="b" name="はやおしのコツ" text="あせってまちがえると1.5秒お休み。あわてず確実にいくほうが速いことが多い。" />}
+        : <Hee prefix="b" name="はやおしのコツ" text={solo ? "ヒントが ふえる前に こたえると 点が 高い。わかった しゅんかんに 押そう。" : "あせってまちがえると1.5秒お休み。あわてず確実にいくほうが速いことが多い。"} />}
       <Promo prefix="b" />
       <button className="btn btn-go" id="btn-bagain" onClick={onAgain} disabled={lock > 0}>{lock > 0 ? 'けっかを 見てね… ' + lock : 'もういちど'}</button>
       {/* 「ランキング」と「練習する」は どちらのモードでも 出す（まちがい直しの ときだけ 出さない） */}

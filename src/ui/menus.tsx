@@ -306,8 +306,19 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
 
         {isBattle && (!twoWay || entry === 'practice') && <PickGrid id="seg-subject" label="ジャンル" cols={5} value={s.bsubj} onPick={(v) => onChange({ bsubj: v })}
           options={([{ v: 'mix', b: 'ミックス' }, { v: 'pref', b: '都道府県' }, { v: 'flag', b: '国旗' }, { v: 'kokugo', b: 'ことば' }, { v: 'rika', b: 'りか' }, { v: 'rekishi', b: 'れきし' }, { v: 'eigo', b: 'えいご' }, { v: 'calc', b: 'けいさん' }] as { v: Settings['bsubj']; b: string }[])
-            .filter((o) => okSubj(o.v as BattleSubj, s.level))   /* ていがくねんには りか・れきし・えいごを 出さない */
-            .concat(missN > 0 ? [{ v: 'miss' as Settings['bsubj'], b: 'まちがい' }] : [])} />}
+            .filter((o) => okSubj(o.v as BattleSubj, s.level))} />}
+
+        {/* まちがい直しは ジャンルでは ないので べつわくに する（色も ジャンルと 変える） */}
+        {isBattle && missN > 0 && (!twoWay || entry === 'practice') && (
+          <div className="pickrow missrow" id="row-missonly">
+            <span className="picklabel">べつわく</span>
+            <button type="button" className="misspick" id="btn-miss-only" aria-pressed={s.bsubj === 'miss'}
+              onClick={() => onChange({ bsubj: s.bsubj === 'miss' ? 'mix' : 'miss' })}>
+              <span className="mi" aria-hidden="true">✓</span>
+              <span><b>まちがい直し</b><small>まちがえた {missN}もんだけ 出す</small></span>
+            </button>
+          </div>
+        )}
 
         {/* ひとりモードは せいげん時間だけ。〇もん先取は 相手が いてこそ */}
         {isBattle && !solo && <PickGrid id="seg-goal" label="しょうぶの きめかた" cols={3} value={s.goal} onPick={(v) => { onChange({ goal: v }); store('oyako-goal', String(v)); }}
