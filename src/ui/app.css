@@ -1121,7 +1121,7 @@
     background-image:
       repeating-linear-gradient(to right, rgba(140,200,255,.10) 0 1px, transparent 1px 58px),
       repeating-linear-gradient(to bottom, rgba(140,200,255,.10) 0 1px, transparent 1px 58px);
-    animation:sbGrid 90s linear infinite;
+    animation:sbGrid 72s linear infinite;
   }
   @keyframes sbGrid{ to{ transform:translate3d(58px,58px,0); } }
   /* ななめの 光。ゆっくり 横切る */
@@ -1130,8 +1130,8 @@
     background:linear-gradient(90deg, rgba(120,190,255,0) 0%, rgba(120,190,255,.16) 50%, rgba(120,190,255,0) 100%);
     filter:blur(26px); transform:rotate(16deg);
   }
-  .schoolbg .sb-b1{ left:-20%; animation:sbBeam 34s ease-in-out infinite; }
-  .schoolbg .sb-b2{ left:40%; animation:sbBeam 47s ease-in-out infinite reverse; }
+  .schoolbg .sb-b1{ left:-20%; animation:sbBeam 27s ease-in-out infinite; }
+  .schoolbg .sb-b2{ left:40%; animation:sbBeam 38s ease-in-out infinite reverse; }
   @keyframes sbBeam{ 0%,100%{ transform:rotate(16deg) translateX(-14%); } 50%{ transform:rotate(16deg) translateX(34%); } }
   /* 右上の 大きな PLOW */
   .schoolbg .sb-word{
@@ -1284,3 +1284,95 @@
     .misspick small{font-size:10px}
     .misspick .mi{width:22px;height:22px;font-size:12px}
   }
+
+  /* ================= くらい背景の うえの ボタン（写真の 見た目に あわせる） ================= */
+  .wrap.night .colortiles .mode{
+    border-radius:20px;
+    background-image:linear-gradient(140deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,.04) 42%, rgba(0,0,0,.10) 100%);
+    box-shadow:
+      0 12px 26px rgba(4,16,40,.42),
+      inset 0 1px 0 rgba(255,255,255,.34),
+      0 0 0 1px rgba(255,255,255,.16);
+  }
+  .wrap.night .colortiles .mode:active{transform:translateY(2px);box-shadow:0 5px 14px rgba(4,16,40,.4), inset 0 1px 0 rgba(255,255,255,.3)}
+  /* あそべる タイルには 丸い「→」を 置く（写真と 同じ） */
+  .wrap.night .colortiles .mode:not(.soon)::after{
+    content:'›';
+    position:absolute; right:11px; bottom:9px;
+    width:30px; height:30px; border-radius:999px;
+    background:rgba(255,255,255,.24);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.3);
+    color:var(--on); font-size:21px; font-weight:800; line-height:28px; text-align:center;
+  }
+  .wrap.night .colortiles .mode.wide:not(.soon)::after{ top:50%; bottom:auto; transform:translateY(-50%); }
+  .wrap.night .colortiles .mode.wide span{ padding-right:34px; }
+
+  /* COMING SOON は すりガラス */
+  .wrap.night .colortiles .mode.soon{
+    --c:rgba(255,255,255,.80); --on:#2c3b4e;
+    background-image:linear-gradient(140deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,.12) 60%);
+    -webkit-backdrop-filter:blur(7px); backdrop-filter:blur(7px);
+    box-shadow:0 10px 22px rgba(4,16,40,.3), inset 0 1px 0 rgba(255,255,255,.75), 0 0 0 1px rgba(255,255,255,.4);
+  }
+  .wrap.night .colortiles .mode .soontag{ color:#5a6b80; opacity:1; }
+
+  /* 主役の タイル（当日 あそべる ゲーム）。写真の 赤い 大きなカード */
+  .wrap.night .colortiles .mode.hero{
+    min-height:clamp(118px,19vh,164px);
+    flex-direction:column; align-items:stretch; justify-content:space-between;
+    text-align:left; padding:15px 16px 14px; gap:0;
+    background-image:
+      linear-gradient(135deg, rgba(255,255,255,.26) 0%, rgba(255,255,255,0) 46%),
+      linear-gradient(118deg, #7d1020 0%, var(--c) 58%, #ff3a3a 100%);
+    box-shadow:
+      0 16px 34px rgba(150,10,30,.42),
+      inset 0 1px 0 rgba(255,255,255,.4),
+      0 0 0 1px rgba(255,255,255,.26);
+  }
+  .wrap.night .colortiles .mode.hero .icon{ width:38px; height:38px; }
+  .wrap.night .colortiles .mode.hero b{ font-size:21px; margin-top:10px; letter-spacing:.01em; }
+  .wrap.night .colortiles .mode.hero small{ font-size:12px; margin-top:3px; }
+  .wrap.night .colortiles .mode.hero span{ padding-right:46px; }
+  .wrap.night .colortiles .mode.hero::after{
+    right:14px; top:auto; bottom:14px; transform:none;
+    width:42px; height:42px; line-height:39px; font-size:27px;
+    background:rgba(255,255,255,.26);
+  }
+
+  /* まちがい直しは 白い 帯＋黄色い まる（写真と 同じ） */
+  .wrap.night .colortiles .mode[data-tile="miss"],
+  .wrap.night .colortiles .mode[data-tile="miss1"]{
+    --c:rgba(255,255,255,.93); --on:#13243a;
+  }
+  .wrap.night .colortiles .mode[data-tile="miss"] .icon,
+  .wrap.night .colortiles .mode[data-tile="miss1"] .icon{
+    width:32px; height:32px; padding:6px; border-radius:999px;
+    background:var(--plow-yellow); color:#3D2A00;
+    box-shadow:0 2px 6px rgba(0,0,0,.18);
+  }
+  .wrap.night .colortiles .mode[data-tile="miss"]::after,
+  .wrap.night .colortiles .mode[data-tile="miss1"]::after{
+    background:rgba(19,36,58,.10); box-shadow:inset 0 0 0 1px rgba(19,36,58,.12);
+  }
+
+  /* 小さい画面では 主役タイルを すこし つめる */
+  @media (max-height:710px){
+    .wrap.night .colortiles .mode.hero{min-height:102px;padding:12px 13px 11px}
+    .wrap.night .colortiles .mode.hero .icon{width:32px;height:32px}
+    .wrap.night .colortiles .mode.hero b{font-size:18px;margin-top:7px}
+    .wrap.night .colortiles .mode.hero small{font-size:11px}
+    .wrap.night .colortiles .mode.hero::after{width:34px;height:34px;line-height:31px;font-size:22px;right:11px;bottom:11px}
+  }
+
+  /* 主役タイルの 絵は 左上に 固定（たてならびで 横に のびないように） */
+  .wrap.night .colortiles .mode.hero .icon{
+    flex:none; align-self:flex-start; width:38px; height:38px;
+  }
+  .wrap.night .colortiles .mode.hero .icon svg{ width:38px; height:38px; }
+  @media (max-height:710px){
+    .wrap.night .colortiles .mode.hero .icon,
+    .wrap.night .colortiles .mode.hero .icon svg{ width:32px; height:32px; }
+  }
+
+  /* 「›」に 文字が かぶらないように 右を あける */
+  .wrap.night .colortiles .mode:not(.soon):not(.wide) span{ padding-right:36px; }

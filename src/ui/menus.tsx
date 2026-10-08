@@ -57,10 +57,10 @@ export const GAMES: Record<1 | 2, Tile[]> = {
   ],
 };
 
-function TileBtn({ t, wide, onClick }: { t: Tile; wide?: boolean; onClick: () => void }) {
+function TileBtn({ t, wide, hero, onClick }: { t: Tile; wide?: boolean; hero?: boolean; onClick: () => void }) {
   const soon = !!t.soon;
   return (
-    <button className={'mode' + (wide ? ' wide' : '') + (soon ? ' soon' : '')} data-tile={t.k} data-group={t.g} data-mode={t.m}
+    <button className={'mode' + (wide ? ' wide' : '') + (hero ? ' hero' : '') + (soon ? ' soon' : '')} data-tile={t.k} data-group={t.g} data-mode={t.m}
       disabled={soon} aria-disabled={soon} onClick={soon ? undefined : onClick}>
       <Raw className="icon" html={TILE_SVG[t.k]} />
       <span>{soon && <em className="soontag">COMING SOON</em>}<b>{t.b}</b><small>{soon ? 'いまは あそべません' : t.s}</small></span>
@@ -142,6 +142,7 @@ export function GamesScreen({ players, level, missN, onPick, onBack }: {
     .map((t) => ({ ...t, soon: !playable(t.k) }))
     /* あそべるものを 先に ならべる（当日 まよわないように） */
     .sort((a, b) => Number(a.soon) - Number(b.soon));
+  const playN = list.filter((t) => !t.soon).length;
   /* まちがい直しは 2人なら ヒントリレー方式、1人なら はやおしの「まちがい」で 出す */
   const miss: Tile = players === 2
     ? { k: 'miss', m: 'miss', b: 'まちがい直し', s: 'のこり ' + missN + 'もん' }
@@ -152,8 +153,11 @@ export function GamesScreen({ players, level, missN, onPick, onBack }: {
       <h1 className="display">どれで あそぶ？</h1>
       <div className="modes" id="game-modes">
         {list.map((t, i) => (
-          /* 数が 奇数のときは 最後の1つを 横いっぱいにして すき間を 作らない */
-          <TileBtn key={t.k} t={t} wide={list.length % 2 === 1 && i === list.length - 1} onClick={() => onPick(t)} />
+          /* あそべるのが 1つだけの ときは それを 主役として 大きく。
+             数が 奇数のときは 最後の1つを 横いっぱいにして すき間を 作らない */
+          <TileBtn key={t.k} t={t} hero={playN === 1 && i === 0}
+            wide={(playN === 1 && i === 0) || ((list.length - (playN === 1 ? 1 : 0)) % 2 === 1 && i === list.length - 1)}
+            onClick={() => onPick(t)} />
         ))}
         {missN > 0 && <TileBtn t={miss} wide onClick={() => onPick(miss)} />}
       </div>

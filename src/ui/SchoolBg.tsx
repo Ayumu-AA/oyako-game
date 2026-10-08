@@ -35,6 +35,9 @@ const wordSvg = (w: string) =>
 
 type Bit = { html: string; st: React.CSSProperties; wide: boolean };
 
+/** 背景の うごきの はやさ。大きいほど はやい */
+const SPEED = 1.25;
+
 /** 0〜1 の かたよりの ない 乱数から、min〜max の 値を 作る */
 const rnd = (min: number, max: number) => min + Math.random() * (max - min);
 
@@ -56,7 +59,8 @@ function build(): Bit[] {
         ['--dx' as string]: rnd(-90, 90) + 'px',
         ['--dy' as string]: rnd(-80, 80) + 'px',
         ['--rot' as string]: rnd(-28, 28) + 'deg',
-        animationDuration: rnd(26, 70) + 's',
+        /* 1.25倍の はやさ（もとは 26〜70秒。それを 1.25で わる） */
+        animationDuration: (rnd(26, 70) / SPEED).toFixed(1) + 's',
         animationDelay: -rnd(0, 40) + 's',
       },
     });
