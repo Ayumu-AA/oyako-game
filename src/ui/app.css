@@ -1448,3 +1448,101 @@
     .pickgrid.c4 button{flex-direction:row;gap:3px;font-size:10.5px;padding:5px 2px;min-height:36px}
     .pickgrid.c4 .pi{font-size:.98em;margin-right:1px}
   }
+
+  /* ================= あそびかた画面も くらい背景に（写真と 同じ） ================= */
+  .wrap.night .howttl h2{color:#fff}
+  .wrap.night .howttl .eyebrow::after{display:none}       /* 見出しの ドットは ここでは 出さない */
+  .wrap.night .lvchip{
+    background:linear-gradient(160deg,#ffd470,#e9a62c);color:#4a3200;
+    box-shadow:0 2px 8px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.5);
+  }
+  .wrap.night .rulesbtn{
+    background:linear-gradient(160deg, rgba(255,255,255,.14), rgba(255,255,255,.04));
+    border-color:rgba(140,205,255,.5);color:#eaf3ff;
+    box-shadow:0 4px 12px rgba(0,10,30,.4), inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  .wrap.night .rulesbtn .qm{background:#2b8ad6;color:#fff}
+  .wrap.night .howlede{
+    color:#eaf3ff;
+    background:linear-gradient(160deg, rgba(255,255,255,.13) 0%, rgba(255,255,255,.03) 55%, rgba(0,0,0,.18) 100%);
+    border-color:rgba(120,195,255,.45);
+    box-shadow:0 8px 20px rgba(0,10,35,.4), inset 0 1px 0 rgba(255,255,255,.25), 0 0 16px rgba(80,180,255,.16);
+  }
+  .wrap.night .howlede b{color:#ff8e7d}
+  .wrap.night .best{color:#9fb6cc}
+  .wrap.night .rolesplit .rs{background:rgba(255,255,255,.1);color:#eaf3ff;border-color:rgba(255,255,255,.2)}
+
+  /* えらぶボタン：ジャンルごとに 色をつけて 光らせる */
+  .wrap.night .pickgrid button{
+    --bc:#2a6fb0;
+    color:#fff;border-radius:14px;
+    border:2px solid rgba(255,255,255,.2);
+    background:
+      linear-gradient(160deg, rgba(255,255,255,.24) 0%, rgba(255,255,255,.05) 46%, rgba(0,0,0,.24) 100%),
+      var(--bc);
+    box-shadow:0 7px 16px rgba(0,8,28,.42), inset 0 1px 0 rgba(255,255,255,.3);
+    filter:brightness(.86) saturate(.95);
+  }
+  .wrap.night .pickgrid button small{color:#eaf3ff;opacity:.85}
+  .wrap.night .pickgrid button[aria-pressed="true"]{
+    filter:none;
+    border-color:rgba(130,220,255,.95);
+    box-shadow:0 0 0 3px rgba(90,200,255,.32), 0 10px 22px rgba(0,20,60,.5), inset 0 1px 0 rgba(255,255,255,.42);
+  }
+  .wrap.night .pickgrid button[aria-pressed="true"] small{opacity:.95}
+  /* ジャンルの 色 */
+  .wrap.night #seg-subject button[data-v="mix"]{--bc:#1b63c4}
+  .wrap.night #seg-subject button[data-v="pref"]{--bc:#2a7fd4}
+  .wrap.night #seg-subject button[data-v="flag"]{--bc:#cc3346}
+  .wrap.night #seg-subject button[data-v="kokugo"]{--bc:#7b46c9}
+  .wrap.night #seg-subject button[data-v="rika"]{--bc:#1f8b56}
+  .wrap.night #seg-subject button[data-v="rekishi"]{--bc:#bf7a24}
+  .wrap.night #seg-subject button[data-v="eigo"]{--bc:#2a7fd4}
+  .wrap.night #seg-subject button[data-v="calc"]{--bc:#6d47c7}
+  /* しょうぶの きめかた・ハンデ の 色 */
+  .wrap.night #seg-goal button[data-v="5"]{--bc:#c9922f}
+  .wrap.night #seg-goal button[data-v="10"]{--bc:#2a7fd4}
+  .wrap.night #seg-goal button[data-v="0"]{--bc:#cc3346}
+  .wrap.night #seg-handi button[data-v="0"]{--bc:#44586e}
+  .wrap.night #seg-handi button[data-v="1"]{--bc:#2a7fd4}
+  .wrap.night #seg-handi button[data-v="2"]{--bc:#7b46c9}
+  .wrap.night #seg-kana button{--bc:#2a7fd4}
+  .wrap.night #seg-time button{--bc:#2a7fd4}
+  .wrap.night #seg-sound button,.wrap.night #seg-bgm button{--bc:#2a7fd4}
+
+  /* まちがい直しの べつわく（金色の 帯） */
+  .wrap.night .missrow{border-top-color:rgba(233,180,76,.45)}
+  .wrap.night .missrow .picklabel{color:#f3cd7d}
+  .wrap.night .misspick{
+    color:#fff;border-color:rgba(243,205,125,.85);
+    background:linear-gradient(160deg, rgba(255,230,170,.26) 0%, rgba(200,150,40,.18) 55%, rgba(0,0,0,.2) 100%);
+    box-shadow:0 7px 16px rgba(0,8,28,.4), inset 0 1px 0 rgba(255,255,255,.3);
+  }
+  .wrap.night .misspick small{color:#f0e3c6}
+  .wrap.night .misspick .mi{background:#fff;border-color:#f3cd7d;color:transparent}
+  .wrap.night .misspick[aria-pressed="true"]{
+    background:linear-gradient(160deg, rgba(255,230,170,.5) 0%, rgba(214,160,40,.5) 100%);
+    box-shadow:0 0 0 3px rgba(243,205,125,.3), 0 10px 22px rgba(0,20,60,.45);
+  }
+  .wrap.night .misspick[aria-pressed="true"] .mi{color:#8A6400}
+
+  /* はじめる／もどる */
+  .wrap.night .btn-go{
+    background:linear-gradient(165deg,#ff5a52 0%, #e0452f 55%, #c22f22 100%);
+    box-shadow:0 10px 26px rgba(200,40,30,.45), inset 0 1px 0 rgba(255,255,255,.4), 0 0 0 1px rgba(255,255,255,.18);
+    border-radius:18px;
+  }
+  .wrap.night .btn-ghost{
+    color:#dcebff;border:1.5px solid rgba(160,210,255,.45);
+    background:linear-gradient(160deg, rgba(255,255,255,.1), rgba(255,255,255,.02));
+    border-radius:18px;
+  }
+  .wrap.night .btn-sea{box-shadow:0 8px 20px rgba(0,20,60,.4), inset 0 1px 0 rgba(255,255,255,.3)}
+
+  /* あそびかたの 題にも 青い 下線 */
+  .wrap.night .howttl h2{position:relative;display:inline-block;padding-bottom:6px}
+  .wrap.night .howttl h2::after{
+    content:'';position:absolute;left:2px;right:36%;bottom:0;height:3.5px;border-radius:999px;
+    background:linear-gradient(90deg,#4fb9f0 0%, rgba(79,185,240,0) 100%);
+  }
+  @media (max-height:710px){ .wrap.night .howttl h2{padding-bottom:3px} }

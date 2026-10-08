@@ -131,7 +131,7 @@ export default function App() {
   }, []);
 
   /* ホーム系の画面だけ、うごく背景の うえに 置く（遊ぶ画面は 読みやすさ優先で 明るいまま） */
-  const night = screen === 'title' || screen === 'level' || screen === 'games' || screen === 'sub';
+  const night = screen === 'title' || screen === 'level' || screen === 'games' || screen === 'sub' || screen === 'how';
 
   return (
     <>
