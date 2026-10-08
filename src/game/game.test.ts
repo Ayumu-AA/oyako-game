@@ -386,8 +386,9 @@ describe('もじあて（みんはや式）と 3秒ルール', () => {
     const s = new BattleSession({ level: 2, bsubj: 'moji', handi: 1, goal: 0 });
     const { q, opts } = s.next();
     expect(q.chars!.length).toBeGreaterThan(1);
-    /* ? は 一部だけ。ぜんぶは あかない（名前の 手がかりが のこる） */
-    expect(q.holes!.length).toBeGreaterThanOrEqual(2);
+    /* ? は 一部だけ。ぜんぶは あかない（名前の 手がかりが のこる）。
+       よみが みじかい県（なら・みえ など）は ? が 1つに なることも ある */
+    expect(q.holes!.length).toBeGreaterThanOrEqual(1);
     expect(q.holes!.length).toBeLessThanOrEqual(3);
     if (q.chars!.length >= 3) expect(q.holes!.length).toBeLessThan(q.chars!.length);
     expect(q.charOpts!.length).toBe(q.holes!.length);

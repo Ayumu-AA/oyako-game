@@ -235,7 +235,14 @@ export class BattleSession {
     if (key === 'pref') {
       /* 「〇文字目が『が』の都道府県は？」。同じ条件の 県が 3つなら 2つは 見せておくので、
          こたえは かならず 1つに 決まる（同じ文字数の 別の県を 入れて まちがいに ならない） */
-      const gs = mojiGroups(deck, key);
+      /* 本体が みじかいと 「？」が ひとつも のこらない ことが あるので、
+         ? を 1つ以上 作れる グループだけを つかう */
+      const gs = mojiGroups(deck, key).filter((g0) => {
+        const a0 = deck.find((x) => x.name === g0.names[0]);
+        if (!a0) return false;
+        const c0 = [...splitYomi(key, a0.name, a0.yomi).body];
+        return c0.some((c, i) => i !== g0.pos && SMALL_KANA.indexOf(c) < 0);
+      });
       if (gs.length) {
         const g = gs[Math.floor(rng() * gs.length)];
         const names = shuffle(g.names.slice());
@@ -245,6 +252,7 @@ export class BattleSession {
         const chars = [...sp.body];
         /* 条件の いち と 小さい字は はじめから 見せる。のこりを ? に する */
         const holes = chars.map((_c, i) => i).filter((i) => i !== g.pos && SMALL_KANA.indexOf(chars[i]) < 0);
+        if (!holes.length) return this.buildQ(key, q, deck);   /* 念のため（ふつうの問題に もどす） */
         /* 見せておく 仲間。よみは まるごと（ルビが 名前と ずれないように） */
         const shown = names.slice(1).map((nm) => {
           const x = deck.find((y) => y.name === nm)!;
