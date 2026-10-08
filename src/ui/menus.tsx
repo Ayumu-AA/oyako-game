@@ -1,5 +1,6 @@
 /* ホーム3ステップ（何人で → がくねん → ゲーム）・教科えらび・あそびかた・カウントダウン・せってい・ルール */
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { CONFIG, MODE_NAME, MODE_SUB, MODE_TAG, MODE_LABEL, GROUPS, HOW_LEDE, STEPS_MISS, STEPS_HINT, STEPS_GEO, STEPS_NUM, STEPS_CROSS, STEPS_CROSS1, STEPS_BATTLE, STEPS_BATTLE1, STEPS_MATH } from '../data/texts';
 import { ICON, GROUP_ICON, TILE_ICON } from '../data/icons';
 import { missCount, seenCount, clearRecords } from '../game/records';
@@ -11,6 +12,9 @@ import { plowMark } from '../data/logo';
 import { bestKey, isGeo, type Group, type Settings } from './state';
 import { SOLO_SECONDS, okSubj, LV1_SKIP } from '../game/battle';
 import type { BattleSubj } from '../game/battle';
+
+/** えらぶボタンの 中身：絵文字＋ことば（小さい子にも 見分けが つくように） */
+const pick = (e: string, t: string) => (<><i className="pi" aria-hidden="true">{e}</i>{t}</>);
 
 const MN = MODE_NAME as Record<string, string>;
 const G = GROUPS as Record<Group, { eyebrow: string; title: string; lede: string; note: string; modes: string[] }>;
@@ -189,9 +193,9 @@ export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared, 
       <div className="sheet setsheet">
         <h2 className="display" id="set-title">せってい</h2>
         <PickGrid id="seg-sound" label="おと（せいかいの音）" cols={2} value={snd ? '1' : '0'} onPick={(v) => { setSound(v === '1'); setSnd(v === '1'); }}
-          options={[{ v: '1', b: 'あり' }, { v: '0', b: 'なし' }]} />
+          options={[{ v: '1', b: pick('🔊', 'あり') }, { v: '0', b: pick('🔇', 'なし') }]} />
         <PickGrid id="seg-bgm" label="BGM" cols={2} value={bgm ? '1' : '0'} onPick={(v) => { setBgm(v === '1'); setBgm2(v === '1'); }}
-          options={[{ v: '1', b: 'ながす' }, { v: '0', b: 'とめる' }]} />
+          options={[{ v: '1', b: pick('🎵', 'ながす') }, { v: '0', b: pick('🔕', 'とめる') }]} />
         <PickGrid id="seg-time" label="せいげん時間" cols={3} value={seconds} onPick={onSeconds}
           options={[{ v: 60, b: '60秒' }, { v: 90, b: '90秒' }, { v: 120, b: '120秒' }]} />
         <div className="pickrow">
@@ -308,8 +312,13 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
           <div className="rs tate"><b>タテのカギ</b><span className="arrow">↓</span><span className="who">おとな</span></div>
         </div>
 
-        {isBattle && (!twoWay || entry === 'practice') && <PickGrid id="seg-subject" label="ジャンル" cols={5} value={s.bsubj} onPick={(v) => onChange({ bsubj: v })}
-          options={([{ v: 'mix', b: 'ミックス' }, { v: 'pref', b: '都道府県' }, { v: 'flag', b: '国旗' }, { v: 'kokugo', b: 'ことば' }, { v: 'rika', b: 'りか' }, { v: 'rekishi', b: 'れきし' }, { v: 'eigo', b: 'えいご' }, { v: 'calc', b: 'けいさん' }] as { v: Settings['bsubj']; b: string }[])
+        {isBattle && (!twoWay || entry === 'practice') && <PickGrid id="seg-subject" label="ジャンル" cols={4} value={s.bsubj} onPick={(v) => onChange({ bsubj: v })}
+          options={([
+            { v: 'mix', b: pick('⭐', 'ミックス') }, { v: 'pref', b: pick('🗾', '都道府県') },
+            { v: 'flag', b: pick('🚩', '国旗') }, { v: 'kokugo', b: pick('📖', 'ことば') },
+            { v: 'rika', b: pick('🧪', 'りか') }, { v: 'rekishi', b: pick('🏯', 'れきし') },
+            { v: 'eigo', b: pick('🔤', 'えいご') }, { v: 'calc', b: pick('🔢', 'けいさん') },
+          ] as { v: Settings['bsubj']; b: ReactNode }[])
             .filter((o) => okSubj(o.v as BattleSubj, s.level))} />}
 
         {/* まちがい直しは ジャンルでは ないので べつわくに する（色も ジャンルと 変える） */}
@@ -326,13 +335,13 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
 
         {/* ひとりモードは せいげん時間だけ。〇もん先取は 相手が いてこそ */}
         {isBattle && !solo && <PickGrid id="seg-goal" label="しょうぶの きめかた" cols={3} value={s.goal} onPick={(v) => { onChange({ goal: v }); store('oyako-goal', String(v)); }}
-          options={[{ v: 5, b: '5もん', s: '先に とったら かち' }, { v: 10, b: '10もん', s: '先に とったら かち' }, { v: 0, b: 'じかん', s: 'せいげん時間まで' }]} />}
+          options={[{ v: 5, b: pick('🖐', '5もん'), s: '先に とったら かち' }, { v: 10, b: pick('🔟', '10もん'), s: '先に とったら かち' }, { v: 0, b: pick('⏱', 'じかん'), s: 'せいげん時間まで' }]} />}
 
         {isBattle && !solo && <PickGrid id="seg-handi" label="おとなの ハンデ" cols={3} value={s.handi} onPick={(v) => onChange({ handi: v })}
-          options={[{ v: 0, b: 'なし', s: '3たく・3たく' }, { v: 1, b: 'ふつう', s: '子2・親4' }, { v: 2, b: 'たっぷり', s: '子2・親6' }]} />}
+          options={[{ v: 0, b: pick('🚫', 'なし'), s: '3たく・3たく' }, { v: 1, b: pick('📊', 'ふつう'), s: '子2・親4' }, { v: 2, b: pick('💪', 'たっぷり'), s: '子2・親6' }]} />}
 
         {isCross && <PickGrid id="seg-kana" label="もじの 入れかた" cols={3} value={s.kana} onPick={(v) => { onChange({ kana: v }); store('oyako-kana', v); }}
-          options={[{ v: 'R' as const, b: 'みぎから', s: '五十音表と 同じ' }, { v: 'L' as const, b: 'ひだりから', s: 'あ か さ た な…' }, { v: 'F' as const, b: 'フリック', s: 'スマホと 同じ' }]} />}
+          options={[{ v: 'R' as const, b: pick('➡️', 'みぎから'), s: '五十音表と 同じ' }, { v: 'L' as const, b: pick('⬅️', 'ひだりから'), s: 'あ か さ た な…' }, { v: 'F' as const, b: pick('👆', 'フリック'), s: 'スマホと 同じ' }]} />}
 
         <div className="pickrow" id="row-role" hidden={!showRole}>
           <span className="picklabel" id="role-label">スマホを持つのは？（ヒントを出す人）</span>

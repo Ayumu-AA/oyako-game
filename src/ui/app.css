@@ -1418,12 +1418,33 @@
   /* あそびかたの 説明に 電球、えらぶ行の ラベルに 小さな しるし */
   #s-how .howlede{position:relative;padding-left:34px}
   #s-how .howlede::before{content:'💡';position:absolute;left:11px;top:9px;font-size:15px}
-  #s-how .pickrow .picklabel::before{
-    content:'';display:inline-block;width:7px;height:7px;border-radius:2px;
-    background:var(--sky);margin-right:7px;vertical-align:1px;
-  }
-  #s-how .missrow .picklabel::before{background:var(--gold)}
+
 
   /* がくねんの 2枚は 文字だけで じゅうぶん（絵は 出さない） */
   .wrap.night .colortiles .mode[data-tile="lv1"] .icon,
   .wrap.night .colortiles .mode[data-tile="lv2"] .icon{ display:none; }
+
+  /* ---- えらぶボタンの 絵文字と、行の 見出しの しるし ---- */
+  .pi{
+    font-style:normal;margin-right:5px;font-size:1.15em;line-height:1;
+    vertical-align:-1px;
+  }
+  .pickgrid.c4 button{font-size:12px;padding:7px 3px}
+  .pickgrid.c4 .pi{margin-right:3px;font-size:1.05em}
+  /* 見出しの 左に 絵文字（行ごとに ちがう） */
+  #row-subject .picklabel::before{content:'🎯 ';font-size:13px}
+  #row-missonly .picklabel::before{content:'⚙️ ';font-size:13px}
+  #row-goal .picklabel::before{content:'⏱ ';font-size:13px}
+  #row-handi .picklabel::before{content:'👥 ';font-size:13px}
+  #row-kana .picklabel::before{content:'⌨️ ';font-size:13px}
+  #row-sound .picklabel::before{content:'🔊 ';font-size:13px}
+  #row-bgm .picklabel::before{content:'🎵 ';font-size:13px}
+  #row-time .picklabel::before{content:'⏳ ';font-size:13px}
+  #row-role .picklabel::before{content:'📱 ';font-size:13px}
+  @media (max-height:710px){ .pi{font-size:1em;margin-right:3px} }
+
+  /* 小さい画面では ジャンルの ボタンを 1行に おさめる */
+  @media (max-height:710px){
+    .pickgrid.c4 button{flex-direction:row;gap:3px;font-size:10.5px;padding:5px 2px;min-height:36px}
+    .pickgrid.c4 .pi{font-size:.98em;margin-right:1px}
+  }
