@@ -1307,14 +1307,16 @@
   .wrap.night .colortiles .mode.wide:not(.soon)::after{ top:50%; bottom:auto; transform:translateY(-50%); }
   .wrap.night .colortiles .mode.wide span{ padding-right:34px; }
 
-  /* COMING SOON は すりガラス */
+  /* COMING SOON は その ゲームの 色のまま うす暗く。押しても 反応しない */
   .wrap.night .colortiles .mode.soon{
-    --c:rgba(255,255,255,.80); --on:#2c3b4e;
-    background-image:linear-gradient(140deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,.12) 60%);
-    -webkit-backdrop-filter:blur(7px); backdrop-filter:blur(7px);
-    box-shadow:0 10px 22px rgba(4,16,40,.3), inset 0 1px 0 rgba(255,255,255,.75), 0 0 0 1px rgba(255,255,255,.4);
+    --on:#ffffff;
+    background-image:linear-gradient(140deg, rgba(255,255,255,.10) 0%, rgba(0,0,0,.20) 45%, rgba(0,0,0,.42) 100%);
+    filter:saturate(.58) brightness(.56);
+    box-shadow:0 6px 16px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.12);
+    pointer-events:none;   /* タップしても 反応しない */
   }
-  .wrap.night .colortiles .mode .soontag{ color:#5a6b80; opacity:1; }
+  .wrap.night .colortiles .mode .soontag{ color:rgba(255,255,255,.72); opacity:1; }
+  .wrap.night .colortiles .mode.soon small{ opacity:.8; }
 
   /* 主役の タイル（当日 あそべる ゲーム）。写真の 赤い 大きなカード */
   .wrap.night .colortiles .mode.hero{
@@ -1376,3 +1378,52 @@
 
   /* 「›」に 文字が かぶらないように 右を あける */
   .wrap.night .colortiles .mode:not(.soon):not(.wide) span{ padding-right:36px; }
+
+  /* ================= 写真の 画面に あわせた 仕上げ ================= */
+  /* 見出しの 下に 青い 下線 */
+  .wrap.night h1.display{position:relative;display:inline-block;padding-bottom:8px}
+  .wrap.night h1.display::after{
+    content:'';position:absolute;left:3px;right:30%;bottom:0;height:4px;border-radius:999px;
+    background:linear-gradient(90deg,#4fb9f0 0%, rgba(79,185,240,0) 100%);
+  }
+  /* 小見出しの よこに プラウの 3色ドット */
+  .wrap.night .eyebrow::after{
+    content:'';display:inline-block;vertical-align:middle;margin-left:10px;width:36px;height:8px;
+    background:
+      radial-gradient(circle 4px at 4px 50%, #4fb9f0 99%, transparent 100%) 0 0/13px 100% no-repeat,
+      radial-gradient(circle 4px at 4px 50%, #f6b73c 99%, transparent 100%) 12px 0/13px 100% no-repeat,
+      radial-gradient(circle 4px at 4px 50%, #e0452f 99%, transparent 100%) 24px 0/13px 100% no-repeat;
+  }
+  /* がくねんの 2枚は 写真と 同じ 水色／山吹 */
+  .wrap.night .colortiles .mode[data-tile="lv1"]{
+    --c:#3fb0ea; --on:#06293f;
+    background-image:linear-gradient(140deg, rgba(255,255,255,.45) 0%, rgba(255,255,255,.06) 52%, rgba(0,40,70,.16) 100%);
+  }
+  .wrap.night .colortiles .mode[data-tile="lv2"]{
+    --c:#f4b53a; --on:#45300a;
+    background-image:linear-gradient(140deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,.08) 52%, rgba(90,55,0,.18) 100%);
+  }
+  .wrap.night .colortiles .mode[data-tile="lv1"]::after,
+  .wrap.night .colortiles .mode[data-tile="lv2"]::after{
+    background:rgba(255,255,255,.45);box-shadow:inset 0 0 0 1px rgba(255,255,255,.6);
+  }
+  /* 「もどる」には 左向きの ‹ */
+  .btn-ghost{position:relative}
+  .btn-ghost::before{
+    content:'‹';position:absolute;left:18px;top:50%;transform:translateY(-54%);
+    font-size:1.5em;font-weight:800;opacity:.75;
+  }
+  /* 「はじめる」には ▶ */
+  #btn-start::before{content:'▶';font-size:.72em;margin-right:9px;vertical-align:1px}
+  /* あそびかたの 説明に 電球、えらぶ行の ラベルに 小さな しるし */
+  #s-how .howlede{position:relative;padding-left:34px}
+  #s-how .howlede::before{content:'💡';position:absolute;left:11px;top:9px;font-size:15px}
+  #s-how .pickrow .picklabel::before{
+    content:'';display:inline-block;width:7px;height:7px;border-radius:2px;
+    background:var(--sky);margin-right:7px;vertical-align:1px;
+  }
+  #s-how .missrow .picklabel::before{background:var(--gold)}
+
+  /* がくねんの 2枚は 文字だけで じゅうぶん（絵は 出さない） */
+  .wrap.night .colortiles .mode[data-tile="lv1"] .icon,
+  .wrap.night .colortiles .mode[data-tile="lv2"] .icon{ display:none; }

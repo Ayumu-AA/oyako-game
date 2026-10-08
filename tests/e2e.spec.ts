@@ -752,6 +752,11 @@ test('当日は 早押しだけ あそべる（ほかは COMING SOON）', async 
     await expect(page.locator(`[data-tile="${k}"]`)).toBeDisabled();
   }
   await expect(page.locator('[data-tile="relay"] .soontag')).toHaveText('COMING SOON');
+  /* うす暗くして あり、タップしても 画面は 変わらない */
+  const dim = await page.locator('[data-tile="relay"]').evaluate((e) => getComputedStyle(e).filter);
+  expect(dim).toContain('brightness');
+  await page.locator('[data-tile="relay"]').click({ force: true, timeout: 3000 }).catch(() => undefined);
+  await expect(page.locator('#s-games')).toBeVisible();
   /* 1人も 早押しだけ */
   await page.click('#btn-games-back');
   await page.click('#btn-level-back');
