@@ -12,6 +12,15 @@ const stamp = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(2, 16).
 export default defineConfig({
   plugins: [
     react(),
+    /* いまの ばんごうを version.json に 出す。
+       アプリは これを ネットから じかに 見て、手もとの ばんと ちがえば 入れかえる。
+       （.json は Service Worker の 先読みに 入れていないので、かならず ネットに 聞きにいく） */
+    {
+      name: 'build-version',
+      generateBundle() {
+        this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ build: stamp }) });
+      },
+    },
     /* Service Worker は「キャッシュだけ」。manifest を出さないので ホーム画面追加の誘導は 出ない（決定事項） */
     VitePWA({
       registerType: 'autoUpdate',
