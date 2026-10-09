@@ -183,6 +183,16 @@ describe('battle', () => {
       for (let i = 0; i < 60; i++) { const { q } = s.next(); if (q.sub) expect(mixFor(g)).toContain(q.sub); }
     }
   });
+  it('その学年に ない ジャンルを えらんでいても、学年の ジャンルだけが 出る', () => {
+    /* 6年で「えいご」を えらんだまま 1年に 変えた、のような ばあい */
+    const s = new BattleSession({ level: 1, bsubj: 'eigo', handi: 1, goal: 0, players: 1 });
+    for (let i = 0; i < 80; i++) { const { q } = s.next(); if (q.sub) expect(mixFor(1)).toContain(q.sub); }
+    const s2 = new BattleSession({ level: 2, bsubj: 'rika', handi: 1, goal: 0, players: 2 });
+    for (let i = 0; i < 80; i++) { const { q } = s2.next(); if (q.sub) expect(mixFor(2)).toContain(q.sub); }
+    /* その学年に ある ジャンルは これまでどおり そのまま */
+    const s3 = new BattleSession({ level: 6, bsubj: 'eigo', handi: 1, goal: 0, players: 1 });
+    for (let i = 0; i < 20; i++) { const { q } = s3.next(); expect(q.sub).toBe('eigo'); }
+  });
   it('けいさんは 学年で むずかしさが かわる', () => {
     const ops = (g: 1 | 2 | 3 | 4 | 5 | 6) => {
       const set = new Set<string>();

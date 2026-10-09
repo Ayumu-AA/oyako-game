@@ -4,10 +4,10 @@ import { missCount } from '../game/records';
 import { store } from '../lib/storage';
 import { startSync, enqueueScore, type ScoreRow } from '../lib/sync';
 import { getNick } from '../lib/nickname';
-import { rankable } from '../lib/ranking';
+import { rankable, RANK_MODES } from '../lib/ranking';
 import { eventCode } from '../lib/config';
 import { rankOf } from '../game/rank';
-import { SOLO_SECONDS } from '../game/battle';
+import { SOLO_SECONDS, okSubj } from '../game/battle';
 import { NameSheet, RankingScreen } from './Ranking';
 import type { Mode } from '../game/types';
 import { TitleScreen, LevelScreen, GamesScreen, SettingsOverlay, SubScreen, HowScreen, CountScreen, type Tile } from './menus';
@@ -59,7 +59,7 @@ export default function App() {
     if (pendingScore.current) { enqueueScore({ ...pendingScore.current, nickname: n }); pendingScore.current = null; }
     const f = nameThen.current; nameThen.current = null; if (f) f();
   };
-  const openRank = (m: Mode) => { setRankMode(rankable(m) ? m : 'pref'); go('rank'); };
+  const openRank = (m: Mode) => { setRankMode(rankable(m) ? m : RANK_MODES[0].mode); go('rank'); };
   /* 結果画面の「ランキングを 見る」：名前が 無ければ 先に 決めてもらう */
   const rankFromResult = (m: Mode) => { if (getNick()) openRank(m); else askName(() => openRank(m)); };
 
@@ -131,7 +131,7 @@ export default function App() {
   }, []);
 
   /* ホーム系の画面だけ、うごく背景の うえに 置く（遊ぶ画面は 読みやすさ優先で 明るいまま） */
-  const night = screen === 'title' || screen === 'level' || screen === 'games' || screen === 'sub' || screen === 'how';
+  const night = screen === 'title' || screen === 'level' || screen === 'games' || screen === 'sub' || screen === 'how' || screen === 'rank';
 
   return (
     <>
@@ -141,7 +141,7 @@ export default function App() {
         <TitleScreen onPlayers={(p) => { change({ players: p }); go('level'); }} onSettings={() => setSetOpen(true)} onRank={() => openRank(mode)} />
         <SettingsOverlay open={setOpen} seconds={s.seconds} onSeconds={(v) => change({ seconds: v })} onClose={() => setSetOpen(false)} onCleared={() => setMissN(0)} nick={nick} onName={() => askName(() => undefined)} />
       </>}
-      {screen === 'level' && <LevelScreen players={s.players} onLevel={(l) => { change({ level: l }); go('games'); }} onBack={() => go('title')} />}
+      {screen === 'level' && <LevelScreen players={s.players} onLevel={(l) => { change({ level: l, bsubj: okSubj(s.bsubj, l) ? s.bsubj : 'mix' }); go('games'); }} onBack={() => go('title')} />}
       {screen === 'games' && <GamesScreen players={s.players} level={s.level} missN={missN} onPick={pickGame} onBack={() => go('level')} />}
       {screen === 'sub' && <SubScreen group={group} level={s.level} onMode={(m) => { howGroup.current = group; openHow(m); }} onBack={() => go('games')} />}
       {screen === 'how' && <HowScreen mode={mode} s={s} onChange={change} onStart={() => start()} onBack={backFromHow} />}

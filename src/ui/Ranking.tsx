@@ -8,7 +8,7 @@ import { eventCode } from '../lib/config';
 import { CONFIG } from './texts';
 import { GRADES, gradeLabel } from '../game/types';
 import type { Level, Mode } from '../game/types';
-import { PickGrid } from './parts';
+import { PickGrid, Raw } from './parts';
 
 const RANKS_T = RANKS as { n: string; c: string }[];
 
@@ -57,6 +57,16 @@ export function NameSheet({ open, level, initial, onDone, onCancel }: { open: bo
   );
 }
 
+/* 1・2・3位の 台。画像では なく 線と 四角で 作る（どの端末でも 同じに 出る） */
+const PODIUM = '<svg viewBox="0 0 120 54" aria-hidden="true">'
+  + '<g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round">'
+  + '<path d="M60 7.5 62.4 13l6 .7-4.5 4.1 1.3 5.9L60 20.8l-5.2 2.9 1.3-5.9-4.5-4.1 6-.7z" fill="currentColor" stroke="none"/>'
+  + '<rect x="44" y="26" width="32" height="26" rx="2"/><rect x="12" y="34" width="32" height="18" rx="2"/><rect x="76" y="38" width="32" height="14" rx="2"/>'
+  + '</g>'
+  + '<g fill="currentColor" font-family="system-ui,sans-serif" font-weight="900" text-anchor="middle">'
+  + '<text x="60" y="45" font-size="13">1</text><text x="28" y="48" font-size="11">2</text><text x="92" y="49" font-size="10">3</text>'
+  + '</g></svg>';
+
 /* ===== 一覧 ===== */
 function fmtRow(mode: Mode, r: { score: number; seconds: number }) {
   return mode === 'battle1' ? `${r.score}もん ／ ${r.seconds}秒` : `${r.score}もん`;
@@ -89,22 +99,28 @@ export function RankingScreen({ mode0, level0, nick, onBack, onName }: { mode0: 
       <div className="howhead">
         <div className="howttl">
           <p className="eyebrow">ランキング<span className="lvchip" id="rank-ev">{ev === 'home' ? 'おうち' : ev}</span></p>
-          <h2 id="rank-title">{RANK_MODES.find((m) => m.mode === mode)?.label}</h2>
+          <h2 id="rank-title">{RANK_MODES.find((m) => m.mode === mode)?.label}<i className="crown" aria-hidden="true">👑</i></h2>
         </div>
         <button type="button" className="rulesbtn" id="btn-rank-name" onClick={onName}>
           <span className="qm" aria-hidden="true">✎</span>{nick ? nick : 'なまえ'}
         </button>
       </div>
 
-      <PickGrid id="seg-rank-mode" label="ゲーム" cols={2} value={mode} onPick={(m) => setMode(m)}
-        options={RANK_MODES.map((m) => ({ v: m.mode, b: m.label }))} />
-      <PickGrid id="seg-rank-level" label="がくねん" cols={3} value={level} onPick={(l) => setLevel(l)}
-        options={GRADES.map((g) => ({ v: g, b: gradeLabel(g) }))} />
+      {/* ゲームは「はやおし（ひとり）」だけなので えらばせない。
+          2つ以上に もどしたら ここが また 出る */}
+      {RANK_MODES.length > 1 && (
+        <PickGrid id="seg-rank-mode" label="ゲーム" cols={2} value={mode} onPick={(m) => setMode(m)}
+          options={RANK_MODES.map((m) => ({ v: m.mode, b: m.label }))} />
+      )}
+      <PickGrid id="seg-rank-level" label="がくねん" cols={3} className="grades" value={level} onPick={(l) => setLevel(l)}
+        options={GRADES.map((g) => ({ v: g, b: <><i className="pi" aria-hidden="true">👑</i>{gradeLabel(g)}</> }))} />
 
       <div className="ranklist" id="rank-list">
         {state === 'offline' && <p className="rankmsg" id="rank-offline">{t ? 'いまは つながっていません。前に見た表です' : 'つながると 出ます'}</p>}
         {state === 'loading' && !t && <p className="rankmsg">よみこみ中…</p>}
-        {t && rows.length === 0 && state !== 'loading' && <p className="rankmsg">まだ だれも あそんでいません。いちばんのりを ねらおう！</p>}
+        {t && rows.length === 0 && state !== 'loading' && (
+          <p className="rankmsg big"><Raw as="i" className="cup" html={PODIUM} />まだ だれも あそんでいません。<br />いちばんのりを ねらおう！</p>
+        )}
         {rows.length > 0 && (
           <ol className="ranktbl">
             {rows.map((r, i) => {

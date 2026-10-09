@@ -401,7 +401,7 @@ function BattleSide({ side, q, u, players, turn, ans, rev, stage, onChoice, onBu
             </div>
             <div className="waitmsg">まって…</div>
           </div>
-          <div className={'choices' + (u.opts.length <= 2 ? ' one' : '')} hidden={num || !!(q && q.chars)}>
+          <div className={'choices' + (u.opts.length <= 2 ? ' one' : u.opts.length >= 5 ? ' many' : '')} hidden={num || !!(q && q.chars)}>
             {!num && u.opts.map((o) => {
               const d = q && q.disp && q.disp[o];
               const y = q && q.yomi && q.yomi[o];

@@ -241,7 +241,10 @@ export class BattleSession {
       const deck = this.pools[key] || this.missPool;
       return this.buildQ(key, q, deck);
     }
-    const keys: BattleSubj[] = this.opts.bsubj === 'mix' ? mixFor(this.opts.level) : [this.opts.bsubj];
+    /* その学年の ジャンルに ないものは 出さない。
+       （前の 学年で えらんだ ジャンルが のこっていても、学年の ジャンルだけに する） */
+    const keys: BattleSubj[] = this.opts.bsubj !== 'mix' && okSubj(this.opts.bsubj, this.opts.level)
+      ? [this.opts.bsubj] : mixFor(this.opts.level);
     const key = keys[Math.floor(rng() * keys.length)] as Subject | 'moji';
     if (key === 'moji') return this.mojiQ();
     if (key === 'calc') return calcQuestion(this.opts.level);

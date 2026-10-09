@@ -96,17 +96,12 @@ test('結果画面：ランクと じこベスト（60秒）', async ({ page }) 
   await expect(page.locator('#btn-again')).toBeDisabled();
   await expect(page.locator('#btn-again')).toHaveText('もういちど', { timeout: 4000 });
   expect(await page.evaluate(() => localStorage.getItem('oyako-rika-6-60'))).toBe('4');
-  /* ランキング：名前が 無いので 先に 決める → 今回の点数が 送信キューに 入る */
-  await page.click('#btn-rank');
-  await expect(page.locator('#name-ov')).toBeVisible();
-  await page.fill('#nick-input', 'てすと'); await page.click('#btn-nick-ok');
-  await expect(page.locator('#s-rank')).toBeVisible();
-  await expect(page.locator('#rank-title')).toHaveText('りか');
+  /* ランキングは「はやおし（ひとり）」だけに したので、
+     ヒントリレーの 結果には ランキングの ボタンも 送信も ない */
+  await expect(page.locator('#btn-rank')).toHaveCount(0);
   const q = await page.evaluate(() => JSON.parse(localStorage.getItem('oyako-queue') || '[]'));
-  const sc = q.find((x: { k: string }) => x.k === 'score');
-  expect(sc.row).toMatchObject({ mode: 'rika', level: 6, seconds: 60, score: 4, rank_i: 2, nickname: 'てすと', event_code: 'home' });
-  expect(q.some((x: { k: string }) => x.k === 'profile')).toBe(true);
-  await page.click('#btn-rank-back');
+  expect(q.some((x: { k?: string; row?: { mode?: string } }) => x.k === 'score' && x.row?.mode === 'rika')).toBe(false);
+  await page.locator('#s-result [data-back="s-title"]').click();
   await expect(page.locator('#s-title')).toBeVisible();
 });
 
@@ -115,8 +110,9 @@ test('ランキング：タイトルから 入って 名前を 決める・NGワ
   await open(page, { 'oyako-names-home': JSON.stringify(['ぱんだ', 'みどりのかに']) });
   await page.click('#btn-rank-title');
   await expect(page.locator('#s-rank')).toBeVisible();
-  await page.click('#seg-rank-mode button[data-v="battle1"]');
-  await expect(page.locator('#rank-title')).toHaveText('はやおし（ひとり）');
+  /* ゲームは「はやおし（ひとり）」だけなので えらぶ欄は 出さない */
+  await expect(page.locator('#seg-rank-mode')).toHaveCount(0);
+  await expect(page.locator('#rank-title')).toHaveText('はやおし（ひとり）👑');
   await page.click('#btn-rank-name');
   await page.fill('#nick-input', 'ばかもの'); await page.click('#btn-nick-ok');
   await expect(page.locator('#nick-hint')).toHaveText('そのことばは つかえないよ');
