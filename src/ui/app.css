@@ -1715,3 +1715,143 @@
     background:linear-gradient(90deg,#4fb9f0 0%, rgba(79,185,240,0) 100%);
   }
   @media (max-height:710px){ .wrap.night .howttl h2{padding-bottom:3px} }
+
+  /* ================= あそぶ画面も くらい背景に（写真に あわせる） =================
+     はやおし（1人・2人）と カウントダウン。
+     ・うしろは ホームと 同じ 紺＋赤の くらい背景＋うすい ます目
+     ・問題と 選たく肢は 白い カードに して 浮かせる
+     ・とくてんは まるい バッジ（こども＝赤いわ／おとな＝青いわ）
+     2人は これまでどおり 上下で 向かい合い、まん中に とくてんと 時間を 出す */
+  .playbg{
+    background:
+      radial-gradient(120% 80% at 18% 8%, #1b4f9c 0%, rgba(27,79,156,0) 55%),
+      radial-gradient(100% 70% at 88% 18%, #8d1230 0%, rgba(141,18,48,0) 48%),
+      radial-gradient(130% 90% at 50% 110%, #0a2a63 0%, rgba(10,42,99,0) 60%),
+      #0b1f45;
+  }
+  /* うすい ます目（方眼ノートの イメージ） */
+  .playgrid::before{
+    content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+    background-image:
+      linear-gradient(rgba(150,205,255,.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(150,205,255,.07) 1px, transparent 1px);
+    background-size:34px 34px;
+  }
+
+  /* ---- はやおし 本体 ---- */
+  #s-battle.on{
+    background:
+      radial-gradient(120% 80% at 18% 8%, #1b4f9c 0%, rgba(27,79,156,0) 55%),
+      radial-gradient(100% 70% at 88% 18%, #8d1230 0%, rgba(141,18,48,0) 48%),
+      radial-gradient(130% 90% at 50% 110%, #0a2a63 0%, rgba(10,42,99,0) 60%),
+      #0b1f45;
+    gap:9px;
+  }
+  #s-battle.on{padding:10px;gap:9px}
+  #s-battle.on::before{
+    content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+    background-image:
+      linear-gradient(rgba(150,205,255,.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(150,205,255,.07) 1px, transparent 1px);
+    background-size:34px 34px;
+  }
+  #s-battle .side, #s-battle .mid, #s-battle .bfin{position:relative;z-index:1}
+  /* 問題と 選たく肢が のる 白い カード */
+  #s-battle .side{
+    background:linear-gradient(180deg,#ffffff 0%, #ecf4fb 100%);
+    border:none;border-radius:22px;
+    box-shadow:0 10px 26px rgba(0,12,40,.45), inset 0 1px 0 rgba(255,255,255,.9);
+  }
+  #s-battle .side.flash{background:linear-gradient(180deg,#e6f8ec 0%, #d4f0de 100%)}
+  #s-battle .sidetag{color:#7d93a3;font-weight:800}
+  /* 問題文の 下に 青い 線 */
+  #s-battle .side > .qtext, #s-battle .side > .qprog{position:relative;padding-bottom:11px}
+  #s-battle .side > .qtext::after, #s-battle .side > .qprog::after{
+    content:'';position:absolute;left:14%;right:14%;bottom:2px;height:3px;border-radius:2px;
+    background:linear-gradient(90deg, rgba(79,185,240,0), #4fb9f0, rgba(79,185,240,0));
+  }
+  #s-battle .side > .qtext.num{padding-bottom:0}
+  #s-battle .side > .qtext.num::after{content:none}
+  /* とくてんは まるい バッジ */
+  #s-battle .mid{gap:8px;padding:0 2px}
+  #s-battle .mscore{
+    --ring:#5aa9ff; --glow:rgba(90,169,255,.5);
+    width:clamp(48px,13vw,58px);height:clamp(48px,13vw,58px);
+    border-radius:50%;padding:0;min-width:0;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 32%, #163b76, #0c2350);
+    border:2.5px solid var(--ring);
+    box-shadow:0 0 14px var(--glow), inset 0 1px 0 rgba(255,255,255,.22);
+    font-size:clamp(17px,4.6vw,21px);line-height:1;color:#fff;
+  }
+  #s-battle .mscore small{
+    display:block;font-size:8.5px;font-weight:800;opacity:.92;margin-top:2px;letter-spacing:.06em;
+  }
+  #s-battle .mscore.flip{--ring:#ff6b8a;--glow:rgba(255,107,138,.55)}   /* こども側 */
+  #s-battle .mpts{color:#eaf3ff;font-weight:900}
+  #s-battle .mpts small{color:#9fc4e8}
+  #s-battle .mtimer{
+    height:12px;background:rgba(255,255,255,.14);
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.35);
+  }
+  #s-battle .mtimer div{background:linear-gradient(90deg,#8fd8ff,#2f8fe0);box-shadow:0 0 10px rgba(90,180,255,.55)}
+  #s-battle .mtimer div.warn{background:linear-gradient(90deg,#ffa177,#e0452f);box-shadow:0 0 10px rgba(224,69,47,.5)}
+  #s-battle .mid .iconbtn{
+    background:rgba(255,255,255,.92);color:#13243a;border:none;
+    box-shadow:0 3px 12px rgba(0,0,0,.3);
+  }
+  /* こたえる もちじかんの バー（写真の だいだい色） */
+  #s-battle .anstimer{background:rgba(27,73,101,.12)}
+  #s-battle .anstimer div{background:linear-gradient(90deg,#ff9a5a,#e0452f)}
+  /* 選たく肢は すこし 立体に */
+  #s-battle .choice{
+    background:linear-gradient(180deg,#ffffff,#e8f1f9);
+    border:1.5px solid rgba(23,60,105,.14);border-radius:16px;
+    color:#15324f;font-weight:900;
+    box-shadow:0 3px 0 rgba(23,60,105,.13), 0 6px 14px rgba(0,12,40,.12);
+  }
+  #s-battle .choice:active{
+    background:linear-gradient(180deg,#6cbcff,#2a7fd4);color:#fff;border-color:#2a7fd4;
+    box-shadow:0 1px 0 rgba(23,60,105,.2);transform:translateY(2px);
+  }
+  #s-battle .choice.mj{border-radius:14px}
+  /* ヒントと 点 */
+  .hintbox .ptsnow{background:linear-gradient(180deg,#43c168,#1f9348);box-shadow:0 2px 6px rgba(31,147,72,.3)}
+  #s-battle .hintbox .hintline{background:rgba(98,182,203,.2);border:1px solid rgba(98,182,203,.35)}
+  /* 赤いボタン（回答権）も 光らせる */
+  #s-battle .buzz{box-shadow:0 6px 0 rgba(0,0,0,.22), 0 0 22px rgba(224,69,47,.45)}
+  /* もじうめの わく */
+  #s-battle .mchar{background:#fff}
+  #s-battle .mchar.on{background:#dff2e6}
+
+  /* ---- カウントダウン（2人は 赤と青の カード、1人は 大きな 数字） ---- */
+  .wrap.night .orient .o{
+    border-radius:26px;position:relative;overflow:hidden;
+    box-shadow:0 14px 32px rgba(0,10,40,.48), inset 0 1px 0 rgba(255,255,255,.32);
+  }
+  .wrap.night .orient .o.child{background:linear-gradient(150deg,#ff6a52 0%, #d2203c 52%, #8d1230 100%)}
+  .wrap.night .orient .o.adult{background:linear-gradient(150deg,#58a8ff 0%, #1a5fd0 52%, #0b2f80 100%)}
+  .wrap.night .orient .o::after{   /* 右上の ひかり */
+    content:'';position:absolute;right:-14%;top:-30%;width:62%;height:120%;
+    background:linear-gradient(120deg, rgba(255,255,255,.26), rgba(255,255,255,0) 60%);
+    transform:rotate(16deg);pointer-events:none;
+  }
+  .wrap.night .orient .o small{
+    font-size:13px;font-weight:900;letter-spacing:.08em;opacity:.95;
+    text-shadow:0 1px 4px rgba(0,0,0,.35);
+  }
+  .wrap.night .orient .o b{
+    font-size:clamp(34px,11vw,52px);
+    text-shadow:0 3px 12px rgba(0,0,0,.4);
+  }
+  .wrap.night .orient .mid{color:#cfe6ff;flex-direction:column;gap:6px}
+  .wrap.night .orient .mid span:first-child{
+    font-size:13px;font-weight:900;
+    border-bottom:3px solid rgba(95,200,255,.7);padding-bottom:7px;
+  }
+  .wrap.night .orient .mid .n{
+    font-size:clamp(44px,13vw,62px);color:#eaf3ff;
+    text-shadow:0 0 22px rgba(120,200,255,.7);
+  }
+  .wrap.night .count{color:#eaf3ff;text-shadow:0 0 34px rgba(120,200,255,.6)}
+  .wrap.night #count-note{color:#cfe6ff;text-align:center;font-weight:800}

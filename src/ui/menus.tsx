@@ -429,9 +429,9 @@ export function CountScreen({ mode, role, players, onDone }: { mode: Mode; role:
   return (
     <section className="screen on" id="s-count">
       <div className="orient" id="count-orient" hidden={!isB}>
-        <div className="o child"><b>こども</b><small>こちら側に すわる</small></div>
+        <div className="o child"><small>こども側</small><b>キッズ</b></div>
         <div className="mid"><span>スマホを 机に置いて 向かい合ってね</span><span className="n" id="count-num2">{n}</span></div>
-        <div className="o adult"><b>おとな</b><small>こちら側に すわる</small></div>
+        <div className="o adult"><small>おとな側</small><b>おとな</b></div>
       </div>
       <div className="count display" id="count-num" hidden={isB}>{n}</div>
       <p className="best" id="count-note" hidden={isB}>{note}</p>
