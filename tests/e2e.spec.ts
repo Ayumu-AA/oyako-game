@@ -530,6 +530,56 @@ for (const [w, h, tag] of VPS) {
   });
 }
 
+/* 国旗（絵つき）と もじうめは 部品が 多いので、せまい画面で 側（.side）から はみ出しやすい。
+   2人は 画面を 上下で わけるぶん とくに きびしいので、両方の 人数で たしかめる。 */
+for (const [w, h, tag] of VPS) {
+  for (const players of [2, 1] as const) {
+    test(`はみ出さない ${tag}（${w}×${h}）：国旗・もじうめ・${players}人`, async ({ browser }) => {
+      const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: true });
+      const page = await ctx.newPage();
+      await open(page, { 'oyako-mojirate': '1' });   /* もじうめを かならず 出す */
+      await nav(page, players, 1);   /* ていがくねんの 国旗は 名前が 長い（ニュージーランド など） */
+      if (players === 1) { await page.click('[data-mode="battle1"]'); await page.click('#btn-entry-practice'); }
+      else await page.click('[data-mode="battle"]');
+      await page.click('#seg-subject button[data-v="flag"]');
+      await page.click('#btn-start');
+      await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+      if (players === 2) await buzz(page, 'adult');
+      const over = async (when: string) => {
+        await page.waitForTimeout(500);   /* ヒントの アニメが おわってから はかる */
+        const out = await page.evaluate(() => {
+          const bad: string[] = [];
+          document.querySelectorAll('#s-battle .side').forEach((sd) => {
+            const sr = sd.getBoundingClientRect();
+            sd.querySelectorAll('*').forEach((el) => {
+              if (el.closest('.lockmsg')) return;
+              const e = el.getBoundingClientRect();
+              if (!e.height || !e.width) return;
+              const o = Math.max(sr.top - e.top, e.bottom - sr.bottom, sr.left - e.left, e.right - sr.right);
+              if (o > 1) bad.push(`${(sd as HTMLElement).dataset.side}:${String(el.className).split(' ')[0]} +${Math.round(o)}`);
+            });
+          });
+          return [...new Set(bad)];
+        });
+        expect(out, when).toEqual([]);
+      };
+      await over('出題のすぐあと');
+      /* いちばん 長い 国名（にゅーじーらんど＝8文字）でも 入るか。わくを 足して たしかめる */
+      const grew = await page.evaluate(() => {
+        const mw = document.querySelector('#s-battle .side .mojiword');
+        const box = mw?.querySelector('.mchar');
+        if (!mw || !box) return false;
+        while (mw.querySelectorAll('.mchar').length < 8) mw.insertBefore(box.cloneNode(true), mw.firstChild);
+        return true;
+      });
+      if (grew) await over('8文字の 国名でも');
+      /* ひとりは ヒントが 3つ 出そろった ところでも たしかめる（2人は 3秒で 権利が 切れる） */
+      if (players === 1) { await page.waitForTimeout(6500); await over('ヒント3つ目'); }
+      await ctx.close();
+    });
+  }
+}
+
 test('はやおし（ひとり）：1画面・回転なし・90秒。ジャンルを しぼったら ランキングに のらない', async ({ page }) => {
   const errs = noErrors(page);
   await page.clock.install(); await page.clock.resume();   /* 90秒を 早送りして 結果画面まで 見る */
@@ -752,9 +802,21 @@ test('当日は 早押しだけ あそべる（ほかは COMING SOON）', async 
     await expect(page.locator(`[data-tile="${k}"]`)).toBeDisabled();
   }
   await expect(page.locator('[data-tile="relay"] .soontag')).toHaveText('COMING SOON');
-  /* うす暗くして あり、タップしても 画面は 変わらない */
-  const dim = await page.locator('[data-tile="relay"]').evaluate((e) => getComputedStyle(e).filter);
-  expect(dim).toContain('brightness');
+  /* うす暗い 板に なっていて、タップしても 画面は 変わらない。
+     ただし 中の 字は 読めること（前は filter で 文字まで 暗くして しまっていた） */
+  const look = await page.locator('[data-tile="relay"]').evaluate((e) => {
+    const lum = (c: string) => {
+      const [r, g, b] = (c.match(/[\d.]+/g) || ['0', '0', '0']).map(Number);
+      const f = (v: number) => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; };
+      return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+    };
+    const cs = getComputedStyle(e);
+    const bg = lum(cs.backgroundColor), fg = lum(cs.color);
+    return { bg, contrast: (Math.max(bg, fg) + 0.05) / (Math.min(bg, fg) + 0.05), pe: cs.pointerEvents };
+  });
+  expect(look.bg, '板は うす暗い').toBeLessThan(0.1);
+  expect(look.contrast, '字は しっかり 読める').toBeGreaterThan(7);
+  expect(look.pe).toBe('none');
   await page.locator('[data-tile="relay"]').click({ force: true, timeout: 3000 }).catch(() => undefined);
   await expect(page.locator('#s-games')).toBeVisible();
   /* 1人も 早押しだけ */

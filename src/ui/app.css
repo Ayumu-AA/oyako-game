@@ -736,6 +736,35 @@
   .choices.moji.two{grid-template-columns:repeat(2,minmax(0,1fr))}   /* 国旗は 2たく */
   .choice.mj{font-size:clamp(22px,5.4vw,30px);font-weight:900;padding:12px 4px}
 
+  /* ===== 2人のときは 片側に つかえる 高さが 半分しかない =====
+     国旗・問題文・もじうめの わく・えらぶボタンが はみ出して 押せなくなるので、
+     片側ぶんの 高さに あわせて ぜんぶ 小さくする（1人のときは そのまま 大きく）。 */
+  #s-battle:not(.solo) .side{gap:clamp(4px,1vh,8px);padding:8px}
+  #s-battle:not(.solo) .qart{width:min(70px,9.4vh)}
+  #s-battle:not(.solo) .qtext{font-size:clamp(14px,3.1vh,20px)}
+  #s-battle:not(.solo) .qtext.long{font-size:clamp(12.5px,2.5vh,16px);line-height:1.4}
+  #s-battle:not(.solo) .qtext.num{font-size:clamp(22px,5vh,34px)}
+  #s-battle:not(.solo) .choice{font-size:clamp(12px,2vh,15px);padding:clamp(6px,1.2vh,11px) 5px}
+  #s-battle:not(.solo) .choice.imi{font-size:clamp(11px,1.7vh,13.5px);padding:clamp(5px,1vh,9px) 4px}
+  #s-battle:not(.solo) .choice.mj{font-size:clamp(18px,3.5vh,26px);padding:clamp(6px,1.3vh,11px) 4px}
+  #s-battle:not(.solo) .mojiwrap{gap:clamp(5px,1.2vh,10px)}
+  #s-battle:not(.solo) .mojiword{gap:4px}
+  #s-battle:not(.solo) .mchar{width:clamp(25px,6.2vw,38px);height:clamp(30px,5.2vh,46px);font-size:clamp(15px,4vw,24px);border-width:2px}
+  #s-battle:not(.solo) .mchar.fix{min-width:clamp(17px,4.2vw,26px)}
+  #s-battle:not(.solo) .mtail{font-size:clamp(15px,4vw,24px)}
+  #s-battle:not(.solo) .mshown{font-size:clamp(16px,4.2vw,26px);gap:3px 12px}
+  #s-battle:not(.solo) .hintbox{min-height:0;margin:0}
+  #s-battle:not(.solo) .hintbox .hintline{font-size:13px;padding:4px 9px;line-height:1.35}
+  #s-battle:not(.solo) .hintbox .hintline i{font-size:9px}
+  #s-battle:not(.solo) .hintbox .hintwait{font-size:11.5px}
+  #s-battle:not(.solo) .hintbox .ptsnow{font-size:12px}
+  /* せの低い 端末は もう一段 小さく */
+  @media (max-height:680px){
+    #s-battle:not(.solo) .qart{width:min(58px,8.4vh)}
+    #s-battle:not(.solo) .hintbox .hintline{font-size:12px;padding:3px 8px}
+    #s-battle:not(.solo) .choice{padding:clamp(5px,1vh,9px) 4px}
+  }
+
   /* 赤いボタン（回答権を とる）。押した人だけに こたえが 出る */
   .buzz{
     flex:none;width:min(80%,260px);min-height:clamp(66px,14vh,112px);
@@ -1161,7 +1190,7 @@
   .schoolbg .sb-tag{
     position:absolute; right:4.5%; top:6.5%;
     font-size:8.5px; font-weight:700; letter-spacing:.3em; line-height:1.8;
-    color:rgba(190,225,255,.34); text-align:right;
+    color:rgba(190,225,255,.22); text-align:right;
   }
   /* ただよう 学用品 */
   .schoolbg .sb-bit{
@@ -1331,16 +1360,20 @@
   /* 右はしの 矢印と かさならないように。絵（.icon）は span なので のぞく */
   .wrap.night .colortiles .mode.wide span:not(.icon){ padding-right:34px; }
 
-  /* COMING SOON は その ゲームの 色のまま うす暗く。押しても 反応しない */
+  /* COMING SOON は うす暗い 紺の 板にする。押しても 反応しない。
+     ※ 前は 白い板に filter で 暗さを かけていたが、文字まで 暗くなって
+       読めなかったので、板の色を 暗くして 文字は 明るいまま のこす。 */
   .wrap.night .colortiles .mode.soon{
-    --on:#ffffff;
-    background-image:linear-gradient(140deg, rgba(255,255,255,.10) 0%, rgba(0,0,0,.20) 45%, rgba(0,0,0,.42) 100%);
-    filter:saturate(.58) brightness(.56);
-    box-shadow:0 6px 16px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.12);
+    --c:#22364d; --on:#e8f0fb;
+    background-image:none;
+    filter:none;
+    box-shadow:0 4px 14px rgba(0,0,0,.28), inset 0 0 0 1.5px rgba(255,255,255,.14);
     pointer-events:none;   /* タップしても 反応しない */
   }
-  .wrap.night .colortiles .mode .soontag{ color:rgba(255,255,255,.72); opacity:1; }
-  .wrap.night .colortiles .mode.soon small{ opacity:.8; }
+  .wrap.night .colortiles .mode.soon .icon{ opacity:.8; }
+  .wrap.night .colortiles .mode.soon b{ opacity:1; }
+  .wrap.night .colortiles .mode .soontag{ color:#8fb6dc; opacity:1; }
+  .wrap.night .colortiles .mode.soon small{ opacity:1; color:#b6cce4; }
 
   /* 主役の タイル（当日 あそべる ゲーム）。写真の 赤い 大きなカード */
   .wrap.night .colortiles .mode.hero{
@@ -1486,9 +1519,11 @@
     box-shadow:0 4px 12px rgba(0,10,30,.4), inset 0 1px 0 rgba(255,255,255,.25);
   }
   .wrap.night .rulesbtn .qm{background:#2b8ad6;color:#fff}
+  /* 中の 字が 読みにくく ならないように、うしろの もよう（PLOW の 文字など）が
+     すけない 濃さに する */
   .wrap.night .howlede{
     color:#eaf3ff;
-    background:linear-gradient(160deg, rgba(255,255,255,.13) 0%, rgba(255,255,255,.03) 55%, rgba(0,0,0,.18) 100%);
+    background:linear-gradient(160deg, rgba(26,54,88,.95) 0%, rgba(17,37,63,.95) 100%);
     border-color:rgba(120,195,255,.45);
     box-shadow:0 8px 20px rgba(0,10,35,.4), inset 0 1px 0 rgba(255,255,255,.25), 0 0 16px rgba(80,180,255,.16);
   }
