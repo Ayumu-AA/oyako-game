@@ -136,7 +136,7 @@ export default function App() {
   return (
     <>
     {night && <SchoolBg />}
-    <div className={'wrap' + (night ? ' night' : '')}>
+    <div className={'wrap' + (night ? ' night' : '') + (screen === 'rank' ? ' fit' : '')}>
       {screen === 'title' && <>
         <TitleScreen onPlayers={(p) => { change({ players: p }); go('level'); }} onSettings={() => setSetOpen(true)} onRank={() => openRank(mode)} />
         <SettingsOverlay open={setOpen} seconds={s.seconds} onSeconds={(v) => change({ seconds: v })} onClose={() => setSetOpen(false)} onCleared={() => setMissN(0)} nick={nick} onName={() => askName(() => undefined)} />

@@ -1157,56 +1157,98 @@
   #s-rank .rm-brand{text-align:center;font-size:12px;font-weight:700;color:var(--sea);margin:0}
 
   /* ===== ランキング画面（くらい背景・1画面に おさめる） ===== */
-  #s-rank .howttl h2 .crown{font-style:normal;margin-left:6px;font-size:.8em}
-  /* まだ だれも いないときの 1・2・3位の 台 */
-  .rankmsg.big{display:flex;align-items:center;gap:14px;text-align:left;font-size:14.5px;margin:14px 8px}
-  .rankmsg .cup{display:block;flex:none;width:86px;color:#ffd166}
-  .rankmsg .cup svg{display:block;width:100%;height:auto}
-  /* がくねんは 6つ。王かんの 色を 学年ごとに 変えて 見分けやすく */
+  #s-rank .howttl h2{display:flex;align-items:center;gap:8px}
+  #s-rank .howttl h2 .crown{display:block;width:26px;flex:none;color:#ffd166;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
+  #s-rank .howttl h2 .crown svg{display:block;width:100%;height:auto}
+  /* 見出しの 下に 青い 線（写真と 同じ） */
+  .wrap.night #s-rank .howttl{position:relative;padding-bottom:9px}
+  .wrap.night #s-rank .howttl::after{
+    content:'';position:absolute;left:0;bottom:0;width:132px;height:3px;border-radius:2px;
+    background:linear-gradient(90deg,#5fc8ff,rgba(95,200,255,0));
+  }
+  /* 「おうち」は 黄色い まるい ふだ */
+  .wrap.night #rank-ev.ev{
+    background:linear-gradient(180deg,#ffd45e,#f5a623);color:#4a2d00;
+    border:none;font-weight:900;padding:3px 13px;border-radius:999px;
+    box-shadow:0 3px 10px rgba(245,166,35,.4);
+  }
+  /* 「がくねん」の 見出しに 帽子の しるし */
+  .wrap.night #row-rank-level .picklabel{
+    font-size:14px;font-weight:900;color:#cfe6ff;letter-spacing:.06em;
+    display:flex;align-items:center;gap:7px;
+  }
+  .wrap.night #row-rank-level .picklabel::before{content:'🎓';font-size:16px;line-height:1}
+  /* がくねんの ボタン：学年ごとの 色で ふちどって 光らせる */
+  #row-rank-level .pickgrid{gap:9px}
   .wrap.night #row-rank-level .pickgrid button{
-    background:rgba(255,255,255,.07);border-color:var(--gl,#7fc4ff);color:var(--gl,#eaf3ff);
-    opacity:.78;
+    min-height:52px;border-radius:15px;border:2px solid var(--gl,#7fc4ff);
+    background:linear-gradient(160deg, rgba(255,255,255,.12), rgba(0,0,0,.26));
+    color:#eaf3ff;font-size:14.5px;font-weight:900;
+    display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;
+    box-shadow:0 4px 12px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.18);
   }
+  .wrap.night #row-rank-level .pickgrid button .gcrown{
+    display:block;width:22px;flex:none;color:var(--gl,#7fc4ff);
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,.45));
+  }
+  .wrap.night #row-rank-level .pickgrid button .gcrown svg{display:block;width:100%;height:auto}
   .wrap.night #row-rank-level .pickgrid button[aria-pressed="true"]{
-    background:var(--gc,rgba(70,150,230,.34));border-color:var(--gl,#7fc4ff);color:#fff;
-    opacity:1;
-    box-shadow:0 0 0 1.5px var(--gl,#7fc4ff), 0 4px 14px rgba(0,0,0,.3);
+    background:linear-gradient(160deg, var(--gc,rgba(70,150,230,.5)), rgba(0,0,0,.24));
+    color:#fff;
+    box-shadow:0 0 0 2px var(--gl,#7fc4ff), 0 0 18px var(--gw,rgba(127,196,255,.5)), 0 4px 14px rgba(0,0,0,.34);
   }
-  #row-rank-level .pickgrid button[data-v="6"]{--gc:rgba(201,150,31,.4);--gl:#ffd166}
-  #row-rank-level .pickgrid button[data-v="5"]{--gc:rgba(60,130,220,.4);--gl:#7fb6ff}
-  #row-rank-level .pickgrid button[data-v="4"]{--gc:rgba(214,120,54,.4);--gl:#ffac72}
-  #row-rank-level .pickgrid button[data-v="3"]{--gc:rgba(78,170,90,.4);--gl:#8fe09a}
-  #row-rank-level .pickgrid button[data-v="2"]{--gc:rgba(140,100,220,.4);--gl:#c3a6ff}
-  #row-rank-level .pickgrid button[data-v="1"]{--gc:rgba(60,185,215,.4);--gl:#86e3f5}
-  #row-rank-level .pickgrid button .pi{font-size:13px;margin-right:4px}
+  #row-rank-level .pickgrid button[data-v="6"]{--gc:rgba(201,150,31,.5);--gl:#ffd166;--gw:rgba(255,209,102,.55)}
+  #row-rank-level .pickgrid button[data-v="5"]{--gc:rgba(60,130,220,.5);--gl:#7fb6ff;--gw:rgba(127,182,255,.55)}
+  #row-rank-level .pickgrid button[data-v="4"]{--gc:rgba(214,120,54,.5);--gl:#ffac72;--gw:rgba(255,172,114,.55)}
+  #row-rank-level .pickgrid button[data-v="3"]{--gc:rgba(78,170,90,.5);--gl:#8fe09a;--gw:rgba(143,224,154,.55)}
+  #row-rank-level .pickgrid button[data-v="2"]{--gc:rgba(140,100,220,.5);--gl:#c3a6ff;--gw:rgba(195,166,255,.55)}
+  #row-rank-level .pickgrid button[data-v="1"]{--gc:rgba(60,185,215,.5);--gl:#86e3f5;--gw:rgba(134,227,245,.55)}
   /* 表は くらい ガラスの 板に */
   .wrap.night .ranklist{
     background:linear-gradient(160deg, rgba(26,54,88,.92) 0%, rgba(17,37,63,.92) 100%);
-    border-color:rgba(120,195,255,.4);
-    box-shadow:0 8px 20px rgba(0,10,35,.4), inset 0 1px 0 rgba(255,255,255,.2);
+    border:1.5px solid rgba(120,195,255,.4);border-radius:18px;
+    box-shadow:0 8px 22px rgba(0,10,35,.42), inset 0 1px 0 rgba(255,255,255,.2);
   }
   .wrap.night .rankmsg{color:#cfe2f7}
   .wrap.night .rankrow{border-bottom-color:rgba(255,255,255,.14);color:#eaf3ff}
   .wrap.night .rankrow .rno{color:#9fc4e8}
   .wrap.night .rankrow.me{background:rgba(255,209,102,.22)}
   .wrap.night .ranknote{color:#9fbdd8}
-  .wrap.night #s-rank .rm-brand{color:#9fd0ff}
-  /* 1画面に おさめる（6学年＋表＋もどる） */
-  #s-rank{gap:9px}
-  /* 見出し・がくねん・もどる の ぶんを のぞいた 高さまでに して、
-     人数が ふえても 画面からは はみ出さない（表の 中だけ 動く） */
-  #s-rank .ranklist{
-    overflow:auto;min-height:0;flex:0 1 auto;
-    max-height:calc(100svh - 300px);-webkit-overflow-scrolling:touch;
+  /* まだ だれも いないときの 1・2・3位の 台 */
+  .rankmsg.big{display:flex;align-items:center;gap:14px;text-align:left;font-size:14.5px;margin:14px 8px}
+  .rankmsg .cup{display:block;flex:none;width:86px;color:#ffd166;filter:drop-shadow(0 3px 6px rgba(0,0,0,.4))}
+  .rankmsg .cup svg{display:block;width:100%;height:auto}
+  /* 下の 塾名に 校舎の しるし */
+  .wrap.night #s-rank .rm-brand{
+    color:#9fd0ff;display:flex;align-items:center;justify-content:center;gap:7px;
   }
-  #s-rank .spacer{min-height:0}
+  .wrap.night #s-rank .rm-brand::before{content:'🏫';font-size:15px;line-height:1}
+  /* 1画面に おさめる（6学年＋表＋もどる）。
+     人数が ふえても 画面からは はみ出さず、表の 中だけ 動く */
+  .wrap.fit{height:100svh;min-height:0;overflow:hidden}
+  .wrap.fit .screen{min-height:0}
+  #s-rank{gap:10px;min-height:0}
+  /* 表は あまった 高さを ぜんぶ つかう（のびすぎず、足りなければ 中だけ 動く）。
+     こうすると 人数が 何人でも かならず 1画面に おさまる */
+  #s-rank .ranklist{
+    flex:1 1 auto;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;
+  }
+  #s-rank .spacer{display:none}
+  @media (max-width:345px){
+    #s-rank .howttl h2{font-size:16px;gap:5px}
+    #s-rank .howttl h2 .crown{width:19px}
+    .wrap.night #row-rank-level .pickgrid button{font-size:12.5px;gap:5px}
+  }
   @media (max-height:740px){
     #s-rank{gap:7px}
     #s-rank .howttl h2{font-size:17px}
-    #row-rank-level .pickgrid button{min-height:36px;font-size:12.5px}
+    #s-rank .howttl h2 .crown{width:21px}
+    #row-rank-level .pickgrid{gap:7px}
+    .wrap.night #row-rank-level .pickgrid button{min-height:42px;font-size:13px;border-radius:13px}
+    .wrap.night #row-rank-level .pickgrid button .gcrown{width:18px}
+    .wrap.night #row-rank-level .picklabel{font-size:12.5px}
     .rankmsg .cup{width:66px}
     .rankmsg.big{font-size:13px;margin:10px 6px}
-    #s-rank .ranklist{max-height:calc(100svh - 318px)}
     .rankrow{padding:6px 4px;font-size:14px}
     .rankrow .rname{font-size:15px}
   }

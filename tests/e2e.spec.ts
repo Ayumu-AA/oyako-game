@@ -112,7 +112,7 @@ test('ランキング：タイトルから 入って 名前を 決める・NGワ
   await expect(page.locator('#s-rank')).toBeVisible();
   /* ゲームは「はやおし（ひとり）」だけなので えらぶ欄は 出さない */
   await expect(page.locator('#seg-rank-mode')).toHaveCount(0);
-  await expect(page.locator('#rank-title')).toHaveText('はやおし（ひとり）👑');
+  await expect(page.locator('#rank-title')).toHaveText('はやおし（ひとり）');
   await page.click('#btn-rank-name');
   await page.fill('#nick-input', 'ばかもの'); await page.click('#btn-nick-ok');
   await expect(page.locator('#nick-hint')).toHaveText('そのことばは つかえないよ');

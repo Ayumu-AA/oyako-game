@@ -58,6 +58,11 @@ export function NameSheet({ open, level, initial, onDone, onCancel }: { open: bo
 }
 
 /* 1・2・3位の 台。画像では なく 線と 四角で 作る（どの端末でも 同じに 出る） */
+/** 王かん。色は ボタンの 学年の色（currentColor）に なる */
+const CROWN = '<svg viewBox="0 0 24 18" aria-hidden="true">'
+  + '<path d="M2 15.2 1 3.6l6 4.4L12 1.4l5 6.6 6-4.4-1 11.6z" fill="currentColor"/>'
+  + '<rect x="2" y="15.4" width="20" height="2.4" rx="1.2" fill="currentColor" opacity=".8"/></svg>';
+
 const PODIUM = '<svg viewBox="0 0 120 54" aria-hidden="true">'
   + '<g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round">'
   + '<path d="M60 7.5 62.4 13l6 .7-4.5 4.1 1.3 5.9L60 20.8l-5.2 2.9 1.3-5.9-4.5-4.1 6-.7z" fill="currentColor" stroke="none"/>'
@@ -98,8 +103,8 @@ export function RankingScreen({ mode0, level0, nick, onBack, onName }: { mode0: 
     <section className="screen on" id="s-rank">
       <div className="howhead">
         <div className="howttl">
-          <p className="eyebrow">ランキング<span className="lvchip" id="rank-ev">{ev === 'home' ? 'おうち' : ev}</span></p>
-          <h2 id="rank-title">{RANK_MODES.find((m) => m.mode === mode)?.label}<i className="crown" aria-hidden="true">👑</i></h2>
+          <p className="eyebrow">ランキング<span className="lvchip ev" id="rank-ev">{ev === 'home' ? 'おうち' : ev}</span></p>
+          <h2 id="rank-title">{RANK_MODES.find((m) => m.mode === mode)?.label}<Raw as="i" className="crown" html={CROWN} /></h2>
         </div>
         <button type="button" className="rulesbtn" id="btn-rank-name" onClick={onName}>
           <span className="qm" aria-hidden="true">✎</span>{nick ? nick : 'なまえ'}
@@ -113,7 +118,7 @@ export function RankingScreen({ mode0, level0, nick, onBack, onName }: { mode0: 
           options={RANK_MODES.map((m) => ({ v: m.mode, b: m.label }))} />
       )}
       <PickGrid id="seg-rank-level" label="がくねん" cols={3} className="grades" value={level} onPick={(l) => setLevel(l)}
-        options={GRADES.map((g) => ({ v: g, b: <><i className="pi" aria-hidden="true">👑</i>{gradeLabel(g)}</> }))} />
+        options={GRADES.map((g) => ({ v: g, b: <><Raw as="i" className="gcrown" html={CROWN} />{gradeLabel(g)}</> }))} />
 
       <div className="ranklist" id="rank-list">
         {state === 'offline' && <p className="rankmsg" id="rank-offline">{t ? 'いまは つながっていません。前に見た表です' : 'つながると 出ます'}</p>}
