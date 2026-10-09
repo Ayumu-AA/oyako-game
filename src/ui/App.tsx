@@ -117,7 +117,7 @@ export default function App() {
        ・まちがい直しは 人によって 出る問題が ちがう
        のせる 数字は「とくてん」（早く こたえるほど 高い） */
     if (r.players === 1 && !r.miss && !r.practice && r.bsubj === 'mix') {
-      submitScore({ event_code: eventCode(), mode: 'battle1', level: s.level, seconds: r.seconds, score: r.ptsChild, rank_i: rankOf('relay', r.child, r.seconds).i, nickname: '' });
+      submitScore({ event_code: eventCode(), mode: 'battle1', level: s.level, seconds: r.seconds, score: r.ptsChild, rank_i: rankOf('battle1', r.child, r.seconds).i, nickname: '' });
       const key = bestKey('battle1', s.level, r.seconds);
       if (r.ptsChild > Number(store(key) || 0)) store(key, String(r.ptsChild));
     } else pendingScore.current = null;

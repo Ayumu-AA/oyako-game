@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RANKS } from '../data/texts';
 import { checkNick, suggestNick, NICK_MAX, getNick, setNickLocal, isTaken, loadTakenNames, setTakenNames } from '../lib/nickname';
-import { enqueueProfile, flush } from '../lib/sync';
+import { enqueueProfile, flush, queueLength } from '../lib/sync';
 import { cachedTable, fetchTable, fetchNames, RANK_MODES, type RankTable } from '../lib/ranking';
 import { eventCode } from '../lib/config';
 import { CONFIG } from './texts';
@@ -96,6 +96,8 @@ export function RankingScreen({ mode0, level0, nick, onBack, onName }: { mode0: 
     return () => window.removeEventListener('online', on);
   }, [mode, level, load]);
 
+  const [pend, setPend] = useState(0);
+  useEffect(() => { setPend(queueLength()); }, [t, state]);
   const rows = t?.rows || [];
   const mine = t?.mine || null;
   const inTop = mine ? rows.some((r) => r.user_id && mine.row && r.nickname === mine.row.nickname && r.score === mine.row.score && r.seconds === mine.row.seconds) : false;
@@ -151,6 +153,8 @@ export function RankingScreen({ mode0, level0, nick, onBack, onName }: { mode0: 
           </ol>
         )}
         {t && t.total > 0 && <p className="ranknote">{t.total}人が あそびました</p>}
+        {/* 送れていない 点数が あるときだけ 出す（当日 気づけるように） */}
+        {pend > 0 && <p className="ranknote warn" id="rank-pend">まだ 送れていない 点数が {pend}件 あります</p>}
       </div>
       <p className="rm-brand">{CONFIG.schoolName}</p>
       <div className="spacer"></div>

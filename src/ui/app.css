@@ -1214,6 +1214,8 @@
   .wrap.night .rankrow .rno{color:#9fc4e8}
   .wrap.night .rankrow.me{background:rgba(255,209,102,.22)}
   .wrap.night .ranknote{color:#9fbdd8}
+  .ranknote.warn{color:#b06a00;font-weight:800}
+  .wrap.night .ranknote.warn{color:#ffcf7a}
   /* まだ だれも いないときの 1・2・3位の 台 */
   .rankmsg.big{display:flex;align-items:center;gap:14px;text-align:left;font-size:14.5px;margin:14px 8px}
   .rankmsg .cup{display:block;flex:none;width:86px;color:#ffd166;filter:drop-shadow(0 3px 6px rgba(0,0,0,.4))}
