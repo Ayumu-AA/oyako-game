@@ -12,7 +12,7 @@ async function open(page: Page, seed?: Record<string, string>) {
   await expect(page.locator('#s-title')).toBeVisible();
 }
 /** ホームの 2択（何人で → がくねん）を 通って ゲーム一覧まで 行く */
-async function nav(page: Page, players: 1 | 2 = 2, level: 1 | 2 = 2) {
+async function nav(page: Page, players: 1 | 2 = 2, level: 1 | 2 | 3 | 4 | 5 | 6 = 6) {
   await page.click(`[data-players="${players}"]`);
   await page.click(`[data-level="${level}"]`);
   await expect(page.locator('#s-games')).toBeVisible();
@@ -95,7 +95,7 @@ test('結果画面：ランクと じこベスト（60秒）', async ({ page }) 
   await expect(page.locator('#recap-list li')).toHaveCount(4);
   await expect(page.locator('#btn-again')).toBeDisabled();
   await expect(page.locator('#btn-again')).toHaveText('もういちど', { timeout: 4000 });
-  expect(await page.evaluate(() => localStorage.getItem('oyako-rika-2-60'))).toBe('4');
+  expect(await page.evaluate(() => localStorage.getItem('oyako-rika-6-60'))).toBe('4');
   /* ランキング：名前が 無いので 先に 決める → 今回の点数が 送信キューに 入る */
   await page.click('#btn-rank');
   await expect(page.locator('#name-ov')).toBeVisible();
@@ -104,7 +104,7 @@ test('結果画面：ランクと じこベスト（60秒）', async ({ page }) 
   await expect(page.locator('#rank-title')).toHaveText('りか');
   const q = await page.evaluate(() => JSON.parse(localStorage.getItem('oyako-queue') || '[]'));
   const sc = q.find((x: { k: string }) => x.k === 'score');
-  expect(sc.row).toMatchObject({ mode: 'rika', level: 2, seconds: 60, score: 4, rank_i: 2, nickname: 'てすと', event_code: 'home' });
+  expect(sc.row).toMatchObject({ mode: 'rika', level: 6, seconds: 60, score: 4, rank_i: 2, nickname: 'てすと', event_code: 'home' });
   expect(q.some((x: { k: string }) => x.k === 'profile')).toBe(true);
   await page.click('#btn-rank-back');
   await expect(page.locator('#s-title')).toBeVisible();
@@ -252,7 +252,7 @@ test('はやおしバトル：4たくは 同じ種類の 選たく肢（れき�
   await expect(page.locator('#side-child .choice')).toHaveCount(2);
 });
 
-test('はやおしバトル：ことばは 例文が 問題・意味が 選たく肢。こどもが 上・おとなが 下。まちがえた問題を もう一回', async ({ page }) => {
+test('はやおしバトル：国語は かん字の読み（選たく肢は よみ）。こどもが 上・おとなが 下。まちがえた問題を もう一回', async ({ page }) => {
   const errs = noErrors(page);
   await open(page);
   await nav(page);
@@ -272,23 +272,23 @@ test('はやおしバトル：ことばは 例文が 問題・意味が 選た�
   }));
   expect(rot.child).toBe('matrix(-1, 0, 0, -1, 0, 0)'); expect(rot.chip).toBe('matrix(-1, 0, 0, -1, 0, 0)');
   expect(rot.adult).toBe('none'); expect(rot.chipA).toBe('none');
-  /* 問題は「」つきの 例文、選たく肢は 意味（ことば そのものは 出ない） */
+  /* 問題は「〇〇」は なんと 読む？、選たく肢は よみ（ことば そのものは 出ない） */
   /* 文は 少しずつ 出るので、全文は 下じきの .ghost のほう */
   await expect(page.locator('#side-adult .qtext.ghost')).toHaveClass(/long/);
   expect(await page.locator('#side-adult .qtext.ghost').textContent()).toMatch(/「.+」/);
   await buzz(page, 'adult');
   const seen = await page.evaluate(() => [...document.querySelectorAll('#side-adult .choice')].map((b) => ({ a: (b as HTMLElement).dataset.a!, t: (b as HTMLElement).innerText })));
   expect(seen.length).toBe(4);
-  for (const c of seen) { expect(c.t).not.toBe(c.a); expect(c.t.length).toBeGreaterThan(3); }
+  /* 選たく肢は ひらがなの よみ。ことば そのものでは ない */
+  for (const c of seen) { expect(c.t).not.toBe(c.a); expect(c.t).toMatch(/^[ぁ-ゖー]+$/); expect(c.t.length).toBeGreaterThan(1); }
   /* こどもが わざと まちがえる → まちがい帳に 入る → 結果画面に「まちがえた問題を もう一回」 */
   const ans = await page.evaluate(() => {
-    /* こたえは 例文の「」の中の ことば（活用あり）。ふりがな（rt）を 外して 先頭2文字で さがす */
+    /* こたえは 問題の「」の中の ことば。ふりがな（rt）を 外して さがす */
     const qn = document.querySelector('#side-child .qtext')!.cloneNode(true) as HTMLElement;
     qn.querySelectorAll('rt').forEach((e) => e.remove());
-    const segs = (qn.textContent || '').split('「').slice(1);   /* 「」は 例文の中に 2つ以上 あることもある */
+    const w = /「(.+?)」/.exec(qn.textContent || '')![1];
     const c = [...document.querySelectorAll('#side-adult .choice')].map((b) => (b as HTMLElement).dataset.a!);
-    const ans = c.find((o) => segs.some((g) => g.startsWith(o.slice(0, 2))))!;
-    return { ans, wrong: c.find((o) => o !== ans)! };
+    return { ans: c.find((o) => o === w)!, wrong: c.find((o) => o !== w)! };
   });
   expect(ans.ans).toBeTruthy(); expect(ans.wrong).toBeTruthy();
   await page.click(`#side-adult .choice[data-a="${ans.ans}"]`);
@@ -298,9 +298,9 @@ test('はやおしバトル：ことばは 例文が 問題・意味が 選た�
   const wrong2 = await page.evaluate(() => {
     const qn = document.querySelector('#side-child .qtext')!.cloneNode(true) as HTMLElement;
     qn.querySelectorAll('rt').forEach((e) => e.remove());
-    const segs = (qn.textContent || '').split('「').slice(1);
+    const w = /「(.+?)」/.exec(qn.textContent || '')![1];
     const c = [...document.querySelectorAll('#side-child .choice')].map((b) => (b as HTMLElement).dataset.a!);
-    return c.find((o) => !segs.some((g) => g.startsWith(o.slice(0, 2))))!;
+    return c.find((o) => o !== w)!;
   });
   await page.click(`#side-child .choice[data-a="${wrong2}"]`);   /* こどもが まちがえる（おとなは 答えない → まちがい帳に 残る） */
   await expect(page.locator('#side-child')).toHaveClass(/locked/);
@@ -497,7 +497,7 @@ for (const [w, h, tag] of VPS) {
     const rows: [string, number][] = [];
     rows.push(['1．何人で', await sh()]);
     await page.click('[data-players="2"]'); rows.push(['2．がくねん', await sh()]);
-    await page.click('[data-level="2"]'); rows.push(['3．ゲーム一覧（2人・まちがい帳あり）', await sh()]);
+    await page.click('[data-level="6"]'); rows.push(['3．ゲーム一覧（2人・まちがい帳あり）', await sh()]);
     await page.click('[data-mode="battle"]'); rows.push(['あそびかた:battle', await sh()]);
     await page.click('#btn-how-back'); await page.click('[data-tile="miss"]'); rows.push(['あそびかた:miss', await sh()]);
     await page.click('#btn-how-back'); await page.click('[data-mode="cross"]'); rows.push(['あそびかた:cross', await sh()]);
@@ -745,7 +745,7 @@ test('当日は 早押しだけ あそべる（ほかは COMING SOON）', async 
   await page.goto('./');
   await expect(page.locator('#s-title')).toBeVisible();
   await page.click('[data-players="2"]');
-  await page.click('[data-level="2"]');
+  await page.click('[data-level="6"]');
   await expect(page.locator('#s-games')).toBeVisible();
   await expect(page.locator('[data-tile="battle"]')).toBeEnabled();
   for (const k of ['relay', 'cross', 'geo']) {
@@ -761,7 +761,7 @@ test('当日は 早押しだけ あそべる（ほかは COMING SOON）', async 
   await page.click('#btn-games-back');
   await page.click('#btn-level-back');
   await page.click('[data-players="1"]');
-  await page.click('[data-level="2"]');
+  await page.click('[data-level="6"]');
   await expect(page.locator('[data-tile="battle1"]')).toBeEnabled();
   for (const k of ['geo', 'math', 'numcross', 'cross']) {
     await expect(page.locator(`[data-tile="${k}"]`)).toBeDisabled();

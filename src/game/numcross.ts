@@ -1,6 +1,6 @@
 /* けいさんクロス（1人用）の 純ロジック */
 import { shuffle, randInt } from './util';
-import type { Level } from './types';
+import type { DataLv } from './types';
 
 export type NcKey = 'a' | 'b' | 's1' | 'd' | 'e' | 's2' | 'c1' | 'c2' | 'T';
 export const NC_KEYS: NcKey[] = ['a', 'b', 's1', 'd', 'e', 's2', 'c1', 'c2', 'T'];
@@ -27,7 +27,7 @@ export function ncRank(keys: NcKey[]): number {
   return rank;
 }
 export interface NcPuzzle { v: Record<NcKey, number>; hide: NcKey[] }
-export function makeNum(level: Level): NcPuzzle {
+export function makeNum(level: DataLv): NcPuzzle {
   const lo = level === 1 ? 1 : 3, hi = level === 1 ? 9 : 19;
   const k = level === 1 ? 4 : 5;
   for (let t = 0; t < 600; t++) {
@@ -41,7 +41,7 @@ export function makeNum(level: Level): NcPuzzle {
 }
 
 export interface NcState { puz: NcPuzzle; val: Partial<Record<NcKey, string>>; sel: NcKey | null; checked: boolean }
-export function newNum(level: Level): NcState {
+export function newNum(level: DataLv): NcState {
   const puz = makeNum(level);
   const val: Partial<Record<NcKey, string>> = {};
   puz.hide.forEach((k) => { val[k] = ''; });

@@ -1,9 +1,10 @@
 /* はやおし親子バトル の 純ロジック（問題づくり・選たく肢・得点）。タイマーと描画は UI 側 */
-import { relayDeck, missDeck } from './decks';
+import { relayDeck, missDeck, kanjiDeck, kanjiRows, KANJI_TAG } from './decks';
 import { KOKUGO_REI } from '../data/kokugo_rei';
 import { preloadArt } from './art';
 import { markSeen, seenAt, markHit, markMiss } from './records';
 import { shuffle, pickN, randInt, rng } from './util';
+import { dataLv } from './types';
 import type { BattleQ, Level, RelayQ, Side, Subject } from './types';
 
 export const HANDI: [number, number][] = [[3, 3], [2, 4], [2, 6]];   /* [こどもの選たく肢, おとなの選たく肢] */
@@ -35,11 +36,22 @@ export function mojiRate(): number {
   try { const v = localStorage.getItem('oyako-mojirate'); if (v) return Number(v); } catch { /* つかえない端末 */ }
   return MOJI_RATE;
 }
-/* 低学年には むずかしすぎるので ていがくねんでは 出さない ジャンル */
+/* 親子ヒントリレー／ちずクイズは いままでどおり 低学年・高学年の 2段階。
+   ていがくねん（1〜3年）では 出さない ジャンル */
 export const LV1_SKIP: BattleSubj[] = ['rika', 'rekishi', 'eigo'];
-export const okSubj = (v: BattleSubj, lv: Level) => lv === 2 || !LV1_SKIP.includes(v);
+export const relayOk = (v: string, g: Level) => dataLv(g) === 2 || !(LV1_SKIP as string[]).includes(v);
+
+/* ===== 学年べつの ジャンル（はやおしバトル） =====
+   1年生　　 かん字の読み・けいさん・国旗
+   2年生　　 ＋ 都道府県
+   3・4年生　＋ れきし・りか
+   5・6年生　＋ えいご
+   （りか・社会は 問題を あつめている さいちゅう。画面では えらべるようにして、
+     出す問題は いままでの データを つかう） */
+export const SUBJ_FROM: Partial<Record<BattleSubj, Level>> = { pref: 2, rekishi: 3, rika: 3, eigo: 5 };
+export const okSubj = (v: BattleSubj, g: Level) => g >= (SUBJ_FROM[v] || 1);
 /** そのがくねんで ミックスに 出る ジャンル */
-export const mixFor = (lv: Level): BattleSubj[] => MIX_ALL.filter((v) => okSubj(v, lv));
+export const mixFor = (g: Level): BattleSubj[] => MIX_ALL.filter((v) => okSubj(v, g));
 
 /* もじあて：こたえの よみを 「本体」と「県・都・府・道」に 分ける。
    青森県 → あおもり ＋ 県 ／ 北海道 → ほっかい ＋ 道 ／ 国旗は そのまま */
@@ -52,16 +64,29 @@ export function splitYomi(sub: string, name: string, yomi: string): { body: stri
   return { body: yomi.slice(0, -n), tail: t };
 }
 
-export function calcQuestion(lv: Level): BattleQ {
+export function calcQuestion(g: Level): BattleQ {
   let a: number, b: number, text: string, ans: number;
-  if (lv === 1) {
+  if (g <= 2) {
+    /* 1・2年生：たしざん・ひきざん */
     if (rng() < 0.5) { a = randInt(2, 9); b = randInt(2, 9); text = a + ' + ' + b; ans = a + b; }
     else { a = randInt(5, 17); b = randInt(1, a - 1); text = a + ' − ' + b; ans = a - b; }
-  } else {
+  } else if (g === 3) {
+    /* 3年生：かけざん（九九）と 2けたの たしざん */
+    if (rng() < 0.7) { a = randInt(2, 9); b = randInt(2, 9); text = a + ' × ' + b; ans = a * b; }
+    else { a = randInt(12, 89); b = randInt(12, 89); text = a + ' + ' + b; ans = a + b; }
+  } else if (g === 4) {
+    /* 4年生：かけざん・わりざん */
     const r = rng();
     if (r < 0.45) { a = randInt(2, 9); b = randInt(2, 9); text = a + ' × ' + b; ans = a * b; }
-    else if (r < 0.75) { b = randInt(2, 9); ans = randInt(2, 9); a = b * ans; text = a + ' ÷ ' + b; }
+    else if (r < 0.8) { b = randInt(2, 9); ans = randInt(2, 9); a = b * ans; text = a + ' ÷ ' + b; }
     else { a = randInt(12, 89); b = randInt(12, 89); text = a + ' + ' + b; ans = a + b; }
+  } else {
+    /* 5・6年生：2けた×1けた、わりざん、3けたの たしざん */
+    const r = rng();
+    if (r < 0.4) { a = randInt(11, 29); b = randInt(3, 9); text = a + ' × ' + b; ans = a * b; }
+    else if (r < 0.7) { b = randInt(3, 9); ans = randInt(4, 19); a = b * ans; text = a + ' ÷ ' + b; }
+    else if (r < 0.85) { a = randInt(2, 9); b = randInt(2, 9); text = a + ' × ' + b; ans = a * b; }
+    else { a = randInt(120, 890); b = randInt(12, 89); text = a + ' + ' + b; ans = a + b; }
   }
   /* まちがいの選たく肢。こたえが 0や1 だと 下に ずらせる数が 足りないので
      上へ のばして かならず 8個 そろえる（無限ループ対策ずみ） */
@@ -78,7 +103,7 @@ export function calcQuestion(lv: Level): BattleQ {
    同じ種類が 足りないときだけ、近い種類 → ぜんぶ の順に 広げる。 */
 export const TAG_GROUP: Record<string, Record<string, string>> = {
   rekishi: { '人物': '人', 'できごと': 'こと', '時代': 'こと', 'たてもの': 'もの', 'いせき': 'もの', 'むかしのどうぐ': 'どうぐ' },
-  kokugo: { 'ことわざ': 'ことわざ', '慣用句': 'ことわざ', '四字熟語': '四字熟語' },
+  kokugo: { 'ことわざ': 'ことわざ', '慣用句': 'ことわざ', '四字熟語': '四字熟語', [KANJI_TAG]: KANJI_TAG },
 };
 export const POOL_BY_TAG = ['rekishi', 'kokugo', 'rika', 'eigo'];   /* 都道府県・国旗は 今までどおり ぜんぶから */
 export function tagGroup(key: string, tag: string): string { const g = TAG_GROUP[key]; return (g && g[tag]) || tag; }
@@ -165,7 +190,10 @@ export class BattleSession {
 
   constructor(opts: BattleOpts) {
     this.opts = opts;
-    for (const k of ['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo'] as Subject[]) this.pools[k] = relayDeck(k, opts.level);
+    const dlv = dataLv(opts.level);
+    for (const k of ['pref', 'flag', 'rika', 'rekishi', 'eigo'] as Subject[]) this.pools[k] = relayDeck(k, dlv);
+    /* 国語は「かん字の読み」。学年ごとに 習う 漢字が ちがうので 学年の デッキを つかう */
+    this.pools.kokugo = kanjiDeck(opts.level);
     if (opts.bsubj === 'miss') {
       /* まちがい帳は 始めた時点で 固定する。当てて 帳から 消えても、この勝負では 出つづける */
       this.missPool = missDeck().filter((q) => q.sub !== 'math' && q.sub !== 'calc');
@@ -173,7 +201,11 @@ export class BattleSession {
          こうしないと 低学年の問題を 高学年で 直すとき、選たく肢が 教科ちがいに なる */
       for (const k of ['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo'] as Subject[]) {
         const seen = new Set<string>();
-        this.pools[k] = relayDeck(k, 1).concat(relayDeck(k, 2)).filter((q) => !seen.has(q.name) && seen.add(q.name));
+        /* 国語は ことわざ（リレーの データ）と かん字の読み（ぜんぶの 学年）の 両方から */
+        const all = k === 'kokugo'
+          ? relayDeck(k, 1).concat(relayDeck(k, 2), [1, 2, 3, 4, 5, 6].flatMap((g) => kanjiRows(g as Level)))
+          : relayDeck(k, 1).concat(relayDeck(k, 2));
+        this.pools[k] = all.filter((q) => !seen.has(q.name) && seen.add(q.name));
       }
     }
     if (opts.bsubj === 'mix' || opts.bsubj === 'eigo' || opts.bsubj === 'miss') {
@@ -286,6 +318,12 @@ export class BattleSession {
     let text: string, art = null, disp: Record<string, string> | undefined;
     if (key === 'flag') { text = 'この国旗{こっき}はどこ？'; art = q.art; }
     else if (key === 'eigo') { text = 'これを英語{えいご}で？'; art = q.art; }
+    else if (key === 'kokugo' && q.tag === KANJI_TAG) {
+      /* かん字の読み：問題は ことば、選たく肢は よみ。記録は ことばで つける */
+      text = '「' + q.name + '」は なんと 読{よ}む？';
+      disp = {};
+      deck.forEach((x) => { if (x.tag === KANJI_TAG) disp![x.name] = x.yomi; });
+    }
     else if (key === 'kokugo' && KOKUGO_REI[q.name]) {
       /* ことば：問題は そのことばを 使った 例文、選たく肢は 意味。記録は 名前で つける */
       text = KOKUGO_REI[q.name].rei;
@@ -296,10 +334,15 @@ export class BattleSession {
     /* 3秒ごとに 1つずつ 出す ヒント。問題文に つかった ぶんは のぞく */
     const used = key === 'pref' || key === 'rika' || key === 'rekishi' ? 1 : 0;
     const more = q.hints.slice(used).filter((h) => h && h !== text);
-    const hints = pickN(more, Math.max(0, HINT_MAX - 1)).slice(0, HINT_MAX - 1);
-    const pool = battlePool(key, deck, q);
+    /* かん字の読みは ヒントの 順番が 決まっている（いみ → よみの 文字数）ので 抽選しない */
+    const hints = q.tag === KANJI_TAG ? more.slice(0, HINT_MAX - 1)
+      : pickN(more, Math.max(0, HINT_MAX - 1)).slice(0, HINT_MAX - 1);
+    /* 国語は「かん字の読み」と「ことわざ」が まざることが あるので（まちがい直し）、
+       まちがいの選たく肢は 同じ 種類の 中から とる */
+    const kind = key === 'kokugo' ? deck.filter((x) => (x.tag === KANJI_TAG) === (q.tag === KANJI_TAG)) : deck;
+    const pool = battlePool(key, kind, q);
     const ymap: Record<string, string> = {};
-    deck.forEach((x) => { ymap[x.name] = x.yomi; });
+    kind.forEach((x) => { ymap[x.name] = x.yomi; });
     return { art, text, num: false, answer: q.name, pool, fact: q.fact, yomi: ymap, sub: key, disp, hints };
   }
 

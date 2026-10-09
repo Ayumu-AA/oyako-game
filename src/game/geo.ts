@@ -2,7 +2,7 @@
 import { JPBOX, JPINSET, JPMAP, JPCAP, WBOX, WLAND, WMAP, JPREG } from '../data/maps';
 import { PREF, FLAG, PCODE, LV1_PREF, LV1_FLAG } from '../data/questions';
 import { shuffle, rng } from './util';
-import type { Level } from './types';
+import type { DataLv } from './types';
 
 type MapSrc = Record<string, string>;
 export const JP = JPMAP as MapSrc;
@@ -210,7 +210,7 @@ export function geoNameOf(kind: GeoKind, k: string): string { return kind === 'w
 export function geoGroupOf(kind: GeoKind, k: string): string { return kind === 'world' ? flagCont(k) : REG[k]; }
 export function geoFullVB(kind: GeoKind): VB { return kind === 'world' ? worldFullVB() : jpFullVB(); }
 
-export function geoDeck(kind: GeoKind, lv: Level): string[] {
+export function geoDeck(kind: GeoKind, lv: DataLv): string[] {
   if (kind === 'world') {
     return shuffle(FLAGS.filter((q) => lv === 1 ? (LV1_FLAG as Set<string>).has(q[0]) : true).map((q) => q[3]));
   }
@@ -219,7 +219,7 @@ export function geoDeck(kind: GeoKind, lv: Level): string[] {
 }
 
 /* 4つの選たく肢。低学年 … ほかの地方・大陸から／高学年 … 同じ地方の中から */
-export function geoChoices(kind: GeoKind, lv: Level, ans: string): string[] {
+export function geoChoices(kind: GeoKind, lv: DataLv, ans: string): string[] {
   const all = geoAllKeys(kind);
   const g = geoGroupOf(kind, ans);
   const same = all.filter((k) => k !== ans && geoGroupOf(kind, k) === g);
@@ -275,7 +275,7 @@ export function geoFitVB(kind: GeoKind, base: VB, w: number, h: number, ans: str
 
 /** 1問ぶんの 出題情報 */
 export interface GeoQ { ans: string; scope: string[] | null; vb: VB | null; opts: string[]; sub: string }
-export function geoQuestion(kind: GeoKind, lv: Level, k: string): GeoQ {
+export function geoQuestion(kind: GeoKind, lv: DataLv, k: string): GeoQ {
   let scope: string[] | null = null, vb: VB | null = null;
   if (lv !== 1) {
     const sc = geoAllKeys(kind).filter((x) => geoGroupOf(kind, x) === geoGroupOf(kind, k));

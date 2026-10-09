@@ -1,7 +1,7 @@
 /* 親子クロスワード の 純ロジック */
 import { CROSS, DAKU, HANDAKU, SMALL } from '../data/cross';
 import { rng } from './util';
-import type { Level } from './types';
+import type { DataLv } from './types';
 
 export interface CwWord { d: 'A' | 'D'; r: number; c: number; w: string; q: string }
 export interface CwPuzzle { g: string[]; w: CwWord[] }
@@ -24,7 +24,7 @@ export interface CwState {
 }
 
 /** 新しい盤面。直前と同じ問題は さける。forceIdx を渡すと その問題（「さいしょから やりなおす」用） */
-export function newCross(level: Level, prevIdx: number | null, forceIdx: number | null = null): CwState {
+export function newCross(level: DataLv, prevIdx: number | null, forceIdx: number | null = null): CwState {
   const list = PUZ[level] || PUZ[1];
   let idx = Math.floor(rng() * list.length);
   if (forceIdx !== null && forceIdx >= 0 && forceIdx < list.length) idx = forceIdx;

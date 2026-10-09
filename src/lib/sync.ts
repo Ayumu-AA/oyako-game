@@ -8,6 +8,7 @@
    サイトデータを 丸ごと 消すと ユーザーIDごと 消えるので、サーバーの記録も 戻せない。
    サーバーに 送っているのは、記録のキーだけが 消えたとき（容量あふれなど）に 戻すため */
 import { store } from './storage';
+import type { Level } from '../game/types';
 import { ensureUser, getClient } from './supabase';
 import { onRecordChange, mergeRemote, allStats, type StatRow } from '../game/records';
 import { getNick, setNickLocal, setExtraNg } from './nickname';
@@ -16,12 +17,12 @@ export const QUEUE_KEY = 'oyako-queue';
 export const QUEUE_MAX = 500;
 
 export interface ScoreRow {
-  event_code: string; mode: string; level: 1 | 2; seconds: number; score: number; rank_i: number; nickname: string;
+  event_code: string; mode: string; level: Level; seconds: number; score: number; rank_i: number; nickname: string;
 }
 export type QueueOp =
   | { k: 'stat'; row: StatRow }
   | { k: 'score'; row: ScoreRow; id: string }
-  | { k: 'profile'; nickname: string; level: 1 | 2 };
+  | { k: 'profile'; nickname: string; level: Level };
 
 function loadQ(): QueueOp[] { try { return JSON.parse(store(QUEUE_KEY) || '[]') || []; } catch { return []; } }
 function saveQ(q: QueueOp[]) { try { store(QUEUE_KEY, JSON.stringify(q)); } catch { /* 容量切れ */ } }
@@ -124,7 +125,7 @@ export function enqueueScore(row: ScoreRow) {
   const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   enqueue({ k: 'score', row, id });
 }
-export function enqueueProfile(nickname: string, level: 1 | 2) { enqueue({ k: 'profile', nickname, level }); }
+export function enqueueProfile(nickname: string, level: Level) { enqueue({ k: 'profile', nickname, level }); }
 
 /** サーバーの 名前を 取りこむ。端末に 無ければ そのまま、あれば サーバーが 正（NGワードで 置きかえられた ときに そろう）。
     送りかけの 名前が キューに 残っているときは 触らない。戻り値は 取りこんで 変わった 名前 */

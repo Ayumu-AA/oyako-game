@@ -1,6 +1,15 @@
 /* ゲーム全体で使う型。DOM には依存しない */
 
-export type Level = 1 | 2;
+/** がくねん（1年生〜6年生）。えらんだ 学年で ジャンルと 問題の むずかしさが かわる */
+export type Level = 1 | 2 | 3 | 4 | 5 | 6;
+/** 問題データの むずかしさ。1＝ていがくねん（1〜3年）／2＝こうがくねん（4〜6年）。
+    都道府県・国旗・りか・れきし・えいご の データは この2段階で 用意してある */
+export type DataLv = 1 | 2;
+/** 学年 → 問題データの むずかしさ */
+export const dataLv = (g: Level): DataLv => (g <= 3 ? 1 : 2);
+/** えらぶ ボタンに ならべる 順（上から 6年生） */
+export const GRADES: Level[] = [6, 5, 4, 3, 2, 1];
+export const gradeLabel = (g: Level) => g + '年生';
 
 /** 画面で選べるモード。geopref/geoflag は ちずクイズ、miss は まちがい直し */
 export type Mode =

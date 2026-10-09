@@ -4,10 +4,10 @@ import { reloadRecords, markMiss, markHit, missCount, markSeen, seenAt, clearRec
 import { evalTokens, makePuzzle, checkMath, type Token } from './math10';
 import { rankOf, rankNext } from './rank';
 import { plain, furi, furiName, FURI_RE } from './furigana';
-import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, ANSWER_MS_SOLO, HINT_STEP_MS, PTS_BY_STAGE, ptsAtStage, MIX_ALL, splitYomi, charOptions, mojiGroups } from './battle';
+import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, ANSWER_MS_SOLO, HINT_STEP_MS, PTS_BY_STAGE, ptsAtStage, MIX_ALL, mixFor, okSubj, splitYomi, charOptions, mojiGroups } from './battle';
 import { cutFuri, plainLen } from './furigana';
 import { relayDeck as deckOf } from './decks';
-import { relayDeck, deckFor, hints3, missDeck } from './decks';
+import { relayDeck, deckFor, hints3, missDeck, kanjiDeck } from './decks';
 import { polyOf, inPoly, geoChoices, geoGroupOf, geoDeck, jpSVG, wSVG, jpFullVB, geoQuestion } from './geo';
 import { newCross, cwCells, cwInput, cwHint, cwAllOk, cwLeft, cwTapCell, cwModify, cwDelete, cycleKana, cwCycle } from './cross';
 import { KOKUGO_REI } from '../data/kokugo_rei';
@@ -142,20 +142,60 @@ describe('battle', () => {
         expect(/[一-鿿々〆ヶ]/.test(noRuby(r.imi)), q.name + ' imi').toBe(false);
       });
     }
-    const s = new BattleSession({ level: 2, bsubj: 'kokugo', handi: 1, goal: 0 });
-    for (let i = 0; i < 10; i++) {
-      const { q, opts } = s.next();
-      expect(q.disp).toBeDefined();
-      expect(q.text).toBe(KOKUGO_REI[q.answer].rei);
-      expect(q.disp![q.answer]).toBe(KOKUGO_REI[q.answer].imi);
-      opts.adult.forEach((o) => expect(q.disp![o]).toBeTruthy());
-      expect(new Set(opts.adult.map((o) => q.disp![o])).size).toBe(opts.adult.length);   // 意味が かぶらない
+  });
+  it('はやおしの 国語は「かん字の読み」。選たく肢は よみ', () => {
+    for (const g of [1, 2, 3, 4, 5, 6] as const) {
+      const s = new BattleSession({ level: g, bsubj: 'kokugo', handi: 1, goal: 0 });
+      const rows = new Map(kanjiDeck(g).map((x) => [x.name, x.yomi]));
+      for (let i = 0; i < 10; i++) {
+        const { q, opts } = s.next();
+        expect(q.disp, String(g)).toBeDefined();
+        expect(q.text).toBe('「' + q.answer + '」は なんと 読{よ}む？');
+        expect(q.disp![q.answer]).toBe(rows.get(q.answer));
+        /* 選たく肢は ぜんぶ よみが あり、よみが かぶらない */
+        opts.adult.forEach((o) => expect(q.disp![o], o).toBeTruthy());
+        expect(new Set(opts.adult.map((o) => q.disp![o])).size).toBe(opts.adult.length);
+        /* ヒントは いみ → よみの 文字数 の 順 */
+        expect((q.hints || []).length).toBe(2);
+        expect(q.hints![1]).toContain('はじめは「');
+      }
+      s.correct('child');
+      expect(seenAt('kokugo', s.q!.answer)).toBeGreaterThan(0);
     }
-    s.correct('child');
-    expect(seenAt('kokugo', s.q!.answer)).toBeGreaterThan(0);
+  });
+  it('1年生は 一文字、2年生からは じゅくご', () => {
+    expect(kanjiDeck(1).every((q) => [...q.name].length === 1)).toBe(true);
+    expect(kanjiDeck(2).some((q) => [...q.name].length >= 2)).toBe(true);
+    expect(kanjiDeck(6).some((q) => [...q.name].length >= 3)).toBe(true);
+  });
+  it('学年べつの ジャンル：1年は かん字・けいさん・国旗、2年から 県、3年から れきし・りか、5年から えいご', () => {
+    expect(mixFor(1)).toEqual(['flag', 'kokugo', 'calc']);
+    expect(mixFor(2)).toEqual(['pref', 'flag', 'kokugo', 'calc']);
+    expect(mixFor(3)).toEqual(['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'calc']);
+    expect(mixFor(4)).toEqual(mixFor(3));
+    expect(mixFor(5)).toEqual(['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo', 'calc']);
+    expect(mixFor(6)).toEqual(mixFor(5));
+    expect(okSubj('mix', 1)).toBe(true);
+    expect(okSubj('eigo', 4)).toBe(false);
+    /* ミックスで その学年に 出ない ジャンルは 出ない */
+    for (const g of [1, 2, 3] as const) {
+      const s = new BattleSession({ level: g, bsubj: 'mix', handi: 1, goal: 0, players: 1 });
+      for (let i = 0; i < 60; i++) { const { q } = s.next(); if (q.sub) expect(mixFor(g)).toContain(q.sub); }
+    }
+  });
+  it('けいさんは 学年で むずかしさが かわる', () => {
+    const ops = (g: 1 | 2 | 3 | 4 | 5 | 6) => {
+      const set = new Set<string>();
+      for (let i = 0; i < 200; i++) { const t = calcQuestion(g).text; set.add(t.includes('×') ? '×' : t.includes('÷') ? '÷' : t.includes('−') ? '−' : '+'); }
+      return set;
+    };
+    expect([...ops(1)].sort()).toEqual(['+', '−']);
+    expect(ops(3).has('×')).toBe(true);
+    expect(ops(3).has('÷')).toBe(false);
+    expect(ops(4).has('÷')).toBe(true);
   });
   it('テンキーは 桁数が そろった瞬間に 判定', () => {
-    const s = new BattleSession({ level: 2, bsubj: 'calc', handi: 1, goal: 10 });
+    const s = new BattleSession({ level: 6, bsubj: 'calc', handi: 1, goal: 10 });
     const { q } = s.next();
     expect(q.num).toBe(true);
     const ans = q.answer;
@@ -269,7 +309,7 @@ describe('はやおしの まちがい直し・ひとり', () => {
     setKV(memoryKV()); reloadRecords();
     markMiss('rekishi', '徳川家康'); markMiss('rekishi', '織田信長');
     markMiss('kokugo', '一石二鳥'); markMiss('pref', '北海道');
-    const s = new BattleSession({ level: 2, bsubj: 'miss', handi: 1, goal: 0 });
+    const s = new BattleSession({ level: 6, bsubj: 'miss', handi: 1, goal: 0 });
     expect(s.missPool.length).toBe(4);
     for (let i = 0; i < 12; i++) {
       const { q, opts } = s.next();
@@ -282,7 +322,7 @@ describe('はやおしの まちがい直し・ひとり', () => {
   it('低学年の問題を 高学年で 直しても 選たく肢が そろう', () => {
     setKV(memoryKV()); reloadRecords();
     markMiss('rika', 'カブトムシ');                    // 低学年の問題
-    const s = new BattleSession({ level: 2, bsubj: 'miss', handi: 1, goal: 0 });   // 高学年で 遊ぶ
+    const s = new BattleSession({ level: 6, bsubj: 'miss', handi: 1, goal: 0 });   // 高学年で 遊ぶ
     const { q, opts } = s.next();
     expect(q.answer).toBe('カブトムシ');
     const rika = relayDeck('rika', 1).concat(relayDeck('rika', 2)).map((x) => x.name);
@@ -297,7 +337,7 @@ describe('はやおしの まちがい直し・ひとり', () => {
   });
   it('ひとりモードは 4たく・相手なし・ハンデなし', () => {
     setKV(memoryKV()); reloadRecords();
-    const s = new BattleSession({ level: 2, bsubj: 'rekishi', handi: 1, goal: 5, players: 1 });
+    const s = new BattleSession({ level: 6, bsubj: 'rekishi', handi: 1, goal: 5, players: 1 });
     const { q, opts } = s.next();
     expect(q.answer).toBeTruthy();
     expect(opts.child.length).toBe(SOLO_OPTS);
@@ -308,14 +348,14 @@ describe('はやおしの まちがい直し・ひとり', () => {
   });
   it('ひとりモードの けいさんは 待たされない', () => {
     setKV(memoryKV()); reloadRecords();
-    const solo = new BattleSession({ level: 2, bsubj: 'calc', handi: 2, goal: 0, players: 1 });
+    const solo = new BattleSession({ level: 6, bsubj: 'calc', handi: 2, goal: 0, players: 1 });
     expect(solo.next().wait).toBe(0);
-    const duo = new BattleSession({ level: 2, bsubj: 'calc', handi: 2, goal: 0 });
+    const duo = new BattleSession({ level: 6, bsubj: 'calc', handi: 2, goal: 0 });
     expect(duo.next().wait).toBeGreaterThan(0);   /* 2人のときは おとなに ハンデの 待ちが 入る */
   });
   it('ひとりモードで 〇もん とったら おわる', () => {
     setKV(memoryKV()); reloadRecords();
-    const s = new BattleSession({ level: 2, bsubj: 'pref', handi: 0, goal: 3, players: 1 });
+    const s = new BattleSession({ level: 6, bsubj: 'pref', handi: 0, goal: 3, players: 1 });
     s.next(); expect(s.correct('child')).toBe(false);
     s.next(); expect(s.correct('child')).toBe(false);
     s.next(); expect(s.correct('child')).toBe(true);
@@ -324,7 +364,7 @@ describe('はやおしの まちがい直し・ひとり', () => {
 });
 
 describe('はやおしの 回答権（赤いボタン）', () => {
-  const sess = () => { setKV(memoryKV()); reloadRecords(); const s = new BattleSession({ level: 2, bsubj: 'rekishi', handi: 1, goal: 0 }); s.next(); return s; };
+  const sess = () => { setKV(memoryKV()); reloadRecords(); const s = new BattleSession({ level: 6, bsubj: 'rekishi', handi: 1, goal: 0 }); s.next(); return s; };
   it('先に おした人だけが 回答権を 持つ', () => {
     const s = sess();
     expect(s.owner).toBe(null);
@@ -356,7 +396,7 @@ describe('はやおしの 回答権（赤いボタン）', () => {
   });
   it('ひとりモードは 取り合う相手が いないので いつでも こたえられる', () => {
     setKV(memoryKV()); reloadRecords();
-    const s = new BattleSession({ level: 2, bsubj: 'rekishi', handi: 1, goal: 0, players: 1 });
+    const s = new BattleSession({ level: 6, bsubj: 'rekishi', handi: 1, goal: 0, players: 1 });
     s.next();
     expect(s.claim('child')).toBe(true);
     s.wrong('child');
@@ -383,7 +423,7 @@ describe('もじあて（みんはや式）と 3秒ルール', () => {
   });
   it('1文字ずつ えらんで こたえる。ちがう文字は その場で おてつき', () => {
     setKV(memoryKV()); reloadRecords();
-    const s = new BattleSession({ level: 2, bsubj: 'moji', handi: 1, goal: 0 });
+    const s = new BattleSession({ level: 6, bsubj: 'moji', handi: 1, goal: 0 });
     const { q, opts } = s.next();
     expect(q.chars!.length).toBeGreaterThan(1);
     /* ? は 一部だけ。ぜんぶは あかない（名前の 手がかりが のこる）。
@@ -407,7 +447,7 @@ describe('もじあて（みんはや式）と 3秒ルール', () => {
   });
   it('国旗は 2たく（むずかしい国が まざるので やさしくする）', () => {
     setKV(memoryKV()); reloadRecords();
-    const s = new BattleSession({ level: 2, bsubj: 'moji', handi: 1, goal: 0 });
+    const s = new BattleSession({ level: 6, bsubj: 'moji', handi: 1, goal: 0 });
     let sawFlag = false, sawPref = false;
     for (let i = 0; i < 40 && !(sawFlag && sawPref); i++) {
       const { q } = s.next();
@@ -421,7 +461,7 @@ describe('もじあて（みんはや式）と 3秒ルール', () => {
   });
   it('小さい字や のばす音は ? に しない', () => {
     setKV(memoryKV()); reloadRecords();
-    const s = new BattleSession({ level: 2, bsubj: 'moji', handi: 1, goal: 0 });
+    const s = new BattleSession({ level: 6, bsubj: 'moji', handi: 1, goal: 0 });
     for (let i = 0; i < 40; i++) {
       const { q } = s.next();
       if (!q.holes) continue;
@@ -492,7 +532,7 @@ describe('もじあて：〇文字目が「か」の都道府県は？', () => {
   it('こたえは 1つに 決まる（のこりの仲間は 見せてある）', () => {
     setKV(memoryKV()); reloadRecords();
     const deck = deckOf('pref', 2);
-    const s = new BattleSession({ level: 2, bsubj: 'moji', handi: 1, goal: 0 });
+    const s = new BattleSession({ level: 6, bsubj: 'moji', handi: 1, goal: 0 });
     let seen = 0;
     for (let i = 0; i < 30 && seen < 8; i++) {
       const { q } = s.next();

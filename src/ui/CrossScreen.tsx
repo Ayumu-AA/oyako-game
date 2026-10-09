@@ -6,6 +6,7 @@ import { FlickPad } from './FlickPad';
 import { newNum, ncLeft, ncMarks, ncAllOk, ncKey, NC_KEYS, NC_POS, type NcState, type NcKey } from '../game/numcross';
 import { fmtTime } from '../game/util';
 import { store } from '../lib/storage';
+import { dataLv } from '../game/types';
 import type { Level } from '../game/types';
 import { NC_TIPS } from './texts';
 import { Hee, PauseButton, PauseOverlay, Promo, usePauseKeys } from './parts';
@@ -27,7 +28,7 @@ function useElapsed() {
 const KB = KBD as string[][];
 
 export function CrossScreen({ level, kana, players, prevIdx, forceIdx = null, onIdx, onFinish, onRestart, onQuit }: { level: Level; kana: 'R' | 'L' | 'F'; players: 1 | 2; prevIdx: number | null; forceIdx?: number | null; onIdx?: (idx: number) => void; onFinish: (r: CrossResult) => void; onRestart: () => void; onQuit: () => void }) {
-  const [cw] = useState<CwState>(() => newCross(level, prevIdx, forceIdx));
+  const [cw] = useState<CwState>(() => newCross(dataLv(level), prevIdx, forceIdx));
   const onIdxRef = useRef(onIdx); onIdxRef.current = onIdx;
   useEffect(() => { if (onIdxRef.current) onIdxRef.current(cw.idx); }, [cw]);   /* App が「さいしょから やりなおす」で 同じ問題を 出すため */
   const [, bump] = useState(0);
@@ -51,7 +52,8 @@ export function CrossScreen({ level, kana, players, prevIdx, forceIdx = null, on
       finished.current = true; el.stop();
       const ms = el.now();
       const w = cw.puz.w[Math.floor(Math.random() * cw.puz.w.length)];
-      const key = 'oyako-cross-' + level;
+      /* クロスワードの 問題は ていがくねん・こうがくねんの 2種類なので、きろくも その2つで もつ */
+      const key = 'oyako-cross-' + dataLv(level);
       const prev = Number(store(key) || 0);
       if (!prev || ms < prev) store(key, String(ms));
       onFinishRef.current({ kind: 'cross', ms, hints: cw.hints, heeName: w.w, heeText: w.q + '、でした。', idx: cw.idx });
@@ -145,7 +147,7 @@ export function CrossScreen({ level, kana, players, prevIdx, forceIdx = null, on
 }
 
 export function NumCrossScreen({ level, onFinish, onRestart, onQuit }: { level: Level; onFinish: (r: CrossResult) => void; onRestart: () => void; onQuit: () => void }) {
-  const [nc] = useState<NcState>(() => newNum(level));
+  const [nc] = useState<NcState>(() => newNum(dataLv(level)));
   const [, bump] = useState(0);
   const redraw = () => bump((x) => x + 1);
   const [msg, setMsg] = useState<{ cls: string; text: string }>({ cls: '', text: 'たて・よこ ぜんぶの 計算が 合うように 数を入れよう' });

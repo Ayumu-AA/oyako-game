@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { capOf, geoDeck, geoFitVB, geoFullVB, geoNameOf, geoQuestion, jpSVG, wSVG, viewClamp, viewChanged, viewTransform, viewZero, type GeoKind, type GeoQ, type VB, type View } from '../game/geo';
 import { markHit, markMiss, subjOf } from '../game/records';
+import { dataLv } from '../game/types';
 import type { Level, Mode } from '../game/types';
 import { celebrate, fxClear, streakReset } from '../lib/fx';
 import { sndNG, buzz } from '../lib/sound';
@@ -52,7 +53,7 @@ export function GeoScreen({ mode, level, seconds, onFinish, onRestart, onQuit }:
   const startTimer = useCallback((ms: number) => { endAt.current = Date.now() + ms; tick(); timer.current = window.setInterval(tick, 100); }, [tick]);
 
   useEffect(() => {
-    deck.current = geoDeck(kind, level); got.current = []; finished.current = false; streakReset();
+    deck.current = geoDeck(kind, dataLv(level)); got.current = []; finished.current = false; streakReset();
     setIdx(0);
     startTimer(seconds * 1000);
     return () => { stopTimer(); if (nextTimer.current) clearTimeout(nextTimer.current); };
@@ -63,7 +64,7 @@ export function GeoScreen({ mode, level, seconds, onFinish, onRestart, onQuit }:
   useEffect(() => {
     const d = deck.current; if (!d.length) return;
     const k = d[idx % d.length];
-    setQ(geoQuestion(kind, level, k));
+    setQ(geoQuestion(kind, dataLv(level), k));
     setLocked(false); setPick(null);
     view.current = viewZero(); setViewOn(false);
     setBar({ cls: '', text: '下の 4つから えらんでね' });

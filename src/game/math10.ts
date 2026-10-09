@@ -1,6 +1,6 @@
 /* 10を作る：問題づくり と 式の判定 */
 import { randInt } from './util';
-import type { Level, MathQ } from './types';
+import type { DataLv, MathQ } from './types';
 
 type Item = { v: number; s: string };
 type Op = '+' | '-' | '*' | '/';
@@ -27,7 +27,7 @@ function solveSet(items: Item[], ops: Op[], noNeg: boolean): string | null {
   return null;
 }
 
-export function makePuzzle(level: Level): MathQ {
+export function makePuzzle(level: DataLv): MathQ {
   const count = level === 1 ? 3 : 4;
   for (let tries = 0; tries < 400; tries++) {
     const nums: number[] = [];

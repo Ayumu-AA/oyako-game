@@ -10,7 +10,7 @@ import { fetchAll, RANK_MODES, type RankRow } from '../lib/ranking';
 const RANKS_T = RANKS as { n: string; c: string }[];
 const CYCLE_MS = 8000;
 const POLL_MS = 30000;
-const LEVELS = [{ lv: 2, label: 'こうがくねん' }, { lv: 1, label: 'ていがくねん' }];
+const LEVELS = [6, 5, 4, 3, 2, 1].map((lv) => ({ lv, label: lv + '年生' }));
 
 type Key = { mode: string; label: string; lv: number; lvLabel: string };
 const ALL_KEYS: Key[] = RANK_MODES.flatMap((m) => LEVELS.map((l) => ({ mode: m.mode, label: m.label, lv: l.lv, lvLabel: l.label })));

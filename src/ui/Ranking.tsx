@@ -6,6 +6,7 @@ import { enqueueProfile, flush } from '../lib/sync';
 import { cachedTable, fetchTable, fetchNames, RANK_MODES, type RankTable } from '../lib/ranking';
 import { eventCode } from '../lib/config';
 import { CONFIG } from './texts';
+import { GRADES, gradeLabel } from '../game/types';
 import type { Level, Mode } from '../game/types';
 import { PickGrid } from './parts';
 
@@ -97,8 +98,8 @@ export function RankingScreen({ mode0, level0, nick, onBack, onName }: { mode0: 
 
       <PickGrid id="seg-rank-mode" label="ゲーム" cols={2} value={mode} onPick={(m) => setMode(m)}
         options={RANK_MODES.map((m) => ({ v: m.mode, b: m.label }))} />
-      <PickGrid id="seg-rank-level" label="がくねん" cols={2} value={level} onPick={(l) => setLevel(l)}
-        options={[{ v: 1 as Level, b: 'ていがくねん' }, { v: 2 as Level, b: 'こうがくねん' }]} />
+      <PickGrid id="seg-rank-level" label="がくねん" cols={3} value={level} onPick={(l) => setLevel(l)}
+        options={GRADES.map((g) => ({ v: g, b: gradeLabel(g) }))} />
 
       <div className="ranklist" id="rank-list">
         {state === 'offline' && <p className="rankmsg" id="rank-offline">{t ? 'いまは つながっていません。前に見た表です' : 'つながると 出ます'}</p>}

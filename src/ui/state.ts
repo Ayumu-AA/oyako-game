@@ -22,7 +22,7 @@ export function loadSettings(): Settings {
   const g = store('oyako-goal');
   const k = store('oyako-kana');
   return {
-    level: 2, seconds: 90, role: 'child', bsubj: 'mix', handi: 1, players: 2,
+    level: 4, seconds: 90, role: 'child', bsubj: 'mix', handi: 1, players: 2,
     goal: (g !== null && g !== '') ? Number(g) : 10,
     kana: (k === 'R' || k === 'L' || k === 'F') ? k : 'R',
     practice: false,

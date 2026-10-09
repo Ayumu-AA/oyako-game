@@ -6,11 +6,12 @@ import { ICON, GROUP_ICON, TILE_ICON } from '../data/icons';
 import { missCount, seenCount, clearRecords } from '../game/records';
 import { store } from '../lib/storage';
 import { soundOn, setSound, bgmOn, setBgm } from '../lib/sound';
+import { GRADES, gradeLabel } from '../game/types';
 import type { Level, Mode } from '../game/types';
 import { PickGrid, Raw } from './parts';
 import { plowMark } from '../data/logo';
 import { bestKey, isGeo, type Group, type Settings } from './state';
-import { SOLO_SECONDS, okSubj, LV1_SKIP } from '../game/battle';
+import { SOLO_SECONDS, okSubj, relayOk, mixFor } from '../game/battle';
 import type { BattleSubj } from '../game/battle';
 
 /** えらぶボタンの 中身：絵文字＋ことば（小さい子にも 見分けが つくように） */
@@ -30,6 +31,8 @@ const LINE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-
 const TILE_SVG: Record<string, string> = {
   p2: TI.relay, p1: TI.solo,
   lv1: svgText('1-3', 11), lv2: svgText('4-6', 11),
+  g1: svgText('1', 15), g2: svgText('2', 15), g3: svgText('3', 15),
+  g4: svgText('4', 15), g5: svgText('5', 15), g6: svgText('6', 15),
   relay: TI.relay, battle: TI.battle, battle1: TI.battle, cross: TI.cross, geo: TI.geo,
   math: svgText('=10', 12),
   numcross: LINE + '<rect x="3.2" y="3.2" width="7.6" height="7.6"/><rect x="13.2" y="3.2" width="7.6" height="7.6"/><rect x="3.2" y="13.2" width="7.6" height="7.6"/><rect x="13.2" y="13.2" width="7.6" height="7.6"/></svg>',
@@ -113,21 +116,26 @@ export function TitleScreen({ onPlayers, onSettings, onRank }: {
 }
 
 /* ===== 2．がくねん ===== */
+/** その学年から あたらしく ふえる ジャンル（ボタンの 下に 小さく 出す） */
+const GRADE_NEW: Record<Level, string> = {
+  1: 'かん字・けいさん・国旗', 2: '都道府県も', 3: 'れきし・りかも',
+  4: '', 5: 'えいごも', 6: '',
+};
+const gradeSub = (g: Level) => (g === 1 ? GRADE_NEW[1]
+  : 'ジャンル ' + mixFor(g).length + 'つ' + (GRADE_NEW[g] ? '（' + GRADE_NEW[g] + '）' : ''));
 export function LevelScreen({ players, onLevel, onBack }: { players: 1 | 2; onLevel: (l: Level) => void; onBack: () => void }) {
   return (
     <section className="screen on colortiles" id="s-level">
       <p className="eyebrow" id="level-eyebrow">{players === 2 ? '2人で あそぶ' : '1人で あそぶ'}</p>
       <h1 className="display">がくねんは？</h1>
-      <p className="lede">がくねんで 問題の むずかしさが かわります。</p>
-      <div className="modes" id="level-modes">
-        <button className="mode wide" data-tile="lv1" data-level="1" id="btn-lv1" onClick={() => onLevel(1)}>
-          <Raw className="icon" html={TILE_SVG.lv1} />
-          <span><b>ていがくねん</b><small>1〜3年生</small></span>
-        </button>
-        <button className="mode wide" data-tile="lv2" data-level="2" id="btn-lv2" onClick={() => onLevel(2)}>
-          <Raw className="icon" html={TILE_SVG.lv2} />
-          <span><b>こうがくねん</b><small>4〜6年生</small></span>
-        </button>
+      <p className="lede">がくねんで 出る ジャンルと むずかしさが かわります。</p>
+      <div className="modes grades" id="level-modes">
+        {GRADES.map((g) => (
+          <button className="mode wide" data-tile={'g' + g} data-level={g} id={'btn-lv' + g} key={g} onClick={() => onLevel(g)}>
+            <Raw className="icon" html={TILE_SVG['g' + g]} />
+            <span><b>{gradeLabel(g)}</b><small>{gradeSub(g)}</small></span>
+          </button>
+        ))}
       </div>
       <div className="spacer"></div>
       <button className="btn btn-ghost" id="btn-level-back" onClick={onBack}>もどる</button>
@@ -140,7 +148,7 @@ export function GamesScreen({ players, level, missN, onPick, onBack }: {
   players: 1 | 2; level: Level; missN: number; onPick: (t: Tile) => void; onBack: () => void;
 }) {
   /* ていがくねんは りか・れきし・えいごを 出さないので、ジャンルの数も それに あわせる */
-  const relayN = (G.relay.modes as string[]).filter((m) => level === 2 || !(LV1_SKIP as string[]).includes(m)).length;
+  const relayN = (G.relay.modes as string[]).filter((m) => relayOk(m, level)).length;
   const list = GAMES[players]
     .map((t) => (t.k === 'relay' ? { ...t, s: relayN + 'つの ジャンル' } : t))
     .map((t) => ({ ...t, soon: !playable(t.k) }))
@@ -153,7 +161,7 @@ export function GamesScreen({ players, level, missN, onPick, onBack }: {
     : { k: 'miss1', m: 'miss1', b: 'まちがい直し', s: 'のこり ' + missN + 'もん・はやおしで' };
   return (
     <section className="screen on colortiles" id="s-games">
-      <p className="eyebrow" id="games-eyebrow">{(players === 2 ? '2人で あそぶ' : '1人で あそぶ') + '・' + (level === 1 ? 'ていがくねん' : 'こうがくねん')}</p>
+      <p className="eyebrow" id="games-eyebrow">{(players === 2 ? '2人で あそぶ' : '1人で あそぶ') + '・' + gradeLabel(level)}</p>
       <h1 className="display">どれで あそぶ？</h1>
       <div className="modes" id="game-modes">
         {list.map((t, i) => (
@@ -222,7 +230,7 @@ export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared, 
 export function SubScreen({ group, level, onMode, onBack }: { group: Group; level: Level; onMode: (m: Mode) => void; onBack: () => void }) {
   const g = G[group];
   /* ていがくねんには りか・れきし・えいごは 出さない */
-  const modes = g.modes.filter((m) => level === 2 || !(LV1_SKIP as string[]).includes(m));
+  const modes = g.modes.filter((m) => relayOk(m, level));
   return (
     <section className="screen on" id="s-sub">
       <p className="eyebrow" id="sub-eyebrow">{g.eyebrow}</p>
@@ -295,7 +303,7 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
       <section className="screen on" id="s-how">
         <div className="howhead">
           <div className="howttl">
-            <p className="eyebrow">あそぶ ゲーム<span className="lvchip" id="how-lv">{s.level === 1 ? 'ていがくねん' : 'こうがくねん'}</span></p>
+            <p className="eyebrow">あそぶ ゲーム<span className="lvchip" id="how-lv">{gradeLabel(s.level)}</span></p>
             <h2 id="how-title">{solo ? MN.battle1 : soloCross ? MN.cross1 : MN[mode]}</h2>
           </div>
           <button type="button" className="rulesbtn" id="btn-rules" onClick={() => setRules(true)}>
@@ -315,7 +323,7 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
         {isBattle && (!twoWay || entry === 'practice') && <PickGrid id="seg-subject" label="ジャンル" cols={4} value={s.bsubj} onPick={(v) => onChange({ bsubj: v })}
           options={([
             { v: 'mix', b: pick('⭐', 'ミックス') }, { v: 'pref', b: pick('🗾', '都道府県') },
-            { v: 'flag', b: pick('🚩', '国旗') }, { v: 'kokugo', b: pick('📖', 'ことば') },
+            { v: 'flag', b: pick('🚩', '国旗') }, { v: 'kokugo', b: pick('📖', 'かん字') },
             { v: 'rika', b: pick('🧪', 'りか') }, { v: 'rekishi', b: pick('🏯', 'れきし') },
             { v: 'eigo', b: pick('🔤', 'えいご') }, { v: 'calc', b: pick('🔢', 'けいさん') },
           ] as { v: Settings['bsubj']; b: ReactNode }[])
