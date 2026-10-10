@@ -2,14 +2,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { missCount } from '../game/records';
 import { store } from '../lib/storage';
-import { startSync, enqueueScore, type ScoreRow } from '../lib/sync';
+import { startSync, enqueueScore, enqueueEntry, type ScoreRow } from '../lib/sync';
 import { getNick } from '../lib/nickname';
 import { rankable, RANK_MODES } from '../lib/ranking';
 import { eventCode } from '../lib/config';
+import { getSeat, setSeat, seatAsk } from '../lib/seat';
 import { rankOf } from '../game/rank';
 import { SOLO_SECONDS, okSubj } from '../game/battle';
 import { NameSheet, RankingScreen } from './Ranking';
-import type { Mode } from '../game/types';
+import { SeatSheet } from './Seat';
+import type { Level, Mode } from '../game/types';
 import { TitleScreen, LevelScreen, GamesScreen, SettingsOverlay, SubScreen, HowScreen, CountScreen, type Tile } from './menus';
 import { PlayScreen } from './PlayScreen';
 import { ResultScreen } from './ResultScreen';
@@ -39,6 +41,8 @@ export default function App() {
   const nameThen = useRef<(() => void) | null>(null);        // 名前が 決まったあとに すること
   const pendingScore = useRef<ScoreRow | null>(null);        // 名前が 無くて 送れなかった 今回の点数
   const [rankMode, setRankMode] = useState<Mode>('pref');
+  const [seatOpen, setSeatOpen] = useState(false);
+  const seatLv = useRef<Level>(1);          // 番号を きいている 学年
   const howGroup = useRef<Group | null>(null);   // あそびかた画面へ どこから来たか（もどる先）
 
   const change = useCallback((p: Partial<Settings>) => setS((x) => ({ ...x, ...p })), []);
@@ -57,11 +61,34 @@ export default function App() {
   const onNamed = (n: string) => {
     setNick(n); setNameOpen(false);
     if (pendingScore.current) { enqueueScore({ ...pendingScore.current, nickname: n }); pendingScore.current = null; }
+    /* 名簿にも 画面の名前を 入れておく（あとで 番号と 突き合わせる ときの 手がかり） */
+    const ev = eventCode(), sn = getSeat(ev, s.level);
+    if (seatAsk(ev) && sn !== null) enqueueEntry({ event_code: ev, level: s.level, seat_no: sn, players: s.players, nickname: n });
     const f = nameThen.current; nameThen.current = null; if (f) f();
   };
   const openRank = (m: Mode) => { setRankMode(rankable(m) ? m : RANK_MODES[0].mode); go('rank'); };
   /* 結果画面の「ランキングを 見る」：名前が 無ければ 先に 決めてもらう */
   const rankFromResult = (m: Mode) => { if (getNick()) openRank(m); else askName(() => openRank(m)); };
+
+  /* 学年を えらんだら 名簿に 1行 残す。イベントで まだ 番号を きいていなければ 先に きく。
+     ここで 残すので、ゲームを 最後まで やらなかった 子も 名簿に 載る */
+  const pickLevel = (l: Level) => {
+    change({ level: l, bsubj: okSubj(s.bsubj, l) ? s.bsubj : 'mix' });
+    const ev = eventCode();
+    if (seatAsk(ev)) {
+      const sn = getSeat(ev, l);
+      if (sn === null) { seatLv.current = l; setSeatOpen(true); return; }   /* 番号を きいてから すすむ */
+      enqueueEntry({ event_code: ev, level: l, seat_no: sn, players: s.players, nickname: getNick() });
+    }
+    go('games');
+  };
+  const onSeat = (noIn: number) => {
+    const ev = eventCode(), l = seatLv.current;
+    setSeat(ev, l, noIn);
+    enqueueEntry({ event_code: ev, level: l, seat_no: noIn, players: s.players, nickname: getNick() });
+    setSeatOpen(false);
+    go('games');
+  };
 
   /* ホームの 入口は 3つとも 'battle' に 読みかえる（人数は もう 1画面目で 決まっている）。
      battle1 = 1人の はやおし、miss1 = 1人の まちがい直し（はやおしの きょうか＝まちがい） */
@@ -141,7 +168,7 @@ export default function App() {
         <TitleScreen onPlayers={(p) => { change({ players: p }); go('level'); }} onSettings={() => setSetOpen(true)} onRank={() => openRank(mode)} />
         <SettingsOverlay open={setOpen} seconds={s.seconds} onSeconds={(v) => change({ seconds: v })} onClose={() => setSetOpen(false)} onCleared={() => setMissN(0)} nick={nick} onName={() => askName(() => undefined)} />
       </>}
-      {screen === 'level' && <LevelScreen players={s.players} onLevel={(l) => { change({ level: l, bsubj: okSubj(s.bsubj, l) ? s.bsubj : 'mix' }); go('games'); }} onBack={() => go('title')} />}
+      {screen === 'level' && <LevelScreen players={s.players} onLevel={pickLevel} onBack={() => go('title')} />}
       {screen === 'games' && <GamesScreen players={s.players} level={s.level} missN={missN} onPick={pickGame} onBack={() => go('level')} />}
       {screen === 'sub' && <SubScreen group={group} level={s.level} onMode={(m) => { howGroup.current = group; openHow(m); }} onBack={() => go('games')} />}
       {screen === 'how' && <HowScreen mode={mode} s={s} onChange={change} onStart={() => start()} onBack={backFromHow} />}
@@ -156,6 +183,7 @@ export default function App() {
       {screen === 'bresult' && br && <BResultScreen r={br} practice={!!br.practice} onAgain={() => go('how')} onPractice={() => { change({ practice: true }); setRound((r) => r + 1); go('battle'); }} onMiss={() => { if (missCount()) openHow('miss'); }} onTitle={() => go('title')} onRank={() => rankFromResult('battle1')} />}
       {screen === 'rank' && <RankingScreen mode0={rankMode} level0={s.level} nick={nick} onBack={() => go('title')} onName={() => askName(() => undefined)} />}
       <NameSheet open={nameOpen} level={s.level} onDone={onNamed} onCancel={() => { setNameOpen(false); nameThen.current = null; }} />
+      <SeatSheet open={seatOpen} level={seatLv.current} onDone={onSeat} />
       {screen === 'cresult' && cr && <CResultScreen r={cr} onAgain={() => { setRound((r) => r + 1); go(mode === 'numcross' ? 'numcross' : 'cross'); }} onTitle={() => go('title')} />}
     </div>
     </>

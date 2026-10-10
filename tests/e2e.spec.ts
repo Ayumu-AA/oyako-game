@@ -847,3 +847,90 @@ test('ひとりで まちがえたら こたえを 数秒 見せてから つぎ
   await expect(page.locator('#side-child .qprog .ghost')).not.toHaveText(q1!, { timeout: 6000 });
   expect(errs).toEqual([]);
 });
+
+/* ===== 参加名簿（受付番号） =====
+   イベントコードが あるとき（QR から ?e=... で 入ったとき）だけ、学年の あとに 番号を きく。
+   ここで 名簿の 1行が できるので、ゲームを やらずに 帰った 子も 残る。
+   実名は 入れない：番号札と 紙の 対応表で 突き合わせる。 */
+async function openEv(page: Page, ev = 'TEST-1') {
+  await page.addInitScript(() => localStorage.setItem('oyako-allgames', '1'));
+  await page.goto('./?e=' + ev);
+  await expect(page.locator('#s-title')).toBeVisible();
+}
+const queue = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('oyako-queue') || '[]'));
+
+test('名簿：学年の あとに 受付番号を きいて、1行 残す', async ({ page }) => {
+  const errs = noErrors(page);
+  await openEv(page);
+  await page.click('[data-players="1"]');
+  await page.click('[data-level="6"]');
+  /* 番号を きく シートが 出て、入れるまで すすめない */
+  await expect(page.locator('#seat-ov')).toBeVisible();
+  await expect(page.locator('#s-games')).toBeHidden();
+  await expect(page.locator('#btn-seat-ok')).toBeDisabled();
+  await page.click('#seat-1'); await page.click('#seat-2');
+  await expect(page.locator('#seat-view')).toContainText('12');
+  await expect(page.locator('#seat-view')).toContainText('6');
+  await page.click('#btn-seat-ok');
+  await expect(page.locator('#s-games')).toBeVisible();
+  await expect(page.locator('#seat-ov')).toBeHidden();
+  /* 端末に 覚える ＋ 名簿の 行が キューに 積まれる */
+  expect(await page.evaluate(() => localStorage.getItem('oyako-seat-TEST-1-6'))).toBe('12');
+  const q = await queue(page);
+  const e = q.find((x: { k: string }) => x.k === 'entry');
+  expect(e, JSON.stringify(q)).toBeTruthy();
+  expect(e.row).toMatchObject({ event_code: 'TEST-1', level: 6, seat_no: 12, players: 1 });
+
+  /* 同じ 学年で もどってきたら 二度は きかない */
+  await page.click('#btn-games-back');
+  await page.click('[data-level="6"]');
+  await expect(page.locator('#s-games')).toBeVisible();
+  await expect(page.locator('#seat-ov')).toBeHidden();
+  /* 名簿の 行は 1つだけ（さわった 時刻が 新しく なるだけ） */
+  expect((await queue(page)).filter((x: { k: string }) => x.k === 'entry').length).toBe(1);
+
+  /* 学年が ちがえば また きく。ふだが 無い子は 「もっていない」で すすめる */
+  await page.click('#btn-games-back');
+  await page.click('[data-level="3"]');
+  await expect(page.locator('#seat-ov')).toBeVisible();
+  await page.click('#btn-seat-skip');
+  await expect(page.locator('#s-games')).toBeVisible();
+  const q2 = (await queue(page)).filter((x: { k: string }) => x.k === 'entry');
+  expect(q2.length).toBe(2);
+  expect(q2.find((x: { row: { level: number } }) => x.row.level === 3).row.seat_no).toBe(0);
+  expect(errs).toEqual([]);
+});
+
+test('名簿：家で あそぶ ぶん（イベントコード なし）は きかない', async ({ page }) => {
+  await open(page);
+  await page.click('[data-players="1"]');
+  await page.click('[data-level="6"]');
+  await expect(page.locator('#s-games')).toBeVisible();
+  await expect(page.locator('#seat-ov')).toBeHidden();
+  expect((await queue(page)).filter((x: { k: string }) => x.k === 'entry')).toEqual([]);
+});
+
+for (const [w, h, tag] of VPS) {
+  test(`収まり ${tag}：受付番号の シート`, async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: true });
+    const page = await ctx.newPage();
+    await openEv(page);
+    await page.click('[data-players="2"]');
+    await page.click('[data-level="1"]');
+    await expect(page.locator('#seat-ov')).toBeVisible();
+    const over = await page.evaluate(() => {
+      const sh = document.querySelector('.seatsheet') as HTMLElement;
+      const r = sh.getBoundingClientRect();
+      const out: string[] = [];
+      if (r.top < 0 || r.bottom > window.innerHeight) out.push('sheet:' + Math.round(r.top) + '..' + Math.round(r.bottom));
+      sh.querySelectorAll('.skey,.seatview,.btn').forEach((el) => {
+        const e = el.getBoundingClientRect();
+        if (e.right > r.right + 1 || e.left < r.left - 1) out.push(el.className);
+      });
+      return out;
+    });
+    expect(over, '番号シートが 画面から はみ出さない').toEqual([]);
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(h);
+    await ctx.close();
+  });
+}

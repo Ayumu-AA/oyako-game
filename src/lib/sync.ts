@@ -19,10 +19,19 @@ export const QUEUE_MAX = 500;
 export interface ScoreRow {
   event_code: string; mode: string; level: Level; seconds: number; score: number; rank_i: number; nickname: string;
 }
+/** 参加名簿の 1行。学年ボタンを おした 時点で 積む（遊ばなくても 名簿に 残す）。
+    seat_no は 受付で 渡した 番号札の 数（0＝ふだなし）。実名は 入れない */
+export interface EntryRow {
+  event_code: string; level: Level; seat_no: number; players: 1 | 2; nickname: string | null;
+}
 export type QueueOp =
   | { k: 'stat'; row: StatRow }
   | { k: 'score'; row: ScoreRow; id: string }
+  | { k: 'entry'; row: EntryRow }
   | { k: 'profile'; nickname: string; level: Level };
+
+/** 名簿の 行を 見分ける キー（イベント・学年・番号が 同じなら 同じ人） */
+export const entryId = (r: EntryRow) => r.event_code + ':' + r.level + ':' + r.seat_no;
 
 function loadQ(): QueueOp[] { try { return JSON.parse(store(QUEUE_KEY) || '[]') || []; } catch { return []; } }
 function saveQ(q: QueueOp[]) { try { store(QUEUE_KEY, JSON.stringify(q)); } catch { /* 容量切れ */ } }
@@ -32,6 +41,7 @@ export function enqueue(op: QueueOp) {
   let q = loadQ();
   if (op.k === 'stat') q = q.filter((x) => !(x.k === 'stat' && x.row.sub === op.row.sub && x.row.name === op.row.name));   /* 同じ問題は 最新だけ */
   if (op.k === 'profile') q = q.filter((x) => x.k !== 'profile');   /* 名前も 最新だけ */
+  if (op.k === 'entry') q = q.filter((x) => !(x.k === 'entry' && entryId(x.row) === entryId(op.row)));   /* 同じ人の 名簿行は 最新だけ */
   q.push(op);
   if (q.length > QUEUE_MAX) q = q.slice(q.length - QUEUE_MAX);
   saveQ(q);
@@ -60,7 +70,8 @@ export function flush(): Promise<boolean> {
       const stats = q.filter((x): x is Extract<QueueOp, { k: 'stat' }> => x.k === 'stat');
       const scores = q.filter((x): x is Extract<QueueOp, { k: 'score' }> => x.k === 'score');
       const profs = q.filter((x): x is Extract<QueueOp, { k: 'profile' }> => x.k === 'profile');
-      const sentStat = new Set<string>(), sentScore = new Set<string>();
+      const ents = q.filter((x): x is Extract<QueueOp, { k: 'entry' }> => x.k === 'entry');
+      const sentStat = new Set<string>(), sentScore = new Set<string>(), sentEntry = new Set<string>();
       let sentProfile = false;
       /* 名前は 先に 送る（点数の 行が 名前を 持つので） */
       if (profs.length) {
@@ -80,7 +91,17 @@ export function flush(): Promise<boolean> {
         const { error } = await c.from('scores').insert({ user_id: uid, ...s.row });
         if (!error || /duplicate|23505/.test(error.message)) sentScore.add(s.id);
       }
-      const rest = loadQ().filter((x) => x.k === 'stat' ? !sentStat.has(x.row.sub + ':' + x.row.name) : x.k === 'score' ? !sentScore.has(x.id) : !sentProfile);
+      /* 名簿。同じ イベント・学年・番号なら 行は 1つ（さわった 時刻だけ 新しくなる） */
+      if (ents.length) {
+        const rows = ents.map((e) => ({ user_id: uid, ...e.row }));
+        const { error } = await c.from('entries').upsert(rows, { onConflict: 'event_code,level,seat_no,user_id' });
+        if (!error) ents.forEach((e) => sentEntry.add(entryId(e.row)));
+      }
+      const rest = loadQ().filter((x) =>
+        x.k === 'stat' ? !sentStat.has(x.row.sub + ':' + x.row.name)
+        : x.k === 'score' ? !sentScore.has(x.id)
+        : x.k === 'entry' ? !sentEntry.has(entryId(x.row))
+        : !sentProfile);
       saveQ(rest);
       return rest.length === 0;
     } catch { return false; }
@@ -126,6 +147,9 @@ export function enqueueScore(row: ScoreRow) {
   enqueue({ k: 'score', row, id });
 }
 export function enqueueProfile(nickname: string, level: Level) { enqueue({ k: 'profile', nickname, level }); }
+
+/** 参加名簿に 1行 残す（学年を えらんだ とき・名前を 決めた とき） */
+export function enqueueEntry(row: EntryRow) { enqueue({ k: 'entry', row }); }
 
 /** サーバーの 名前を 取りこむ。端末に 無ければ そのまま、あれば サーバーが 正（NGワードで 置きかえられた ときに そろう）。
     送りかけの 名前が キューに 残っているときは 触らない。戻り値は 取りこんで 変わった 名前 */
