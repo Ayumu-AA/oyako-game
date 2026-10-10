@@ -3,9 +3,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { missCount } from '../game/records';
 import { store } from '../lib/storage';
 import { startSync, enqueueScore, enqueueEntry, type ScoreRow } from '../lib/sync';
-import { getNick } from '../lib/nickname';
+import { getNick, setNickLocal } from '../lib/nickname';
 import { rankable, RANK_MODES } from '../lib/ranking';
-import { eventCode } from '../lib/config';
+import { eventCode, shareMode } from '../lib/config';
 import { getSeat, setSeat, seatAsk } from '../lib/seat';
 import { rankOf } from '../game/rank';
 import { SOLO_SECONDS, okSubj } from '../game/battle';
@@ -45,11 +45,16 @@ export default function App() {
   const seatLv = useRef<Level>(1);          // 番号を きいている 学年
   const howGroup = useRef<Group | null>(null);   // あそびかた画面へ どこから来たか（もどる先）
 
+  /* いまの 学年の 受付番号。点数の 行に つけると、端末が ちがっても 同じ人として 数えられる */
+  const seatNow = (lv: Level): number | null => { const ev = eventCode(); return seatAsk(ev) ? getSeat(ev, lv) : null; };
+
   const change = useCallback((p: Partial<Settings>) => setS((x) => ({ ...x, ...p })), []);
   const go = useCallback((sc: Screen) => { setScreen(sc); window.scrollTo(0, 0); if (sc === 'title' || sc === 'games') setMissN(missCount()); }, []);
   useEffect(() => { window.scrollTo(0, 0); }, [screen]);
   /* サーバーの記録を 取りこむ（取りこめたら まちがい帳の数を 出しなおす） */
   useEffect(() => { startSync(() => setMissN(missCount()), (n) => setNick(n)); }, []);
+  /* QR の ?e= と ?s= を 起動時に 端末に 覚えさせる（あとで URL から 消えても 効いたまま） */
+  useEffect(() => { eventCode(); shareMode(); }, []);
 
   /* 点数を ランキングに 送る。名前が 無ければ 取っておいて、名前が 決まったら 送る */
   const submitScore = (row: ScoreRow | null) => {
@@ -76,7 +81,8 @@ export default function App() {
     change({ level: l, bsubj: okSubj(s.bsubj, l) ? s.bsubj : 'mix' });
     const ev = eventCode();
     if (seatAsk(ev)) {
-      const sn = getSeat(ev, l);
+      /* 受付の 共用たんまつは 人が 入れかわるので、学年を えらぶ たびに きく */
+      const sn = shareMode() ? null : getSeat(ev, l);
       if (sn === null) { seatLv.current = l; setSeatOpen(true); return; }   /* 番号を きいてから すすむ */
       enqueueEntry({ event_code: ev, level: l, seat_no: sn, players: s.players, nickname: getNick() });
     }
@@ -84,7 +90,10 @@ export default function App() {
   };
   const onSeat = (noIn: number) => {
     const ev = eventCode(), l = seatLv.current;
+    const prev = getSeat(ev, l);
     setSeat(ev, l, noIn);
+    /* 共用たんまつで 人が 変わったら、前の子の 名前を 持ちこさない（ランキングが まざる） */
+    if (shareMode() && prev !== null && prev !== noIn) { setNickLocal(''); setNick(null); pendingScore.current = null; }
     enqueueEntry({ event_code: ev, level: l, seat_no: noIn, players: s.players, nickname: getNick() });
     setSeatOpen(false);
     go('games');
@@ -133,7 +142,7 @@ export default function App() {
     setPr({ ...r, newBest }); setMissN(missCount()); go('result');
     if (rankable(r.mode)) {
       const kind = r.mode === 'math' ? 'math' : 'relay';
-      submitScore({ event_code: eventCode(), mode: r.mode, level: s.level, seconds: r.seconds, score: r.score, rank_i: rankOf(kind, r.score, r.seconds).i, nickname: '' });
+      submitScore({ event_code: eventCode(), mode: r.mode, level: s.level, seconds: r.seconds, score: r.score, rank_i: rankOf(kind, r.score, r.seconds).i, nickname: '', seat_no: seatNow(s.level) });
     } else pendingScore.current = null;
   };
   const finishBattle = (r: BattleResult) => {
@@ -144,7 +153,7 @@ export default function App() {
        ・まちがい直しは 人によって 出る問題が ちがう
        のせる 数字は「とくてん」（早く こたえるほど 高い） */
     if (r.players === 1 && !r.miss && !r.practice && r.bsubj === 'mix') {
-      submitScore({ event_code: eventCode(), mode: 'battle1', level: s.level, seconds: r.seconds, score: r.ptsChild, rank_i: rankOf('battle1', r.child, r.seconds).i, nickname: '' });
+      submitScore({ event_code: eventCode(), mode: 'battle1', level: s.level, seconds: r.seconds, score: r.ptsChild, rank_i: rankOf('battle1', r.child, r.seconds).i, nickname: '', seat_no: seatNow(s.level) });
       const key = bestKey('battle1', s.level, r.seconds);
       if (r.ptsChild > Number(store(key) || 0)) store(key, String(r.ptsChild));
     } else pendingScore.current = null;

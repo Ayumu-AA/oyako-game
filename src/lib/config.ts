@@ -11,3 +11,15 @@ export function eventCode(): string {
     return localStorage.getItem('oyako-event') || 'home';
   } catch { return 'home'; }
 }
+
+/** 受付の 共用たんまつ（1台を 何人かで つかう）。QR に ?s=1 を 足して 開く。
+    このモードでは 学年を えらぶ たびに 受付番号を きき、人が 変わったら 名前も きき直す。
+    ?s=0 で もどせる（ふつうの スマホに もどす とき） */
+export function shareMode(): boolean {
+  try {
+    const v = new URLSearchParams(location.search).get('s');
+    if (v === '1') { localStorage.setItem('oyako-share', '1'); return true; }
+    if (v === '0') { localStorage.removeItem('oyako-share'); return false; }
+    return localStorage.getItem('oyako-share') === '1';
+  } catch { return false; }
+}

@@ -7,9 +7,11 @@
    best_scores は 人ごとの ベスト 1行だけ。送るのは これまでどおり scores（insert 専用）。 */
 import { store } from './storage';
 import { ensureUser, getClient } from './supabase';
+import { eventCode } from './config';
+import { getSeat, seatAsk } from './seat';
 import type { Level, Mode } from '../game/types';
 
-export interface RankRow { nickname: string; score: number; seconds: number; rank_i: number; played_at: string; user_id?: string }
+export interface RankRow { nickname: string; score: number; seconds: number; rank_i: number; played_at: string; user_id?: string; seat_no?: number | null }
 export interface RankTable {
   rows: RankRow[];                                  // 上位10（1人1行）
   mine: { rank: number; row: RankRow } | null;      // 自分の ベストと 順位
@@ -33,12 +35,21 @@ export function cachedTable(ev: string, mode: Mode, lv: Level): RankTable | null
 
 export const RANK_TABLE = 'best_scores';   /* 人ごとの ベスト 1行だけの view */
 
+/** 自分の行を 引くときの 目じるし。受付番号が あれば 番号（端末が ちがっても 同じ人）、
+    無ければ 端末の 匿名ID。supabase/007_score_seat.sql の best_scores と 同じ 考えかた */
+export function myKey(lv: Level): { col: 'seat_no' | 'user_id'; val: number } | null {
+  const ev = eventCode();
+  if (!seatAsk(ev)) return null;
+  const sn = getSeat(ev, lv);
+  return sn && sn > 0 ? { col: 'seat_no', val: sn } : null;
+}
+
 /** 上位10 と 自分の順位。自分の順位は「自分のベストより 上の【人】の数 + 1」 */
 export async function fetchTable(ev: string, mode: Mode, lv: Level): Promise<RankTable | null> {
   const c = getClient(); if (!c) return null;
   try {
     const { data, error } = await c.from(RANK_TABLE)
-      .select('nickname,score,seconds,rank_i,played_at,user_id')
+      .select('nickname,score,seconds,rank_i,played_at,user_id,seat_no')
       .eq('event_code', ev).eq('mode', mode).eq('level', lv)
       .order('score', { ascending: false }).order('seconds', { ascending: true }).order('played_at', { ascending: true })
       .limit(10);
@@ -46,10 +57,11 @@ export async function fetchTable(ev: string, mode: Mode, lv: Level): Promise<Ran
     const rows = data as RankRow[];
     const { count } = await c.from(RANK_TABLE).select('id', { count: 'exact', head: true }).eq('event_code', ev).eq('mode', mode).eq('level', lv);
     const uid = await ensureUser();
+    const key = myKey(lv);
     let mine: RankTable['mine'] = null;
-    if (uid) {
+    if (uid || key) {
       const { data: my } = await c.from(RANK_TABLE).select('nickname,score,seconds,rank_i,played_at')
-        .eq('event_code', ev).eq('mode', mode).eq('level', lv).eq('user_id', uid)
+        .eq('event_code', ev).eq('mode', mode).eq('level', lv).eq(key ? key.col : 'user_id', key ? key.val : uid!)
         .order('score', { ascending: false }).order('seconds', { ascending: true }).limit(1);
       const best = my && my[0] as RankRow | undefined;
       if (best) {

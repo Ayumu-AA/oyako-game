@@ -934,3 +934,63 @@ for (const [w, h, tag] of VPS) {
     await ctx.close();
   });
 }
+
+/* ===== 共用たんまつ（?s=1）と 点数の 受付番号 =====
+   受付に 置く 1台を 何人かで つかうので、学年を えらぶ たびに 番号を きき直す。
+   点数の 行にも 番号を つけるので、端末が ちがっても 同じ人として 数えられる。 */
+test('共用たんまつ：学年を えらぶ たびに 番号を きき、人が 変わったら 名前も きき直す', async ({ page }) => {
+  const errs = noErrors(page);
+  await page.addInitScript(() => { localStorage.setItem('oyako-allgames', '1'); localStorage.setItem('oyako-nick', 'まえのこ'); });
+  await page.goto('./?e=TEST-1&s=1');
+  await expect(page.locator('#s-title')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('oyako-share'))).toBe('1');
+
+  /* 1人め：6年の 12番 */
+  await page.click('[data-players="1"]');
+  await page.click('[data-level="6"]');
+  await expect(page.locator('#seat-ov')).toBeVisible();
+  await page.click('#seat-1'); await page.click('#seat-2'); await page.click('#btn-seat-ok');
+  await expect(page.locator('#s-games')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('oyako-nick'))).toBe('まえのこ');   /* 同じ人のまま */
+
+  /* 2人め：同じ 6年でも また きく。番号が ちがえば 前の子の 名前は 消す */
+  await page.click('#btn-games-back');
+  await page.click('[data-level="6"]');
+  await expect(page.locator('#seat-ov')).toBeVisible();
+  await page.click('#seat-7'); await page.click('#btn-seat-ok');
+  await expect(page.locator('#s-games')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('oyako-nick'))).toBe('');
+  const rows = (await queue(page)).filter((x: { k: string }) => x.k === 'entry');
+  expect(rows.map((x: { row: { seat_no: number } }) => x.row.seat_no).sort((a: number, b: number) => a - b)).toEqual([7, 12]);
+
+  /* ?s=0 で ふつうの スマホに もどせる */
+  await page.goto('./?e=TEST-1&s=0');
+  await expect(page.locator('#s-title')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('oyako-share'))).toBe(null);
+  await page.click('[data-players="1"]');
+  await page.click('[data-level="6"]');
+  await expect(page.locator('#s-games')).toBeVisible();          /* 覚えた 番号で そのまま すすむ */
+  await expect(page.locator('#seat-ov')).toBeHidden();
+  expect(errs).toEqual([]);
+});
+
+test('点数の 行に 受付番号が つく（端末が ちがっても 同じ人として 数えるため）', async ({ page }) => {
+  await page.clock.install(); await page.clock.resume();
+  await page.addInitScript(() => { localStorage.setItem('oyako-allgames', '1'); localStorage.setItem('oyako-nick', 'てすとこ'); });
+  await page.goto('./?e=TEST-1');
+  await expect(page.locator('#s-title')).toBeVisible();
+  await page.click('[data-players="1"]');
+  await page.click('[data-level="6"]');
+  await page.click('#seat-5'); await page.click('#btn-seat-ok');
+  await expect(page.locator('#s-games')).toBeVisible();
+  /* はやおし（ひとり）を 1回 おわらせる */
+  await page.click('[data-mode="battle1"]');
+  await page.click('#btn-entry-rank');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  await page.clock.fastForward(95000);
+  await expect(page.locator('#s-bresult')).toBeVisible({ timeout: 8000 });
+  const sc = (await queue(page)).filter((x: { k: string }) => x.k === 'score');
+  expect(sc.length).toBeGreaterThan(0);
+  expect(sc[0].row).toMatchObject({ event_code: 'TEST-1', level: 6, seat_no: 5 });
+});

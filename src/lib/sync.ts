@@ -18,6 +18,8 @@ export const QUEUE_MAX = 500;
 
 export interface ScoreRow {
   event_code: string; mode: string; level: Level; seconds: number; score: number; rank_i: number; nickname: string;
+  /** 受付番号。これが あると 端末が ちがっても 同じ人として 数える（0・null＝番号なし） */
+  seat_no?: number | null;
 }
 /** 参加名簿の 1行。学年ボタンを おした 時点で 積む（遊ばなくても 名簿に 残す）。
     seat_no は 受付で 渡した 番号札の 数（0＝ふだなし）。実名は 入れない */
