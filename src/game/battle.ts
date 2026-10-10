@@ -1,6 +1,7 @@
 /* はやおし親子バトル の 純ロジック（問題づくり・選たく肢・得点）。タイマーと描画は UI 側 */
 import { relayDeck, missDeck, kanjiDeck, kanjiRows, KANJI_TAG } from './decks';
 import { KOKUGO_REI } from '../data/kokugo_rei';
+import { WORD_Q } from '../data/word';
 import { preloadArt } from './art';
 import { markSeen, seenAt, markHit, markMiss } from './records';
 import { shuffle, pickN, randInt, rng } from './util';
@@ -25,10 +26,10 @@ export const MOJI_OPTS = 4;      /* もじあて（都道府県）の 1文字ぶ
 export const MOJI_OPTS_FLAG = 2; /* 国旗は 小学生には むずかしい国が まざるので 2たくに する */
 export const SOLO_SECONDS = 90;  /* ひとりの はやおしは いつも 90秒（ランキングを くらべられるように） */
 export const BATTLE_CAP = 180;   /* 〇もん先取でも これ以上は つづけない（秒） */
-export const BSUBJ_ALL: (Subject)[] = ['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo', 'calc'];
+export const BSUBJ_ALL: (Subject)[] = ['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo', 'calc', 'word'];
 export type BattleSubj = 'mix' | 'miss' | 'moji' | Subject;   /* miss = まちがい帳から / moji = もじあて */
 /* ミックスに 出るもの。もじあても 仲間に 入れる */
-export const MIX_ALL: BattleSubj[] = ['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo', 'calc'];
+export const MIX_ALL: BattleSubj[] = ['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo', 'calc', 'word'];
 /* もじうめは 1つの ジャンルでは なく、都道府県と 国旗の 出題の 一部として 出す（この わりあい） */
 export const MOJI_RATE = 0.34;
 /** もじうめを 出す わりあい。テストのときだけ 端末の つまみで 固定できる */
@@ -62,6 +63,23 @@ export function splitYomi(sub: string, name: string, yomi: string): { body: stri
   const n = PREF_TAIL[t];
   if (!n || yomi.length <= n + 1) return { body: yomi, tail: '' };
   return { body: yomi.slice(0, -n), tail: t };
+}
+
+/* ===== おかいもの（文しょうだい） =====
+   お店やさんごっこの 文しょうだい。こたえは 数1つなので、
+   近い数を まぜて 4たくに する。その学年と 1つ下の 学年から 出す。 */
+/** こたえの 近くの 数を 8つ 作る（まちがいの 選たく肢） */
+export function nearNums(ans: number): number[] {
+  const step = ans >= 200 ? [1, 2, 9, 10, 11, 20, 100, 200]
+    : ans >= 50 ? [1, 2, 3, 4, 5, 9, 10, 20]
+      : [1, 2, 3, 4, 5, 6, 7, 8];
+  const out: number[] = [];
+  for (const d of step) { if (ans - d > 0) out.push(ans - d); out.push(ans + d); }
+  return shuffle([...new Set(out)].filter((v) => v !== ans));
+}
+/** その学年の 文しょうだい（1つ下の 学年も まぜる） */
+export function wordRows(g: Level) {
+  return (g > 1 ? (WORD_Q[g - 1] || []) : []).concat(WORD_Q[g] || []);
 }
 
 export function calcQuestion(g: Level): BattleQ {
@@ -196,7 +214,7 @@ export class BattleSession {
     this.pools.kokugo = kanjiDeck(opts.level);
     if (opts.bsubj === 'miss') {
       /* まちがい帳は 始めた時点で 固定する。当てて 帳から 消えても、この勝負では 出つづける */
-      this.missPool = missDeck().filter((q) => q.sub !== 'math' && q.sub !== 'calc');
+      this.missPool = missDeck().filter((q) => q.sub !== 'math' && q.sub !== 'calc' && q.sub !== 'word');
       /* まちがい帳は 学年を またぐので、まちがいの選たく肢も 両方の学年から とる。
          こうしないと 低学年の問題を 高学年で 直すとき、選たく肢が 教科ちがいに なる */
       for (const k of ['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo'] as Subject[]) {
@@ -248,6 +266,7 @@ export class BattleSession {
     const key = keys[Math.floor(rng() * keys.length)] as Subject | 'moji';
     if (key === 'moji') return this.mojiQ();
     if (key === 'calc') return calcQuestion(this.opts.level);
+    if (key === 'word') return this.wordQ();
     /* 都道府県・国旗は ときどき もじうめ（〇文字目が『か』の県は？／国名の もじうめ）で 出す */
     if ((key === 'pref' || key === 'flag') && rng() < mojiRate()) {
       const mq = this.mojiQ(key);
@@ -257,6 +276,22 @@ export class BattleSession {
     if (!deck || !deck.length) return calcQuestion(this.opts.level);
     const q = this.pickFromDeck(key, deck);
     return this.buildQ(key, q, deck);
+  }
+
+  /** おかいもの（文しょうだい）。つづけて 同じ問題が 出ないように えらぶ */
+  wordQ(): BattleQ {
+    const rows = wordRows(this.opts.level);
+    if (!rows.length) return calcQuestion(this.opts.level);
+    const rl = this.recent.word || (this.recent.word = []);
+    let pick = rows[Math.floor(rng() * rows.length)];
+    for (let i = 0; i < 8 && rl.indexOf(pick[0]) >= 0; i++) pick = rows[Math.floor(rng() * rows.length)];
+    rl.push(pick[0]);
+    while (rl.length > Math.max(3, Math.min(20, Math.floor(rows.length * 0.6)))) rl.shift();
+    const [text, ans, unit] = pick;
+    return {
+      art: null, text, num: false, answer: ans + unit,
+      pool: nearNums(ans).map((v) => v + unit), fact: null, sub: 'word',
+    };
   }
 
   /** もじあて（みんはや式）。都道府県か 国の名前を、よみの 1文字ずつ 4たくで えらぶ */

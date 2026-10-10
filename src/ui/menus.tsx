@@ -326,6 +326,7 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
             { v: 'flag', b: pick('🚩', '国旗') }, { v: 'kokugo', b: pick('📖', 'かん字') },
             { v: 'rika', b: pick('🧪', 'りか') }, { v: 'rekishi', b: pick('🏯', 'れきし') },
             { v: 'eigo', b: pick('🔤', 'えいご') }, { v: 'calc', b: pick('🔢', 'けいさん') },
+            { v: 'word', b: pick('🛒', 'おかいもの') },
           ] as { v: Settings['bsubj']; b: ReactNode }[])
             .filter((o) => okSubj(o.v as BattleSubj, s.level))} />}
 

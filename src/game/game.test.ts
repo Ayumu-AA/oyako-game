@@ -4,7 +4,7 @@ import { reloadRecords, markMiss, markHit, missCount, markSeen, seenAt, clearRec
 import { evalTokens, makePuzzle, checkMath, type Token } from './math10';
 import { rankOf, rankNext } from './rank';
 import { plain, furi, furiName, FURI_RE } from './furigana';
-import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, ANSWER_MS_SOLO, HINT_STEP_MS, PTS_BY_STAGE, ptsAtStage, MIX_ALL, mixFor, okSubj, splitYomi, charOptions, mojiGroups } from './battle';
+import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, ANSWER_MS_SOLO, HINT_STEP_MS, PTS_BY_STAGE, ptsAtStage, MIX_ALL, mixFor, okSubj, wordRows, nearNums, splitYomi, charOptions, mojiGroups } from './battle';
 import { cutFuri, plainLen } from './furigana';
 import { relayDeck as deckOf } from './decks';
 import { relayDeck, deckFor, hints3, missDeck, kanjiDeck } from './decks';
@@ -169,11 +169,11 @@ describe('battle', () => {
     expect(kanjiDeck(6).some((q) => [...q.name].length >= 3)).toBe(true);
   });
   it('学年べつの ジャンル：1年は かん字・けいさん・国旗、2年から 県、3年から れきし・りか、5年から えいご', () => {
-    expect(mixFor(1)).toEqual(['flag', 'kokugo', 'calc']);
-    expect(mixFor(2)).toEqual(['pref', 'flag', 'kokugo', 'calc']);
-    expect(mixFor(3)).toEqual(['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'calc']);
+    expect(mixFor(1)).toEqual(['flag', 'kokugo', 'calc', 'word']);
+    expect(mixFor(2)).toEqual(['pref', 'flag', 'kokugo', 'calc', 'word']);
+    expect(mixFor(3)).toEqual(['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'calc', 'word']);
     expect(mixFor(4)).toEqual(mixFor(3));
-    expect(mixFor(5)).toEqual(['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo', 'calc']);
+    expect(mixFor(5)).toEqual(['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo', 'calc', 'word']);
     expect(mixFor(6)).toEqual(mixFor(5));
     expect(okSubj('mix', 1)).toBe(true);
     expect(okSubj('eigo', 4)).toBe(false);
@@ -192,6 +192,28 @@ describe('battle', () => {
     /* その学年に ある ジャンルは これまでどおり そのまま */
     const s3 = new BattleSession({ level: 6, bsubj: 'eigo', handi: 1, goal: 0, players: 1 });
     for (let i = 0; i < 20; i++) { const { q } = s3.next(); expect(q.sub).toBe('eigo'); }
+  });
+  it('おかいもの（文しょうだい）は 4たくで、まちがいは こたえに 近い 数', () => {
+    for (const g of [1, 2, 3, 4, 5, 6] as const) {
+      const s = new BattleSession({ level: g, bsubj: 'word', handi: 1, goal: 0, players: 1 });
+      const rows = new Map(wordRows(g).map((r) => [r[0], r[1] + r[2]]));
+      for (let i = 0; i < 40; i++) {
+        const { q, opts } = s.next();
+        expect(q.sub, String(g)).toBe('word');
+        expect(rows.get(q.text), q.text).toBe(q.answer);           /* 文と こたえの 組みあわせが データどおり */
+        expect(opts.child.length).toBe(SOLO_OPTS);
+        expect(opts.child).toContain(q.answer);
+        expect(new Set(opts.child).size).toBe(SOLO_OPTS);          /* おなじ 選たく肢が ならばない */
+        const unit = q.answer.replace(/^\d+/, '');
+        opts.child.forEach((o) => expect(o.endsWith(unit), o).toBe(true));   /* たんいが そろう */
+      }
+    }
+  });
+  it('まちがいの 数は 0より 大きい', () => {
+    for (const a of [1, 2, 5, 10, 48, 120, 1500]) {
+      nearNums(a).forEach((v) => { expect(v).toBeGreaterThan(0); expect(v).not.toBe(a); });
+      expect(nearNums(a).length).toBeGreaterThanOrEqual(8);
+    }
   });
   it('けいさんは 学年で むずかしさが かわる', () => {
     const ops = (g: 1 | 2 | 3 | 4 | 5 | 6) => {
@@ -561,5 +583,35 @@ describe('もじあて：〇文字目が「か」の都道府県は？', () => {
       s.next();
     }
     expect(seen).toBeGreaterThan(3);
+  });
+});
+
+describe('都道府県の ヒント', () => {
+  it('どの県にも ヒントが 5つ いじょう ある（ヒント3つを えらべる）', () => {
+    for (const lv of [1, 2] as const) {
+      relayDeck('pref', lv).forEach((q) => {
+        expect(q.hints.length, q.name).toBeGreaterThanOrEqual(5);
+      });
+    }
+  });
+  it('ヒントに ふりがなの 書きまちがいが ない（かっこの とじわすれ など）', () => {
+    const bad: string[] = [];
+    for (const lv of [1, 2] as const) {
+      relayDeck('pref', lv).forEach((q) => q.hints.forEach((h) => {
+        /* { } の 数が あわない／ルビの 中に 漢字が まざる のを 見つける */
+        if ((h.match(/\{/g) || []).length !== (h.match(/\}/g) || []).length) bad.push(q.name + ': ' + h);
+        if (/\{[^}]*[一-鿿][^}]*\}/.test(h)) bad.push(q.name + '(ルビに漢字): ' + h);
+        if (/\}\{/.test(h)) bad.push(q.name + '(ルビが つながる): ' + h);
+      }));
+    }
+    expect(bad).toEqual([]);
+  });
+  it('同じ県の 中で ヒントが かぶらない', () => {
+    for (const lv of [1, 2] as const) {
+      relayDeck('pref', lv).forEach((q) => {
+        const p = q.hints.map((h) => plain(h));
+        expect(new Set(p).size, q.name).toBe(p.length);
+      });
+    }
   });
 });

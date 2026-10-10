@@ -21,7 +21,7 @@ export type Mode =
                               画面の状態が この2つのままに なることはない */
 
 /** 記録（まちがい帳・出題きろく）の教科キー。ちずクイズは pref/flag にまとめる */
-export type Subject = 'pref' | 'flag' | 'kokugo' | 'rika' | 'rekishi' | 'eigo' | 'math' | 'calc';
+export type Subject = 'pref' | 'flag' | 'kokugo' | 'rika' | 'rekishi' | 'eigo' | 'math' | 'calc' | 'word';
 
 export type Art = { t: 'flag' | 'icon'; k: string };
 
