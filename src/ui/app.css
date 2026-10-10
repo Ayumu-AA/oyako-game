@@ -1181,6 +1181,9 @@
   @media (max-height:700px){
     .seatview b,.seatview i,.seatview span{font-size:26px}
     .skey{font-size:22px;padding:8px 0}
+    .seatsheet .seatlede{font-size:12.5px}
+  }
+  @media (max-height:600px){
     .seatsheet .seatlede{display:none}
   }
   .ranklist{background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:6px 10px;box-shadow:var(--shadow)}
