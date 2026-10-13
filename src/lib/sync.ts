@@ -12,6 +12,7 @@ import type { Level } from '../game/types';
 import { ensureUser, getClient } from './supabase';
 import { onRecordChange, mergeRemote, allStats, type StatRow } from '../game/records';
 import { getNick, setNickLocal, setExtraNg } from './nickname';
+import { isSeatMissing, noteSeatMissing, seatUsable } from './schema';
 
 export const QUEUE_KEY = 'oyako-queue';
 export const QUEUE_MAX = 500;
@@ -52,6 +53,19 @@ export function enqueue(op: QueueOp) {
 
 const iso = (ms: number) => (ms ? new Date(ms).toISOString() : null);
 
+/** 点数1行を サーバーに 送る かたちに する。
+    受付番号は「イベントで 番号を もらった とき」だけ 付ける。
+    付けないのは 2つの ため：
+    ・家で あそぶ ぶんは そもそも 番号が ない
+    ・SQL（007）を まだ 実行していない サーバーには その列が 無く、
+      送ると 1行まるごと ことわられて 記録が 消える */
+export function scoreRow(uid: string, row: ScoreRow, dropSeat = false) {
+  const { seat_no, ...rest } = row;
+  const out: Record<string, unknown> = { user_id: uid, ...rest };
+  if (!dropSeat && seatUsable() && typeof seat_no === 'number' && seat_no > 0) out.seat_no = seat_no;
+  return out;
+}
+
 let flushing: Promise<boolean> | null = null;
 let timer: number | null = null;
 function scheduleFlush() {
@@ -90,7 +104,12 @@ export function flush(): Promise<boolean> {
         if (!error) stats.forEach((s) => sentStat.add(s.row.sub + ':' + s.row.name));
       }
       for (const s of scores) {
-        const { error } = await c.from('scores').insert({ user_id: uid, ...s.row });
+        let { error } = await c.from('scores').insert(scoreRow(uid, s.row));
+        /* サーバーが 古くて 受付番号の 列が 無いときは、番号ぬきで もう一度（記録を 落とさない） */
+        if (isSeatMissing(error)) {
+          noteSeatMissing();
+          ({ error } = await c.from('scores').insert(scoreRow(uid, s.row, true)));
+        }
         if (!error || /duplicate|23505/.test(error.message)) sentScore.add(s.id);
       }
       /* 名簿。同じ イベント・学年・番号なら 行は 1つ（さわった 時刻だけ 新しくなる） */

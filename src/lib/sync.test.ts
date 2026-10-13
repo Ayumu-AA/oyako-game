@@ -114,3 +114,77 @@ describe('サーバーの記録を 取りこむ', () => {
     expect(queueLength()).toBe(0);                    // 2回目は 積まない
   });
 });
+
+/* ===== サーバーが 古いとき（SQL 007 が まだ）=====
+   scores.seat_no が 無いサーバーに 番号つきで 送ると 1行まるごと ことわられる。
+   記録が 消えてしまうので、番号ぬきで 送りなおす。 */
+import { scoreRow } from './sync';
+import { resetSchema, seatUsable } from './schema';
+
+/** 受付番号の 列を 知らない 古いサーバー */
+function oldServer() {
+  const rows: Row[] = [];
+  const c = {
+    auth: {
+      getSession: async () => ({ data: { session: { user: { id: 'u-1' } } } }),
+      signInAnonymously: async () => ({ data: { user: { id: 'u-1' } }, error: null }),
+    },
+    from: () => ({
+      insert: async (row: Row) => {
+        if ('seat_no' in row) return { error: { code: 'PGRST204', message: "Could not find the 'seat_no' column of 'scores' in the schema cache" } };
+        rows.push(row); return { error: null };
+      },
+      upsert: async () => ({ error: null }),
+      select: () => ({ eq: async () => ({ data: [], error: null }) }),
+    }),
+  } as unknown as Client;
+  return { c, rows };
+}
+
+const SCORE = { event_code: 'home', mode: 'battle1', level: 2 as const, seconds: 90, score: 7, rank_i: 2, nickname: 'そら' };
+
+describe('受付番号の 列が 無いサーバー', () => {
+  beforeEach(() => resetSchema());
+
+  it('番号ぬきで 送りなおして、記録を 落とさない', async () => {
+    const { c, rows } = oldServer();
+    setClient(c);
+    enqueueScore({ ...SCORE, seat_no: 12 });
+    await vi.runAllTimersAsync();
+    expect(await flush()).toBe(true);
+    expect(rows.length, '記録が 1行も 入っていない').toBe(1);
+    expect(rows[0]).toMatchObject({ user_id: 'u-1', mode: 'battle1', score: 7 });
+    expect('seat_no' in rows[0]).toBe(false);
+    expect(queueLength(), 'キューに 残ったまま').toBe(0);
+    expect(seatUsable(), '2回目からは 送らない').toBe(false);
+  });
+
+  it('1回 わかれば つぎの 記録は はじめから 番号ぬき（やりとりが 1回ですむ）', async () => {
+    const { c, rows } = oldServer();
+    setClient(c);
+    enqueueScore({ ...SCORE, seat_no: 12 });
+    await vi.runAllTimersAsync(); await flush();
+    enqueueScore({ ...SCORE, seat_no: 13, score: 9 });
+    await vi.runAllTimersAsync();
+    expect(await flush()).toBe(true);
+    expect(rows.length).toBe(2);
+    expect(rows.every((r) => !('seat_no' in r))).toBe(true);
+  });
+});
+
+describe('scoreRow（送る かたち）', () => {
+  beforeEach(() => resetSchema());
+  it('番号を もらった ときだけ 付ける', () => {
+    expect(scoreRow('u-1', { ...SCORE, seat_no: 12 })).toMatchObject({ user_id: 'u-1', seat_no: 12 });
+  });
+  it('家で あそぶ ぶん（番号なし）は 付けない＝古いサーバーでも そのまま 入る', () => {
+    for (const v of [null, undefined, 0]) {
+      expect('seat_no' in scoreRow('u-1', { ...SCORE, seat_no: v as number | null }), String(v)).toBe(false);
+    }
+  });
+  it('ことわられた あとは 付けない', () => {
+    expect('seat_no' in scoreRow('u-1', { ...SCORE, seat_no: 12 })).toBe(true);
+    resetSchema();
+    expect(scoreRow('u-1', { ...SCORE, seat_no: 12 }, true).seat_no).toBeUndefined();
+  });
+});

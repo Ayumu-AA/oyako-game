@@ -9,6 +9,7 @@ import { store } from './storage';
 import { ensureUser, getClient } from './supabase';
 import { eventCode } from './config';
 import { getSeat, seatAsk } from './seat';
+import { isSeatMissing, noteSeatMissing, seatUsable } from './schema';
 import type { Level, Mode } from '../game/types';
 
 export interface RankRow { nickname: string; score: number; seconds: number; rank_i: number; played_at: string; user_id?: string; seat_no?: number | null }
@@ -39,7 +40,7 @@ export const RANK_TABLE = 'best_scores';   /* 人ごとの ベスト 1行だけ�
     無ければ 端末の 匿名ID。supabase/007_score_seat.sql の best_scores と 同じ 考えかた */
 export function myKey(lv: Level): { col: 'seat_no' | 'user_id'; val: number } | null {
   const ev = eventCode();
-  if (!seatAsk(ev)) return null;
+  if (!seatAsk(ev) || !seatUsable()) return null;   /* サーバーが 古いときは 端末の IDで 引く */
   const sn = getSeat(ev, lv);
   return sn && sn > 0 ? { col: 'seat_no', val: sn } : null;
 }
@@ -49,7 +50,7 @@ export async function fetchTable(ev: string, mode: Mode, lv: Level): Promise<Ran
   const c = getClient(); if (!c) return null;
   try {
     const { data, error } = await c.from(RANK_TABLE)
-      .select('nickname,score,seconds,rank_i,played_at,user_id,seat_no')
+      .select('nickname,score,seconds,rank_i,played_at,user_id')
       .eq('event_code', ev).eq('mode', mode).eq('level', lv)
       .order('score', { ascending: false }).order('seconds', { ascending: true }).order('played_at', { ascending: true })
       .limit(10);
@@ -57,12 +58,15 @@ export async function fetchTable(ev: string, mode: Mode, lv: Level): Promise<Ran
     const rows = data as RankRow[];
     const { count } = await c.from(RANK_TABLE).select('id', { count: 'exact', head: true }).eq('event_code', ev).eq('mode', mode).eq('level', lv);
     const uid = await ensureUser();
-    const key = myKey(lv);
+    let key = myKey(lv);
     let mine: RankTable['mine'] = null;
     if (uid || key) {
-      const { data: my } = await c.from(RANK_TABLE).select('nickname,score,seconds,rank_i,played_at')
-        .eq('event_code', ev).eq('mode', mode).eq('level', lv).eq(key ? key.col : 'user_id', key ? key.val : uid!)
+      const mineQ = (k: typeof key) => c.from(RANK_TABLE).select('nickname,score,seconds,rank_i,played_at')
+        .eq('event_code', ev).eq('mode', mode).eq('level', lv).eq(k ? k.col : 'user_id', k ? k.val : uid!)
         .order('score', { ascending: false }).order('seconds', { ascending: true }).limit(1);
+      let { data: my, error: myErr } = await mineQ(key);
+      /* サーバーが 古くて 受付番号の 列が 無いときは 端末の IDで 引きなおす */
+      if (isSeatMissing(myErr) && key) { noteSeatMissing(); key = null; ({ data: my } = await mineQ(null)); }
       const best = my && my[0] as RankRow | undefined;
       if (best) {
         const { count: better } = await c.from(RANK_TABLE).select('id', { count: 'exact', head: true })
