@@ -994,3 +994,128 @@ test('点数の 行に 受付番号が つく（端末が ちがっても 同じ
   expect(sc.length).toBeGreaterThan(0);
   expect(sc[0].row).toMatchObject({ event_code: 'TEST-1', level: 6, seat_no: 5 });
 });
+
+/* ===== 理科：学年ごと・2つの形を まぜて 出す =====
+   ・問題文＋4たく（data/rika.ts）… 教科書の 単元に そった 問題
+   ・いままでの ヒント形式（questions.ts の RIKA）… ヒントが 3秒ごとに ふえる
+   わりあいは oyako-rikarate で 固定できる（テストのときだけ）。
+   問題文は 1文字ずつ 出るので、ここでは にせ時計を つかわず 実時間で 待つ */
+async function rikaRun(page: Page, level: number, rate: string) {
+  await page.addInitScript((r) => { localStorage.setItem('oyako-allgames', '1'); localStorage.setItem('oyako-rikarate', r); }, rate);
+  await page.goto('./');
+  await expect(page.locator('#s-title')).toBeVisible();
+  await page.click('[data-players="1"]');
+  await page.click(`[data-level="${level}"]`);
+  await page.click('[data-mode="battle1"]');
+  await page.click('#btn-entry-practice');        /* ジャンルを えらべるのは 練習のほう */
+  await page.click('#seg-subject button[data-v="rika"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+}
+/** 問題文が 出そろうのを 待って、その文を かえす（.ghost に 全文が 敷いてある） */
+async function qFull(page: Page): Promise<string> {
+  /* .ghost は 見えない字で 全文を 敷いたもの（innerText は 空に なるので textContent で 見る） */
+  await page.waitForFunction(() => {
+    const t = (el: Element | null) => (el?.textContent || '');
+    const g = t(document.querySelector('#s-battle .qtext.ghost'));
+    const l = t(document.querySelector('#s-battle .qtext.live'));
+    return g.length > 0 && l.length >= g.length;
+  }, undefined, { timeout: 15000 });
+  return (await page.locator('#s-battle .qtext.ghost').first().textContent() || '').trim();
+}
+
+test('理科：3年生は 4たく問題が 出て、選たく肢は いつも 4つ', async ({ page }) => {
+  const errs = noErrors(page);
+  await rikaRun(page, 3, '1');          /* いつも 4たく問題 */
+  const seen: string[] = [];
+  for (let i = 0; i < 5; i++) {
+    const t = await qFull(page);
+    expect(t.length, '問題文が 空').toBeGreaterThan(0);
+    seen.push(t);
+    await expect(page.locator('#s-battle .choice')).toHaveCount(4);
+    await page.locator('#s-battle .choice').first().click();
+    await page.waitForTimeout(2600);    /* こたえを 見せてから つぎの問題へ */
+  }
+  expect(new Set(seen).size, 'つづけて 同じ問題が 出ている：' + JSON.stringify(seen)).toBeGreaterThan(2);
+  expect(errs).toEqual([]);
+});
+
+test('理科：1年生・2年生では ジャンルに 出ない', async ({ page }) => {
+  await open(page);
+  for (const lv of [1, 2]) {
+    await page.click('[data-players="1"]');
+    await page.click(`[data-level="${lv}"]`);
+    await page.click('[data-mode="battle1"]');
+    await page.click('#btn-entry-practice');
+    await expect(page.locator('#seg-subject')).toBeVisible();
+    await expect(page.locator('#seg-subject button[data-v="rika"]')).toHaveCount(0);
+    await page.click('#btn-how-back'); await page.click('#btn-how-back');
+    await page.click('#btn-games-back'); await page.click('#btn-level-back');
+  }
+  /* 3年生からは 出る */
+  await page.click('[data-players="1"]');
+  await page.click('[data-level="3"]');
+  await page.click('[data-mode="battle1"]');
+  await page.click('#btn-entry-practice');
+  await expect(page.locator('#seg-subject button[data-v="rika"]')).toHaveCount(1);
+});
+
+test('理科：ヒント形式だけに すると 3秒ごとに ヒントが 出て 点が へる', async ({ page }) => {
+  await rikaRun(page, 6, '0');          /* いつも ヒント形式 */
+  await qFull(page);
+  /* 問題文が 出そろった ちょくごは ヒントなし・3点 */
+  await expect(page.locator('.hintwait')).toBeVisible();
+  await expect(page.locator('#pts-child')).toHaveText('3点');
+  /* 3秒で ヒント2、さらに 3秒で ヒント3。点は へっていく */
+  await expect(page.locator('#hint-child')).toContainText('ヒント2', { timeout: 6000 });
+  await expect(page.locator('#pts-child')).toHaveText('2点');
+  await expect(page.locator('#hint-child')).toContainText('ヒント3', { timeout: 6000 });
+  await expect(page.locator('#pts-child')).toHaveText('1点');
+});
+
+test('理科：4たくと ヒント形式の 両方が 出る', async ({ page }) => {
+  await rikaRun(page, 6, '0.5');
+  /* 4たく問題は 単元の ヒントが つく。ヒント形式は つかない。
+     どちらも 10問のうちに 出ることを 見る */
+  let q4 = 0, qh = 0;
+  for (let i = 0; i < 10 && (q4 === 0 || qh === 0); i++) {
+    await qFull(page);
+    await page.waitForTimeout(3300);     /* ヒントが 1つ 出るまで */
+    const txt = (await page.locator('#s-battle').textContent() || '');
+    if (txt.includes('ヒント：')) q4++; else qh++;
+    await page.locator('#s-battle .choice').first().click();
+    await page.waitForTimeout(2600);
+  }
+  expect(q4, '4たく問題が 1問も 出ていない').toBeGreaterThan(0);
+  expect(qh, 'ヒント形式が 1問も 出ていない').toBeGreaterThan(0);
+});
+
+for (const [w, h, tag] of VPS) {
+  test(`収まり ${tag}：理科の 4たく問題`, async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: true });
+    const page = await ctx.newPage();
+    await rikaRun(page, 6, '1');
+    /* 問題文も 選たく肢も 長いものが あるので、何問か 見て はみ出しを さがす */
+    for (let i = 0; i < 6; i++) {
+      await qFull(page);
+      const over = await page.evaluate(() => {
+        const out: string[] = [];
+        document.querySelectorAll('#s-battle .side').forEach((sd) => {
+          const sr = sd.getBoundingClientRect();
+          sd.querySelectorAll('.qtext,.choices,.choice').forEach((el) => {
+            const e = el.getBoundingClientRect();
+            if (e.bottom > sr.bottom + 1 || e.top < sr.top - 1 || e.right > sr.right + 1 || e.left < sr.left - 1) {
+              out.push((el.className || '') + ':' + (el.textContent || '').slice(0, 20));
+            }
+          });
+        });
+        return [...new Set(out)];
+      });
+      expect(over, '問題文・選たく肢が 枠から はみ出さない').toEqual([]);
+      await page.locator('#s-battle .choice').first().click();
+      await page.waitForTimeout(2600);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(h);
+    await ctx.close();
+  });
+}

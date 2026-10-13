@@ -29,11 +29,23 @@ export function relayDeck(sub: Subject, lv: DataLv): RelayQ[] {
   const src = SRC[sub];
   if (!src) return [];
   return orderBySeen(sub, src.filter((q) => {
-    if (q[5] !== lv) return false;
+    /* 理科だけ 学年（3〜6）で 持っている。ヒントリレーは 低学年・高学年の 2段階なので ならす */
+    if ((q[5] > 2 ? dataLv(q[5] as Level) : q[5]) !== lv) return false;
     /* 英語モードは 絵が用意できている単語だけ出す（IMAGES に足せば自動で仲間入り） */
     if (sub === 'eigo') return hasArt(q[6]);
     return true;
   }).map((q) => ({ name: q[0], yomi: q[1], tag: q[2], hints: q[3].concat((HINT2_MAP[sub] || {})[q[0]] || []), fact: q[4], art: q[6] ? { t: 'icon' as const, k: q[6] } : null, sub })));
+}
+
+/** はやおしの 理科デッキ。その学年のぶん＋1つ下の学年（3年は その学年だけ）。
+    理科は 学校でも 3年からなので、1・2年は からっぽ（ジャンル自体 出さない） */
+export function rikaDeck(g: Level): RelayQ[] {
+  if (g < 3) return [];
+  const want = new Set<number>([g]);
+  if (g > 3) want.add(g - 1);
+  const seen = new Set<string>();
+  return orderBySeen('rika', (RIKA as Row[]).filter((q) => want.has(q[5]) && !seen.has(q[0]) && seen.add(q[0]))
+    .map((q) => ({ name: q[0], yomi: q[1], tag: q[2], hints: q[3].concat((HINT2_MAP.rika || {})[q[0]] || []), fact: q[4], art: null, sub: 'rika' as const })));
 }
 
 /* ===== はやおしバトル「かん字の読み」 =====

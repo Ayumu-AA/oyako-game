@@ -1,7 +1,8 @@
 /* はやおし親子バトル の 純ロジック（問題づくり・選たく肢・得点）。タイマーと描画は UI 側 */
-import { relayDeck, missDeck, kanjiDeck, kanjiRows, KANJI_TAG } from './decks';
+import { relayDeck, missDeck, kanjiDeck, kanjiRows, rikaDeck, KANJI_TAG } from './decks';
 import { KOKUGO_REI } from '../data/kokugo_rei';
 import { WORD_Q } from '../data/word';
+import { RIKA_Q } from '../data/rika';
 import { preloadArt } from './art';
 import { markSeen, seenAt, markHit, markMiss } from './records';
 import { shuffle, pickN, randInt, rng } from './util';
@@ -32,6 +33,17 @@ export type BattleSubj = 'mix' | 'miss' | 'moji' | Subject;   /* miss = まち�
 export const MIX_ALL: BattleSubj[] = ['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo', 'calc', 'word'];
 /* もじうめは 1つの ジャンルでは なく、都道府県と 国旗の 出題の 一部として 出す（この わりあい） */
 export const MOJI_RATE = 0.34;
+/* 理科は 2つの 形を まぜて 出す。
+   ・問題文＋4たく（data/rika.ts、学年ごと 100問）… 教科書の 単元に そった 問題
+   ・いままでの ヒント形式（questions.ts の RIKA）… 3秒ごとに ヒントが ふえる 早押しらしい 形
+   この わりあいで 4たくの ほうを 出す */
+export const RIKA_Q_RATE = 0.5;
+export function rikaQRate(): number {
+  try { const v = localStorage.getItem('oyako-rikarate'); if (v) return Number(v); } catch { /* つかえない端末 */ }
+  return RIKA_Q_RATE;
+}
+/** その学年の 理科4たく。その学年ぶん＋1つ下の学年（3年は その学年だけ） */
+export function rikaRows(g: Level) { return (g > 3 ? (RIKA_Q[g - 1] || []) : []).concat(RIKA_Q[g] || []); }
 /** もじうめを 出す わりあい。テストのときだけ 端末の つまみで 固定できる */
 export function mojiRate(): number {
   try { const v = localStorage.getItem('oyako-mojirate'); if (v) return Number(v); } catch { /* つかえない端末 */ }
@@ -212,6 +224,7 @@ export class BattleSession {
     for (const k of ['pref', 'flag', 'rika', 'rekishi', 'eigo'] as Subject[]) this.pools[k] = relayDeck(k, dlv);
     /* 国語は「かん字の読み」。学年ごとに 習う 漢字が ちがうので 学年の デッキを つかう */
     this.pools.kokugo = kanjiDeck(opts.level);
+    this.pools.rika = rikaDeck(opts.level);        /* 理科は 学年ごと（3年から） */
     if (opts.bsubj === 'miss') {
       /* まちがい帳は 始めた時点で 固定する。当てて 帳から 消えても、この勝負では 出つづける */
       this.missPool = missDeck().filter((q) => q.sub !== 'math' && q.sub !== 'calc' && q.sub !== 'word');
@@ -267,6 +280,11 @@ export class BattleSession {
     if (key === 'moji') return this.mojiQ();
     if (key === 'calc') return calcQuestion(this.opts.level);
     if (key === 'word') return this.wordQ();
+    /* 理科は 問題文＋4たく と ヒント形式を まぜて 出す */
+    if (key === 'rika' && rng() < rikaQRate()) {
+      const rq = this.rikaQ();
+      if (rq) return rq;              /* その学年の 問題が 無ければ ヒント形式に もどす */
+    }
     /* 都道府県・国旗は ときどき もじうめ（〇文字目が『か』の県は？／国名の もじうめ）で 出す */
     if ((key === 'pref' || key === 'flag') && rng() < mojiRate()) {
       const mq = this.mojiQ(key);
@@ -276,6 +294,21 @@ export class BattleSession {
     if (!deck || !deck.length) return calcQuestion(this.opts.level);
     const q = this.pickFromDeck(key, deck);
     return this.buildQ(key, q, deck);
+  }
+
+  /** 理科の 4たく問題。つづけて 同じ問題が 出ないように えらぶ。
+      選たく肢は 問題に ついている 3つを そのまま つかう（教科書の まちがえやすい ところ）。
+      まちがい帳には 入れない（名前では なく 問題文なので、あとから 引けない） */
+  rikaQ(): BattleQ | null {
+    const rows = rikaRows(this.opts.level);
+    if (!rows.length) return null;
+    const rl = this.recent.rikaq || (this.recent.rikaq = []);
+    let pick = rows[Math.floor(rng() * rows.length)];
+    for (let i = 0; i < 8 && rl.indexOf(pick[1]) >= 0; i++) pick = rows[Math.floor(rng() * rows.length)];
+    rl.push(pick[1]);
+    while (rl.length > Math.max(3, Math.min(30, Math.floor(rows.length * 0.6)))) rl.shift();
+    const [unit, text, answer, wrong, fact] = pick;
+    return { art: null, text, num: false, answer, pool: wrong.slice(), fact, sub: 'rika', hints: ['ヒント：「' + unit + '」の もんだい'], noMiss: true };
   }
 
   /** おかいもの（文しょうだい）。つづけて 同じ問題が 出ないように えらぶ */
@@ -422,12 +455,12 @@ export class BattleSession {
     this.score[side]++;
     this.pts[side] += gain;
     if (q.fact) this.last = q;
-    markHit(q.sub, q.answer);
+    if (!q.noMiss) markHit(q.sub, q.answer);
     return !!this.opts.goal && this.score[side] >= this.opts.goal;
   }
   wrong(side: Side) {
     const q = this.q!;
-    markMiss(q.sub, q.answer);
+    if (!q.noMiss) markMiss(q.sub, q.answer);   /* 問題文で 出すものは 帳に 入れない（あとから 引けない） */
     if (q.num || q.chars) this.input[side] = '';
     this.tried[side] = true;
     if (this.owner === side) this.owner = null;   /* 回答権は 手ばなす（相手が 押せるように） */
