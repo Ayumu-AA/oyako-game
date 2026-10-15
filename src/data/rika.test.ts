@@ -119,3 +119,52 @@ describe('学年ごとの デッキ', () => {
     expect(rikaRows(2).length).toBe(0);
   });
 });
+
+/* ===== 字数の 上限 =====
+   1人用は 問題文が 出そろってから 9秒で、3秒ごとに 3点→2点→1点。
+   満点を とるには 最初の 3秒。小学校中学年が 4つを 見くらべながら 読む速さを
+   ひかえめに 5字/秒と みて、
+     ・選たく肢 1つ   … 10字以内（4つで 40字 ＝ 約8秒）
+     ・4つの 最長と最短の差 … 4字以内（長さで こたえが 分からないように）
+     ・問題文         … 25字以内（1文字 0.07秒で 出るので 約1.8秒）
+   いまの 原稿は この基準を こえるものが のこっている。
+   直すたびに ここの 数を へらしていく（増やさない ための 上限）。 */
+const LIMIT = { opt: 10, gap: 4, q: 25 } as const;
+/** いま 基準を こえている 数。直したら この数を 下げる（上げてはいけない） */
+const OVER = { opt: 113, gap: 113, q: 103 } as const;
+
+describe('選たく肢の 字数（読める 長さに おさめる）', () => {
+  const all = GRADES.flatMap((g) => RIKA_Q[g]);
+  /* rikaPool は 同じ近さの ときに ばらばらに するので、かぞえる ときは
+     ばらつかない やり方（近い順・同じなら 元の順）で そろえる */
+  const four = (ans: string, wrong: string[]) => {
+    const d = (v: string) => Math.abs([...v].length - [...ans].length);
+    return [ans, ...wrong.map((w, i) => [w, i] as const).sort((a, b) => d(a[0]) - d(b[0]) || a[1] - b[1]).slice(0, 3).map((x) => x[0])];
+  };
+  const len = (v: string) => [...v].length;
+
+  it('基準を こえている 問題は これ以上 ふえない', () => {
+    const over = { opt: 0, gap: 0, q: 0 };
+    for (const [, q, ans, wrong] of all) {
+      if (len(q) > LIMIT.q) over.q++;
+      const f = four(ans, wrong);
+      if (Math.max(...f.map(len)) > LIMIT.opt) over.opt++;
+      if (Math.max(...f.map(len)) - Math.min(...f.map(len)) > LIMIT.gap) over.gap++;
+    }
+    expect(over.opt, '選たく肢が 10字を こえる問題が ふえた').toBeLessThanOrEqual(OVER.opt);
+    expect(over.gap, '4つの 長さの差が 4字を こえる問題が ふえた').toBeLessThanOrEqual(OVER.gap);
+    expect(over.q, '問題文が 25字を こえる問題が ふえた').toBeLessThanOrEqual(OVER.q);
+    /* 直したのに OVER を 下げ忘れていないか（10問以上 余裕が できたら 下げる） */
+    expect(OVER.opt - over.opt, 'OVER.opt を 今の数に 下げてください').toBeLessThan(10);
+    expect(OVER.gap - over.gap, 'OVER.gap を 今の数に 下げてください').toBeLessThan(10);
+    expect(OVER.q - over.q, 'OVER.q を 今の数に 下げてください').toBeLessThan(10);
+  });
+
+  it('どんなに 長くても 読めない ほどでは ない（安全弁）', () => {
+    for (const [, q, ans, wrong] of all) {
+      expect(len(q), q).toBeLessThanOrEqual(45);
+      for (const c of four(ans, wrong)) expect(len(c), q + ' → ' + c).toBeLessThanOrEqual(32);
+      expect(four(ans, wrong).reduce((s, c) => s + len(c), 0), q + ' の4つの合計').toBeLessThanOrEqual(75);
+    }
+  });
+});
