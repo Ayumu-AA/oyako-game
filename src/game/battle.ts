@@ -42,8 +42,15 @@ export function rikaQRate(): number {
   try { const v = localStorage.getItem('oyako-rikarate'); if (v) return Number(v); } catch { /* つかえない端末 */ }
   return RIKA_Q_RATE;
 }
-/** その学年の 理科4たく。その学年ぶん＋1つ下の学年（3年は その学年だけ） */
+/** その学年の 理科。その学年ぶん＋1つ下の学年（3年は その学年だけ） */
 export function rikaRows(g: Level) { return (g > 3 ? (RIKA_Q[g - 1] || []) : []).concat(RIKA_Q[g] || []); }
+/** まちがいの選たく肢を ならべる。こたえと 字の長さが 近いものを 先に（同じ近さなら ばらばらに）。
+    理由をきく問題は こたえだけ 文が 長くなりがちで、そのままだと
+   「いちばん長いのを えらべば 当たる」に なってしまう */
+export function rikaPool(answer: string, wrong: string[]): string[] {
+  const d = (v: string) => Math.abs([...v].length - [...answer].length);
+  return shuffle(wrong.slice()).sort((a, b) => d(a) - d(b));
+}
 /** もじうめを 出す わりあい。テストのときだけ 端末の つまみで 固定できる */
 export function mojiRate(): number {
   try { const v = localStorage.getItem('oyako-mojirate'); if (v) return Number(v); } catch { /* つかえない端末 */ }
@@ -217,6 +224,8 @@ export class BattleSession {
   opts: BattleOpts;
   /** まちがい直しのときだけ 使う。学年をまたいで まちがえた問題を あつめたもの */
   missPool: RelayQ[] = [];
+  /** まちがい直しで もう 出した問題（合っていても まちがえても 1回ずつ） */
+  missSeen = new Set<string>();
 
   constructor(opts: BattleOpts) {
     this.opts = opts;
@@ -267,7 +276,11 @@ export class BattleSession {
        （みかん と 織田信長 が ならばないように） */
     if (this.opts.bsubj === 'miss') {
       if (!this.missPool.length) return calcQuestion(this.opts.level);
-      const q = this.pickFromDeck('miss', this.missPool);
+      /* まだ 出していない ものから えらぶ。ぜんぶ 出しおわったら missDone() が true に なり、
+         画面が そこで おわらせる（おなじ問題を いつまでも くり返さない） */
+      const left = this.missPool.filter((x) => !this.missSeen.has(x.name));
+      const q = this.pickFromDeck('miss', left.length ? left : this.missPool);
+      this.missSeen.add(q.name);
       const key = q.sub;
       const deck = this.pools[key] || this.missPool;
       return this.buildQ(key, q, deck);
@@ -308,7 +321,10 @@ export class BattleSession {
     rl.push(pick[1]);
     while (rl.length > Math.max(3, Math.min(30, Math.floor(rows.length * 0.6)))) rl.shift();
     const [unit, text, answer, wrong, fact] = pick;
-    return { art: null, text, num: false, answer, pool: wrong.slice(), fact, sub: 'rika', hints: ['ヒント：「' + unit + '」の もんだい'], noMiss: true };
+    return {
+      art: null, text, num: false, answer, pool: rikaPool(answer, wrong), fact, sub: 'rika',
+      hints: ['ヒント：「' + unit + '」の もんだい'], noMiss: true,
+    };
   }
 
   /** おかいもの（文しょうだい）。つづけて 同じ問題が 出ないように えらぶ */
@@ -434,6 +450,25 @@ export class BattleSession {
         : { child: pickOpts(q, n[0]), adult: pickOpts(q, n[1]) };
     const wait = (q.num && !solo) ? (HANDI_WAIT[this.opts.handi] || 0) : 0;
     return { q, opts, wait };
+  }
+
+  /** まちがい直しで 帳の 問題を ぜんぶ 出しおわったか（合っていても まちがえても 1回ずつ 出す） */
+  missDone(): boolean {
+    return this.opts.bsubj === 'miss' && this.missPool.length > 0 && this.missSeen.size >= this.missPool.length;
+  }
+  /** まちがい直しの のこり問題数（画面に 出す） */
+  missLeft(): number {
+    if (this.opts.bsubj !== 'miss') return 0;
+    return Math.max(0, this.missPool.length - this.missSeen.size);
+  }
+
+  /** 2人とも 手を 出さないまま 時間が きた。2人とも おてつき あつかいに して つぎへ */
+  timeUpBoth() {
+    const q = this.q;
+    if (q && !q.noMiss) markMiss(q.sub, q.answer);
+    this.tried = { adult: true, child: true };
+    this.owner = null;
+    this.done = true;
   }
 
   /** 赤いボタン（回答権を とる）。取れたら true。

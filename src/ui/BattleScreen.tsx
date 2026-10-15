@@ -7,11 +7,15 @@ const REVEAL_MS = 70;   /* 問題文を 1文字ずつ 出す はやさ（クイ�
    つぎの問題に 行く前に かならず 答えが 目に 入るように する */
 const ANS_SHOW_MS = 2000;
 const NEXT_WAIT_MS = 1500;   /* 2人で 相手に 回るときは こたえを 見せないので みじかく */
+/* 2人用で だれも 赤いボタンを 押さないまま 止まってしまう ことが あるので、
+   問題文が 出そろってから この時間で 打ち切って つぎの問題に 行く */
+const IDLE_MS = 10000;
 /** 少しずつ 出すのは けいさん いがい ぜんぶ（もじあて・国旗・えいごも 文は 少しずつ） */
 const isProg = (q: BattleQ | null) => !!(q && !q.num);
 /** こたえる もちじかん。ひとりは 5秒、2人の 取り合いは 3秒 */
 const ansMsOf = (players: 1 | 2) => (players === 1 ? ANSWER_MS_SOLO : ANSWER_MS);
 import { furi, furiName, cutFuri, plainLen } from '../game/furigana';
+import { sndOK, sndNG, buzz } from '../lib/sound';
 import { esc } from '../game/util';
 import { artHTML } from '../game/art';
 import { rankOf, rankNext, rankLine, rankMsg } from '../game/rank';
@@ -124,12 +128,21 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
     }, 100);
   }, [stopAns, players]);
 
+  /* 2人用：だれも 押さないまま の 打ち切り */
+  const idleTimer = useRef<number | null>(null);
+  const idleRef = useRef<() => void>(() => undefined);
+  const stopIdle = useCallback(() => { if (idleTimer.current) { clearTimeout(idleTimer.current); idleTimer.current = null; } }, []);
+  const startIdle = useCallback(() => {
+    stopIdle();
+    idleTimer.current = window.setTimeout(() => { idleTimer.current = null; idleRef.current(); }, IDLE_MS);
+  }, [stopIdle]);
+
   /* バトルは 時間切れの瞬間に 全画面の「しゅうりょう！」で タップを受けとめてから結果へ */
   const battleFinish = useCallback(() => {
     if (finished.current) return; finished.current = true;
     const s = sess.current!;
     s.done = true;
-    stopTimer(); stopAns();
+    stopTimer(); stopAns(); stopIdle();
     setSide('adult', { waiting: false });
     setFin(true);
     later(() => {
@@ -137,7 +150,9 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
       const sec = goal ? Math.max(1, Math.round((Date.now() - (t0.current || Date.now())) / 1000)) : seconds;
       onFinishRef.current({ adult: s.score.adult, child: s.score.child, ptsAdult: s.pts.adult, ptsChild: s.pts.child, bsubj, practice, goal, seconds: sec, players, miss: bsubj === 'miss', last: s.last ? { answer: s.last.answer, fact: s.last.fact || '' } : null });
     }, 1400);
-  }, [goal, seconds, players, bsubj, stopAns, stopRev]);
+  }, [goal, seconds, players, bsubj, stopAns, stopRev, stopIdle]);
+
+  const battleFinishRef = useRef(battleFinish); battleFinishRef.current = battleFinish;
 
   const tick = useCallback(() => {
     const l = Math.max(0, endAt.current - Date.now());
@@ -148,9 +163,12 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
 
   const nextBattle = useCallback(() => {
     const s = sess.current!;
+    /* まちがい直しは 帳の 問題を ぜんぶ 出したら そこで おわり
+       （合っていても まちがえても 1回ずつ。おなじ問題を くり返さない） */
+    if (s.missDone()) { battleFinishRef.current(); return; }
     const { q, opts, wait } = s.next();
     /* まえの問題の もちじかんは ここで 止める（あとで 止めると 新しい問題の ぶんまで 消える） */
-    stopAns(); stopStage();
+    stopAns(); stopStage(); stopIdle();
     stageRef.current = 0; setStage(0);
     setQ(q);
     syncTurn(s);
@@ -164,7 +182,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
        けいさんは 少しずつ 出さないので、出た その時から 5秒 */
     runRev(q, 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [players, startAns, stopAns, runRev]);
+  }, [players, startAns, stopAns, runRev, stopIdle]);
 
   useEffect(() => {
     const s = new BattleSession({ level, bsubj, handi, goal, players });
@@ -174,14 +192,20 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
     t0.current = Date.now();
     startTimer(capSec * 1000);
     const tm = timers.current;
-    return () => { stopTimer(); stopAns(); stopRev(); stopStage(); tm.forEach(clearTimeout); };
+    return () => { stopTimer(); stopAns(); stopRev(); stopStage(); stopIdle(); tm.forEach(clearTimeout); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const uiRef = useRef(ui); uiRef.current = ui;
+  /* れんぞく正解の 数。音が だんだん 豪華に なる（ほかの ゲームと 同じ しくみ）。
+     2人のときは 人ごとに かぞえる（相手が まちがえても 自分の れんぞくは 切れない） */
+  const streak = useRef<Record<Side, number>>({ adult: 0, child: 0 });
   const battleCorrect = (side: Side) => {
     const s = sess.current!;
     stopAns(); stopStage();
+    streak.current[side] += 1;
+    sndOK(streak.current[side]);
+    buzz(streak.current[side] >= 5 ? [20, 45, 20] : 16);
     const reached = s.correct(side, ptsAtStage(stageRef.current));
     drawScore(s);
     setSide(side, { flash: true });
@@ -190,6 +214,8 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
   };
   const battleWrong = (side: Side) => {
     const s = sess.current!;
+    streak.current[side] = 0;
+    sndNG(); buzz(60);
     s.wrong(side);
     /* つぎの問題に 行く前に こたえを 見せるのは、
        ・ひとりモードで まちがえた（または 時間ぎれ）とき
@@ -220,7 +246,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
     const s = sess.current; if (!s || s.done || pausedRef.current || !s.q) return;
     const u = uiRef.current[side];
     if (u.locked || u.waiting) return;
-    if (s.claim(side)) { syncTurn(s); stopRev(); stopStage(); startAns(side); }   /* 取ったら 文は 止まり、もちじかんの うちに こたえる */
+    if (s.claim(side)) { syncTurn(s); stopRev(); stopStage(); stopIdle(); startAns(side); }   /* 取ったら 文は 止まり、もちじかんの うちに こたえる */
   };
   /* もじあて：1文字えらぶ。合っていれば つぎの1文字へ（もちじかんを 出しなおし） */
   const onChar = (side: Side, ch: string) => {
@@ -270,14 +296,30 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
     const s2 = sess.current; if (!s2 || !s2.q || s2.done) return;
     startStage();                       /* ヒントと ポイントの だんかいは 2人でも 動かす */
     if (players === 1) startAns('child');
+    else if (!s2.owner) startIdle();    /* 2人用：だれも 押さなければ 10秒で つぎの問題へ */
+  };
+  /* 2人とも 押さないまま 時間が きた。こたえを 見せてから つぎへ */
+  idleRef.current = () => {
+    if (finished.current || pausedRef.current) return;
+    const s = sess.current; if (!s || !s.q || s.done) return;
+    stopAns(); stopStage();
+    streak.current.adult = 0; streak.current.child = 0;
+    sndNG(); buzz(60);
+    s.timeUpBoth();
+    syncTurn(s, true);
+    setUi((u) => ({ adult: { ...u.adult, locked: true }, child: { ...u.child, locked: true } }));
+    later(() => {
+      setUi((u) => ({ adult: { ...u.adult, locked: false }, child: { ...u.child, locked: false } }));
+      if (!finished.current) nextBattle();
+    }, ANS_SHOW_MS);
   };
   const ansSide: Side | null = players === 1 ? 'child' : turn.owner;
 
   const pause = useCallback(() => {
     if (paused || !timer.current) return;
     setPaused(true); remain.current = Math.max(0, endAt.current - Date.now());
-    stopTimer(); stopAns(); stopRev(); stopStage();
-  }, [paused, stopAns, stopRev, stopStage]);
+    stopTimer(); stopAns(); stopRev(); stopStage(); stopIdle();
+  }, [paused, stopAns, stopRev, stopStage, stopIdle]);
   const resume = useCallback(() => {
     if (!paused) return;
     setPaused(false); startTimer(remain.current);

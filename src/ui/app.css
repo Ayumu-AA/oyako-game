@@ -1447,6 +1447,10 @@
     padding:11px 14px;
   }
   .entrynote b{display:block;font-size:13.5px;color:var(--sea)}
+  /* 「もどる」と「さいしょから」を よこに ならべる */
+  .backrow{display:flex;gap:8px}
+  .backrow .btn{flex:1 1 0;min-width:0}
+  .backrow .btn-home{flex:0 1 44%}
   .entrynote p{margin:4px 0 0;font-size:12.5px;line-height:1.6}
   .entrynote p b{display:inline;font-size:inherit}
 
@@ -1685,6 +1689,18 @@
     box-shadow:0 8px 20px rgba(0,10,35,.4), inset 0 1px 0 rgba(255,255,255,.25), 0 0 16px rgba(80,180,255,.16);
   }
   .wrap.night .howlede b{color:#ff8e7d}
+  /* 「はじめる」前の 説明。うしろの もよう（PLOW の 文字）が すけて 読みにくかったので、
+     howlede と 同じ 濃さの 下じきを 敷く */
+  .wrap.night .entrynote{
+    color:#eaf3ff;
+    background:linear-gradient(160deg, rgba(26,54,88,.95) 0%, rgba(17,37,63,.95) 100%);
+    border-color:rgba(120,195,255,.45);
+    box-shadow:0 8px 20px rgba(0,10,35,.4), inset 0 1px 0 rgba(255,255,255,.25), 0 0 16px rgba(80,180,255,.16);
+  }
+  .wrap.night .entrynote b{color:#8fd4ff}
+  .wrap.night .entrynote p{color:#eaf3ff}
+  .wrap.night .entrynote p b{color:#ffd166}
+  .wrap.night .backrow .btn-home{border-color:rgba(255,209,102,.5);color:#ffe3a3}
   .wrap.night .best{color:#9fb6cc}
   .wrap.night .rolesplit .rs{background:rgba(255,255,255,.1);color:#eaf3ff;border-color:rgba(255,255,255,.2)}
 

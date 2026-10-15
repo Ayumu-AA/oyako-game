@@ -99,13 +99,16 @@ export default function App() {
     go('games');
   };
 
-  /* ホームの 入口は 3つとも 'battle' に 読みかえる（人数は もう 1画面目で 決まっている）。
-     battle1 = 1人の はやおし、miss1 = 1人の まちがい直し（はやおしの きょうか＝まちがい） */
+  /* ホームの 入口は 'battle' に 読みかえる（人数は もう 1画面目で 決まっている）。
+     battle1 = 1人の はやおし、miss1 / miss = まちがい直し。
+     まちがい直しは 2人でも 1人用と 同じ形（取り合わず いっしょに 解く）に するので、
+     どちらも はやおしの 画面に 送る。 */
   const openHow = (m: Mode) => {
-    const hasMiss = missCount() > 0;
     setS((x) => ({ ...x, practice: false }));
-    if (m === 'miss1') { setS((x) => ({ ...x, bsubj: 'miss' })); setMode('battle'); }
-    else if (m === 'battle1' || m === 'battle') { setS((x) => ({ ...x, bsubj: (x.bsubj === 'miss' && !hasMiss) ? 'mix' : x.bsubj })); setMode('battle'); }
+    if (m === 'miss1' || m === 'miss') { setS((x) => ({ ...x, bsubj: 'miss' })); setMode('battle'); }
+    /* はやおしの タイルから 入ったら、まちがい直しの えらびは いったん 外す。
+       えらんだ タイルで モードが 決まるように する（「べつわく」で また 入れられる） */
+    else if (m === 'battle1' || m === 'battle') { setS((x) => ({ ...x, bsubj: x.bsubj === 'miss' ? 'mix' : x.bsubj })); setMode('battle'); }
     else setMode(m);
     go('how');
   };
@@ -119,7 +122,7 @@ export default function App() {
     if (howGroup.current) { setGroup(howGroup.current); go('sub'); } else go('games');
   };
   const start = (same = false) => {
-    if (mode === 'miss' && missCount() === 0) { go('title'); return; }
+    if ((mode === 'miss' || s.bsubj === 'miss') && missCount() === 0) { go('title'); return; }
     setRound((r) => r + 1);
     if (mode === 'cross') { setCwForce(same ? cwCur.current : null); go('cross'); return; }
     if (mode === 'numcross') { go('numcross'); return; }
@@ -178,14 +181,19 @@ export default function App() {
         <SettingsOverlay open={setOpen} seconds={s.seconds} onSeconds={(v) => change({ seconds: v })} onClose={() => setSetOpen(false)} onCleared={() => setMissN(0)} nick={nick} onName={() => askName(() => undefined)} />
       </>}
       {screen === 'level' && <LevelScreen players={s.players} onLevel={pickLevel} onBack={() => go('title')} />}
-      {screen === 'games' && <GamesScreen players={s.players} level={s.level} missN={missN} onPick={pickGame} onBack={() => go('level')} />}
-      {screen === 'sub' && <SubScreen group={group} level={s.level} onMode={(m) => { howGroup.current = group; openHow(m); }} onBack={() => go('games')} />}
-      {screen === 'how' && <HowScreen mode={mode} s={s} onChange={change} onStart={() => start()} onBack={backFromHow} />}
+      {screen === 'games' && <GamesScreen players={s.players} level={s.level} missN={missN} onPick={pickGame} onBack={() => go('level')} onHome={() => go('title')} />}
+      {screen === 'sub' && <SubScreen group={group} level={s.level} onMode={(m) => { howGroup.current = group; openHow(m); }} onBack={() => go('games')} onHome={() => go('title')} />}
+      {screen === 'how' && <HowScreen mode={mode} s={s} onChange={change} onStart={() => start()} onBack={backFromHow} onHome={() => go('title')} />}
       {screen === 'count' && <CountScreen mode={mode} role={s.role} players={s.players} onDone={afterCount} />}
       {screen === 'play' && <PlayScreen key={round} mode={mode} level={s.level} seconds={s.seconds} role={s.role} onFinish={finishPlay} onRestart={restart} onQuit={quit} onEmpty={() => go('title')} />}
       {screen === 'geo' && <GeoScreen key={round} mode={mode} level={s.level} seconds={s.seconds} onFinish={finishPlay} onRestart={restart} onQuit={quit} />}
-      {screen === 'battle' && <BattleScreen key={round} level={s.level} bsubj={s.bsubj} handi={s.handi} goal={s.players === 1 ? 0 : s.goal} players={s.players} practice={s.practice}
-        seconds={s.players === 1 ? SOLO_SECONDS : s.seconds} onFinish={finishBattle} onRestart={restart} onQuit={quit} />}
+      {/* まちがい直しは 2人でも 取り合いに しない。1つの 画面を 見て 親子で いっしょに 解く
+          （自分が まちがえた問題を 直すのが ねらいなので、早さを きそう ものでは ない） */}
+      {screen === 'battle' && <BattleScreen key={round} level={s.level} bsubj={s.bsubj} handi={s.handi}
+        goal={s.players === 1 || s.bsubj === 'miss' ? 0 : s.goal}
+        players={s.bsubj === 'miss' ? 1 : s.players} practice={s.practice}
+        seconds={s.players === 1 || s.bsubj === 'miss' ? SOLO_SECONDS : s.seconds}
+        onFinish={finishBattle} onRestart={restart} onQuit={quit} />}
       {screen === 'cross' && <CrossScreen key={round} level={s.level} kana={s.kana} players={s.players} prevIdx={cwIdx} forceIdx={cwForce} onIdx={(i) => { cwCur.current = i; }} onFinish={(r) => { setCr(r); if (r.idx !== undefined) setCwIdx(r.idx); go('cresult'); }} onRestart={restart} onQuit={quit} />}
       {screen === 'numcross' && <NumCrossScreen key={round} level={s.level} onFinish={(r) => { setCr(r); go('cresult'); }} onRestart={restart} onQuit={quit} />}
       {screen === 'result' && pr && <ResultScreen r={pr} onAgain={() => go('how')} onMiss={() => { if (missCount()) openHow('miss'); }} onTitle={() => go('title')} onRank={rankable(pr.mode) ? () => rankFromResult(pr.mode) : undefined} />}

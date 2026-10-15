@@ -3,13 +3,13 @@ import { RIKA_Q } from './rika';
 import { RIKA } from './questions';
 import { plain } from '../game/furigana';
 import { rikaDeck } from '../game/decks';
-import { rikaRows, okSubj, SUBJ_FROM } from '../game/battle';
+import { rikaRows, rikaPool, okSubj, SUBJ_FROM } from '../game/battle';
 import type { Level } from '../game/types';
 
 const GRADES: Level[] = [3, 4, 5, 6];
 type RikaRow = [string, string, string, string, string, number];
 
-describe('理科の4たく（学年べつ・いただいた100問×4学年）', () => {
+describe('理科の問題（学年べつ・いただいた100問×4学年）', () => {
   it('3〜6年に 100問ずつ。1・2年には 置かない', () => {
     for (const g of GRADES) expect(RIKA_Q[g].length, g + '年').toBe(100);
     expect(RIKA_Q[1]).toBeUndefined();
@@ -23,12 +23,36 @@ describe('理科の4たく（学年べつ・いただいた100問×4学年）', 
       for (const k in u) expect(u[k], g + '年 ' + k).toBe(10);
     }
   });
-  it('こたえ1つ＋まちがい3つで、ぜんぶ ちがう文字列', () => {
+  it('こたえ1つ＋まちがい5つで、ぜんぶ ちがう文字列', () => {
     for (const g of GRADES) for (const [, q, ans, wrong] of RIKA_Q[g]) {
-      expect(wrong.length, q).toBe(3);
-      expect(new Set([ans, ...wrong]).size, q + ' の選たく肢が かぶっている').toBe(4);
-      for (const c of [ans, ...wrong]) expect(c.length, q + ' の空の選たく肢').toBeGreaterThan(0);
+      expect(wrong.length, q).toBe(5);
+      expect(new Set([ans, ...wrong]).size, q + ' の選たく肢が かぶっている').toBe(6);
+      for (const c of [ans, ...wrong]) expect(c.trim().length, q + ' の空の選たく肢').toBeGreaterThan(0);
     }
+  });
+  it('出すときは こたえと 字の長さが 近い まちがいを えらぶ（長い＝こたえ に ならないように）', () => {
+    /* いただいた原稿は「〜だから」と 理由を 書く問題で こたえだけ 文が 長い。
+       そのままだと いちばん長いのを えらべば 当たるので、近い長さの ものを 先に する。
+       ここでは「ならべかえた あとの 上位3つ」が「まちがい5つから むやみに 3つ とった とき」より
+       こたえとの 長さの差が 小さくなることを 見る */
+    let better = 0, same = 0;
+    for (const g of GRADES) for (const [, , ans, wrong] of RIKA_Q[g]) {
+      const d = (v: string) => Math.abs([...v].length - [...ans].length);
+      const sorted = rikaPool(ans, wrong).slice(0, 3);
+      const picked = Math.max(...sorted.map(d));
+      const worst = Math.max(...[...wrong].sort((a, b) => d(b) - d(a)).slice(0, 3).map(d));
+      if (picked < worst) better++; else same++;
+    }
+    expect(better, 'ならべかえが きいていない').toBeGreaterThan(300);
+    expect(better + same).toBe(400);
+  });
+  it('rikaPool は まちがいを 1つも 落とさない', () => {
+    const w = ['あ', 'いいい', 'ううううう', 'ええ', 'おおおお'];
+    const out = rikaPool('かきく', w);
+    expect(out.length).toBe(5);
+    expect([...out].sort()).toEqual([...w].sort());
+    /* こたえ（3文字）に 近い順に なっている */
+    expect([...out[0]].length).toBe(3);
   });
   it('問題文・こたえ・解説が ぜんぶ 入っている', () => {
     for (const g of GRADES) for (const [unit, q, ans, , fact] of RIKA_Q[g]) {
@@ -89,7 +113,7 @@ describe('学年ごとの デッキ', () => {
       expect(new Set(names).size, g + '年').toBe(names.length);
     }
   });
-  it('4たくも その学年＋1つ下（3年は 100問、4〜6年は 200問）', () => {
+  it('問題も その学年＋1つ下（3年は 100問、4〜6年は 200問）', () => {
     expect(rikaRows(3).length).toBe(100);
     for (const g of [4, 5, 6] as Level[]) expect(rikaRows(g).length, g + '年').toBe(200);
     expect(rikaRows(2).length).toBe(0);

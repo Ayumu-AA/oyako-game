@@ -8,7 +8,7 @@ export type DataLv = 1 | 2;
 /** 学年 → 問題データの むずかしさ */
 export const dataLv = (g: Level): DataLv => (g <= 3 ? 1 : 2);
 /** えらぶ ボタンに ならべる 順（上から 6年生） */
-export const GRADES: Level[] = [6, 5, 4, 3, 2, 1];
+export const GRADES: Level[] = [1, 2, 3, 4, 5, 6];   /* 画面は 1年生から 順に ならべる */
 export const gradeLabel = (g: Level) => g + '年生';
 
 /** 画面で選べるモード。geopref/geoflag は ちずクイズ、miss は まちがい直し */

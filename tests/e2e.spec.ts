@@ -65,16 +65,21 @@ test('親子ヒントリレー：正解・パス・結果・まちがい帳', as
   await expect(page.locator('[data-tile="miss"] small')).toHaveText('のこり 1もん');
   const miss = await page.evaluate(() => JSON.parse(localStorage.getItem('oyako-miss') || '{}'));
   expect(Object.keys(miss)).toEqual(['pref:' + missed.replace(/\s/g, '').replace(/[ぁ-ん]+/g, '')]);
-  /* まちがい直し */
+  /* まちがい直し：2人でも はやおしの 画面で、取り合わず いっしょに 解く */
   await page.click('[data-tile="miss"]');
   await expect(page.locator('#how-title')).toHaveText('まちがい直し');
   await expect(page.locator('#best-line')).toHaveText('まちがい帳に 1もん たまっています');
+  /* ジャンル・しょうぶの きめかた・ハンデは 関係ないので 出さない */
+  await expect(page.locator('#seg-subject')).toHaveCount(0);
+  await expect(page.locator('#seg-goal')).toHaveCount(0);
+  await expect(page.locator('#seg-handi')).toHaveCount(0);
   await page.click('#btn-start');
-  await expect(page.locator('#s-play')).toBeVisible({ timeout: 6000 });
-  await page.click('#btn-ok');
-  await page.click('#btn-pause'); await page.click('#btn-quit');
-  await nav(page);
-  await expect(page.locator('[data-tile="miss"]')).toBeHidden();
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  await expect(page.locator('#buzz-child')).toHaveCount(0);
+  await page.waitForSelector('#s-battle .choice', { timeout: 15000 });
+  await page.locator('#s-battle .choice').first().click();
+  /* 帳は 1もんだけ なので、出しおわって 結果に なる */
+  await expect(page.locator('#s-bresult')).toBeVisible({ timeout: 15000 });
   expect(errs).toEqual([]);
 });
 
@@ -654,18 +659,16 @@ test('はやおしバトル：まちがい直しは 帳から 出る・ランキ
   await expect(page.locator('#btn-miss-only')).toBeVisible();
   await page.click('#btn-miss-only');
   await expect(page.locator('#btn-miss-only')).toHaveAttribute('aria-pressed', 'true');
-  await page.click('#seg-goal button[data-v="5"]');
   await page.click('#btn-start');
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
-  for (let i = 0; i < 5; i++) {
-    await expect(page.locator('#buzz-child')).toBeEnabled();
-    await buzz(page, 'child');
-    /* 帳に ある問題しか 出ない（こたえが かならず 選たく肢に ある） */
-    await expect(page.locator('#side-child .choice[data-a="徳川家康"]')).toBeVisible();
-    await page.click('#side-child .choice[data-a="徳川家康"]');
-    await expect(page.locator('#sc-child')).toHaveText((i + 1) + '/5');
-  }
-  await expect(page.locator('#s-bresult')).toBeVisible({ timeout: 4000 });
+  /* 2人でも 取り合わない（赤いボタンなし）。1つの 画面を 見て いっしょに 解く */
+  await expect(page.locator('#buzz-child')).toHaveCount(0);
+  await expect(page.locator('#s-battle')).toHaveClass(/solo/);
+  /* 帳に ある問題しか 出ない（こたえが かならず 選たく肢に ある） */
+  await expect(page.locator('.choice[data-a="徳川家康"]')).toBeVisible({ timeout: 15000 });
+  await page.click('.choice[data-a="徳川家康"]');
+  /* 帳は 1もんだけ なので、出しおわって 結果に なる（くり返さない） */
+  await expect(page.locator('#s-bresult')).toBeVisible({ timeout: 15000 });
   await expect(page.locator('#btn-brank-view')).toHaveCount(0);
   expect(errs).toEqual([]);
 });
@@ -1119,3 +1122,96 @@ for (const [w, h, tag] of VPS) {
     await ctx.close();
   });
 }
+
+/* ===== 2026-10 の 直し：音・まちがい直しの おわり・10秒で つぎへ・画面まわり ===== */
+
+test('学年は 1年生から 順に ならぶ', async ({ page }) => {
+  await open(page);
+  await page.click('[data-players="1"]');
+  const order = await page.locator('#level-modes button').evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.level));
+  expect(order).toEqual(['1', '2', '3', '4', '5', '6']);
+});
+
+test('学年・ゲーム・ジャンルの 画面から いつでも ホームに もどれる', async ({ page }) => {
+  await open(page);
+  await nav(page, 2, 6);                                  /* 2人・6年の ゲーム一覧まで */
+  await expect(page.locator('#btn-games-back-home')).toBeVisible();
+  await page.click('#btn-games-back-home');
+  await expect(page.locator('#s-title')).toBeVisible();
+
+  await nav(page, 2, 6);
+  await page.click('[data-group="relay"]');               /* ジャンルえらび */
+  await expect(page.locator('#s-sub')).toBeVisible();
+  await page.click('#btn-sub-back-home');
+  await expect(page.locator('#s-title')).toBeVisible();
+
+  await nav(page, 2, 6);
+  await page.click('[data-mode="battle"]');               /* あそびかた */
+  await expect(page.locator('#s-how')).toBeVisible();
+  await page.click('#btn-how-home');
+  await expect(page.locator('#s-title')).toBeVisible();
+});
+
+test('せってい：せいげん時間は 2人用の ものだと わかる', async ({ page }) => {
+  await open(page);
+  await page.click('#btn-settings');
+  await expect(page.locator('#seg-time').locator('..')).toContainText('2人用');
+});
+
+test('まちがい直し：帳の 問題を ぜんぶ 出したら おわる（1人用）', async ({ page }) => {
+  const errs = noErrors(page);
+  /* 帳を 3問だけに しておく。3問 出したら 結果画面に なるはず */
+  await open(page, { 'oyako-miss': JSON.stringify({
+    'pref:北海道': { n: 1, t: 1 }, 'flag:日本': { n: 1, t: 2 }, 'rika:じしゃく': { n: 1, t: 3 },
+  }) });
+  await page.click('[data-players="1"]');
+  await page.click('[data-level="6"]');
+  await page.click('[data-tile="miss1"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  /* 3問 こたえれば（合っても まちがえても）おわる。90秒より ずっと 早く 結果に なる */
+  for (let i = 0; i < 3; i++) {
+    await page.waitForSelector('#s-battle .choice', { timeout: 15000 });
+    await page.locator('#s-battle .choice').first().click();
+    await page.waitForTimeout(2600);
+  }
+  await expect(page.locator('#s-bresult')).toBeVisible({ timeout: 15000 });
+  expect(errs).toEqual([]);
+});
+
+test('まちがい直し：2人用でも 1人用と 同じ形（赤いボタンなし・いっしょに 解く）', async ({ page }) => {
+  await open(page, { 'oyako-miss': JSON.stringify({ 'pref:北海道': { n: 1, t: 1 }, 'flag:日本': { n: 1, t: 2 } }) });
+  await nav(page, 2, 6);
+  await page.click('[data-tile="miss"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  await expect(page.locator('#s-battle')).toHaveClass(/solo/);        /* 1枚の 画面 */
+  await expect(page.locator('#buzz-adult')).toHaveCount(0);           /* 取り合わない */
+  await expect(page.locator('#buzz-child')).toHaveCount(0);
+  await page.waitForSelector('#s-battle .choice', { timeout: 15000 });
+  await expect(page.locator('#s-battle .choice')).toHaveCount(4);
+});
+
+test('2人用：だれも 押さないと 10秒で つぎの問題へ', async ({ page }) => {
+  /* 問題文は 1文字ずつ 出るので にせ時計は つかわず、本物の時計で 待つ */
+  test.setTimeout(60000);
+  const errs = noErrors(page);
+  await open(page);
+  await nav(page, 2, 6);
+  await page.click('[data-mode="battle"]');
+  await page.click('#seg-subject button[data-v="kokugo"]');            /* 文の みじかい ジャンル */
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  await expect(page.locator('#buzz-adult')).toBeVisible();
+  const first = async () => (await page.locator('#s-battle .qtext.ghost').first().textContent() || '').trim();
+  await page.waitForFunction(() => ((document.querySelector('#s-battle .qtext.ghost')?.textContent) || '').length > 0, undefined, { timeout: 10000 });
+  const q0 = await first();
+  /* だれも 押さないまま 10秒。こたえを 見せてから つぎの問題に なる */
+  await expect(page.locator('#buzz-adult')).toHaveCount(0, { timeout: 15000 });   /* こたえを 見せている あいだ */
+  await page.waitForFunction((prev) => {
+    const t = ((document.querySelector('#s-battle .qtext.ghost')?.textContent) || '').trim();
+    return t.length > 0 && t !== prev;
+  }, q0, { timeout: 15000 });
+  await expect(page.locator('#buzz-adult')).toBeVisible();             /* つぎの問題が 始まっている */
+  expect(errs).toEqual([]);
+});

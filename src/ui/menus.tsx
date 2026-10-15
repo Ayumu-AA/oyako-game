@@ -17,6 +17,17 @@ import type { BattleSubj } from '../game/battle';
 /** えらぶボタンの 中身：絵文字＋ことば（小さい子にも 見分けが つくように） */
 const pick = (e: string, t: string) => (<><i className="pi" aria-hidden="true">{e}</i>{t}</>);
 
+/** 画面の いちばん下。「もどる」は 1つ前へ、「さいしょから」は ホームへ。
+    えらんでいる とちゅうで 迷子に なっても いつでも 戻れるように する */
+function BackRow({ id, onBack, onHome }: { id: string; onBack: () => void; onHome?: () => void }) {
+  return (
+    <div className="backrow">
+      <button className="btn btn-ghost" id={id} data-back="s-title" onClick={onBack}>もどる</button>
+      {onHome && <button className="btn btn-ghost btn-home" id={id + '-home'} onClick={onHome}>さいしょから</button>}
+    </div>
+  );
+}
+
 const MN = MODE_NAME as Record<string, string>;
 const G = GROUPS as Record<Group, { eyebrow: string; title: string; lede: string; note: string; modes: string[] }>;
 /* はやおし（ひとり）は 教科アイコンが ないので、ホームの タイルと 同じ絵を つかう */
@@ -123,7 +134,7 @@ const GRADE_NEW: Record<Level, string> = {
 };
 const gradeSub = (g: Level) => (g === 1 ? GRADE_NEW[1]
   : 'ジャンル ' + mixFor(g).length + 'つ' + (GRADE_NEW[g] ? '（' + GRADE_NEW[g] + '）' : ''));
-export function LevelScreen({ players, onLevel, onBack }: { players: 1 | 2; onLevel: (l: Level) => void; onBack: () => void }) {
+export function LevelScreen({ players, onLevel, onBack, onHome }: { players: 1 | 2; onLevel: (l: Level) => void; onBack: () => void; onHome?: () => void }) {
   return (
     <section className="screen on colortiles" id="s-level">
       <p className="eyebrow" id="level-eyebrow">{players === 2 ? '2人で あそぶ' : '1人で あそぶ'}</p>
@@ -138,14 +149,14 @@ export function LevelScreen({ players, onLevel, onBack }: { players: 1 | 2; onLe
         ))}
       </div>
       <div className="spacer"></div>
-      <button className="btn btn-ghost" id="btn-level-back" onClick={onBack}>もどる</button>
+      <BackRow id="btn-level-back" onBack={onBack} onHome={onHome} />
     </section>
   );
 }
 
 /* ===== 3．あそぶ ゲーム ===== */
-export function GamesScreen({ players, level, missN, onPick, onBack }: {
-  players: 1 | 2; level: Level; missN: number; onPick: (t: Tile) => void; onBack: () => void;
+export function GamesScreen({ players, level, missN, onPick, onBack, onHome }: {
+  players: 1 | 2; level: Level; missN: number; onPick: (t: Tile) => void; onBack: () => void; onHome?: () => void;
 }) {
   /* ていがくねんは りか・れきし・えいごを 出さないので、ジャンルの数も それに あわせる */
   const relayN = (G.relay.modes as string[]).filter((m) => relayOk(m, level)).length;
@@ -174,7 +185,7 @@ export function GamesScreen({ players, level, missN, onPick, onBack }: {
         {missN > 0 && <TileBtn t={miss} wide onClick={() => onPick(miss)} />}
       </div>
       <div className="spacer"></div>
-      <button className="btn btn-ghost" id="btn-games-back" onClick={onBack}>もどる</button>
+      <BackRow id="btn-games-back" onBack={onBack} onHome={onHome} />
     </section>
   );
 }
@@ -204,7 +215,7 @@ export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared, 
           options={[{ v: '1', b: pick('🔊', 'あり') }, { v: '0', b: pick('🔇', 'なし') }]} />
         <PickGrid id="seg-bgm" label="BGM" cols={2} value={bgm ? '1' : '0'} onPick={(v) => { setBgm(v === '1'); setBgm2(v === '1'); }}
           options={[{ v: '1', b: pick('🎵', 'ながす') }, { v: '0', b: pick('🔕', 'とめる') }]} />
-        <PickGrid id="seg-time" label="せいげん時間" cols={3} value={seconds} onPick={onSeconds}
+        <PickGrid id="seg-time" label="せいげん時間（2人用）" cols={3} value={seconds} onPick={onSeconds}
           options={[{ v: 60, b: '60秒' }, { v: 90, b: '90秒' }, { v: 120, b: '120秒' }]} />
         <div className="pickrow">
           <span className="picklabel">ランキングの なまえ</span>
@@ -227,7 +238,7 @@ export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared, 
 }
 
 /* ===== グループの中身 ===== */
-export function SubScreen({ group, level, onMode, onBack }: { group: Group; level: Level; onMode: (m: Mode) => void; onBack: () => void }) {
+export function SubScreen({ group, level, onMode, onBack, onHome }: { group: Group; level: Level; onMode: (m: Mode) => void; onBack: () => void; onHome?: () => void }) {
   const g = G[group];
   /* ていがくねんには りか・れきし・えいごは 出さない */
   const modes = g.modes.filter((m) => relayOk(m, level));
@@ -246,7 +257,7 @@ export function SubScreen({ group, level, onMode, onBack }: { group: Group; leve
       </div>
       <p className="best" id="sub-note">{g.note}</p>
       <div className="spacer"></div>
-      <button className="btn btn-ghost" data-back="s-title" onClick={onBack}>もどる</button>
+      <BackRow id="btn-sub-back" onBack={onBack} onHome={onHome} />
     </section>
   );
 }
@@ -278,7 +289,7 @@ export function bestLine(mode: Mode, s: Settings): string {
   return v ? 'この端末のベスト　' + s.seconds + '秒で ' + v + 'もん' : 'この端末にはまだ記録がありません';
 }
 
-export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; s: Settings; onChange: (p: Partial<Settings>) => void; onStart: () => void; onBack: () => void }) {
+export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode: Mode; s: Settings; onChange: (p: Partial<Settings>) => void; onStart: () => void; onBack: () => void; onHome?: () => void }) {
   const [rules, setRules] = useState(false);
   /* ひとりの はやおしは「ランキングに のる」か「れんしゅう」かを 先に えらぶ */
   const [entry, setEntry] = useState<'none' | 'rank' | 'practice'>('none');
@@ -289,6 +300,9 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
   const soloCross = isCross && s.players === 1;   /* 1人の クロスワード：役わりの わりふりは 出さない */
   const missN = missCount();
   const showRole = !(isMath || isBattle || isCross || isNum || geo);
+  /* まちがい直しは 自分の 帳から 出すので、ジャンル・しょうぶの きめかた・ハンデは 関係ない。
+     出すと 画面が 長くなるうえ、ここで ジャンルを さわれると まぎらわしい */
+  const missOnly = isBattle && s.bsubj === 'miss';
   const closeBtn = useRef<HTMLButtonElement>(null);
   useEffect(() => { setRules(false); }, [mode]);
   useEffect(() => {
@@ -304,7 +318,7 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
         <div className="howhead">
           <div className="howttl">
             <p className="eyebrow">あそぶ ゲーム<span className="lvchip" id="how-lv">{gradeLabel(s.level)}</span></p>
-            <h2 id="how-title">{solo ? MN.battle1 : soloCross ? MN.cross1 : MN[mode]}</h2>
+            <h2 id="how-title">{missOnly ? MN.miss : solo ? MN.battle1 : soloCross ? MN.cross1 : MN[mode]}</h2>
           </div>
           <button type="button" className="rulesbtn" id="btn-rules" onClick={() => setRules(true)}>
             <span className="qm" aria-hidden="true">?</span>ルールを見る
@@ -320,7 +334,7 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
           <div className="rs tate"><b>タテのカギ</b><span className="arrow">↓</span><span className="who">おとな</span></div>
         </div>
 
-        {isBattle && (!twoWay || entry === 'practice') && <PickGrid id="seg-subject" label="ジャンル" cols={4} value={s.bsubj} onPick={(v) => onChange({ bsubj: v })}
+        {isBattle && !missOnly && (!twoWay || entry === 'practice') && <PickGrid id="seg-subject" label="ジャンル" cols={4} value={s.bsubj} onPick={(v) => onChange({ bsubj: v })}
           options={([
             { v: 'mix', b: pick('⭐', 'ミックス') }, { v: 'pref', b: pick('🗾', '都道府県') },
             { v: 'flag', b: pick('🚩', '国旗') }, { v: 'kokugo', b: pick('📖', 'かん字') },
@@ -343,10 +357,10 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
         )}
 
         {/* ひとりモードは せいげん時間だけ。〇もん先取は 相手が いてこそ */}
-        {isBattle && !solo && <PickGrid id="seg-goal" label="しょうぶの きめかた" cols={3} value={s.goal} onPick={(v) => { onChange({ goal: v }); store('oyako-goal', String(v)); }}
+        {isBattle && !solo && !missOnly && <PickGrid id="seg-goal" label="しょうぶの きめかた" cols={3} value={s.goal} onPick={(v) => { onChange({ goal: v }); store('oyako-goal', String(v)); }}
           options={[{ v: 5, b: pick('🖐', '5もん'), s: '先に とったら かち' }, { v: 10, b: pick('🔟', '10もん'), s: '先に とったら かち' }, { v: 0, b: pick('⏱', 'じかん'), s: 'せいげん時間まで' }]} />}
 
-        {isBattle && !solo && <PickGrid id="seg-handi" label="おとなの ハンデ" cols={3} value={s.handi} onPick={(v) => onChange({ handi: v })}
+        {isBattle && !solo && !missOnly && <PickGrid id="seg-handi" label="おとなの ハンデ" cols={3} value={s.handi} onPick={(v) => onChange({ handi: v })}
           options={[{ v: 0, b: pick('🚫', 'なし'), s: '3たく・3たく' }, { v: 1, b: pick('📊', 'ふつう'), s: '子2・親4' }, { v: 2, b: pick('💪', 'たっぷり'), s: '子2・親6' }]} />}
 
         {isCross && <PickGrid id="seg-kana" label="もじの 入れかた" cols={3} value={s.kana} onPick={(v) => { onChange({ kana: v }); store('oyako-kana', v); }}
@@ -391,8 +405,11 @@ export function HowScreen({ mode, s, onChange, onStart, onBack }: { mode: Mode; 
         <p className="best" id="best-line">{twoWay && entry === 'none' ? '' : bestLine(mode, s)}</p>
         <div className="spacer"></div>
         {(!twoWay || entry !== 'none') && <button className="btn btn-go" id="btn-start" onClick={onStart}>はじめる</button>}
-        <button className="btn btn-ghost" id="btn-how-back"
-          onClick={() => { if (twoWay && entry !== 'none') { onChange({ practice: false }); setEntry('none'); } else onBack(); }}>もどる</button>
+        <div className="backrow">
+          <button className="btn btn-ghost" id="btn-how-back"
+            onClick={() => { if (twoWay && entry !== 'none') { onChange({ practice: false }); setEntry('none'); } else onBack(); }}>もどる</button>
+          {onHome && <button className="btn btn-ghost btn-home" id="btn-how-home" onClick={onHome}>さいしょから</button>}
+        </div>
       </section>
 
       <div className="overlay" id="rules-ov" hidden={!rules} role="dialog" aria-modal="true" aria-labelledby="rules-title" onClick={(e) => { if (e.target === e.currentTarget) setRules(false); }}>
