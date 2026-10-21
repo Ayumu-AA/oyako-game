@@ -60,7 +60,11 @@ function fakeAudio() {
       };
     },
   };
-  (globalThis as unknown as { window: unknown }).window = { AudioContext: function () { return ctx; } };
+  (globalThis as unknown as { window: unknown }).window = {
+    AudioContext: function () { return ctx; },
+    /* BGM は くりかえしの タイマーを つかう。鳴らす 中身だけ 見たいので 空まわりさせる */
+    setInterval: () => 1, clearInterval: () => undefined,
+  };
   return { oscs, gains, filters, compCount: () => comp };
 }
 
@@ -140,5 +144,53 @@ describe('大きさ', () => {
     S.beep(440, 0, 0.1, 0.9);
     const peak = Math.max(...f.gains.flatMap((g) => g.vals.map(([v]) => v)));
     expect(peak).toBeLessThanOrEqual(0.95);
+  });
+});
+
+describe('音の 大きさ（4だんかい・10/20）', () => {
+  it('なし＝0、小＜ふつう＜大', async () => {
+    const S = await loadSound();
+    expect(S.VOL_MUL[0]).toBe(0);
+    expect(S.VOL_MUL[1]).toBeLessThan(S.VOL_MUL[2]);
+    expect(S.VOL_MUL[2]).toBeLessThan(S.VOL_MUL[3]);
+  });
+  it('こうかおんと BGM は べつべつに 決められる', async () => {
+    fakeAudio();
+    const S = await loadSound();
+    S.setSfxVol(3); S.setBgmVol(1);
+    expect(S.sfxVol()).toBe(3);
+    expect(S.bgmVol()).toBe(1);
+    S.setSfxVol(0);
+    expect(S.sfxVol()).toBe(0);
+    expect(S.bgmVol()).toBe(1);   /* かたほうを 0に しても もう一方は そのまま */
+  });
+  it('「なし」は 音を 1つも 作らない', async () => {
+    const f = fakeAudio();
+    const S = await loadSound();
+    S.setSfxVol(0);
+    const before = f.oscs.length;
+    S.sndNG(); S.sndOK(1);
+    expect(f.oscs.length, '音が 鳴っている').toBe(before);
+  });
+  it('大きいほど 音が 大きい（同じ音で くらべる）', async () => {
+    const peak = async (v: 1 | 2 | 3) => {
+      const f = fakeAudio();
+      const S = await loadSound();
+      S.setSfxVol(v);
+      f.gains.length = 0;
+      S.sndNG();
+      return Math.max(...f.gains.flatMap((g) => g.vals.map(([v]) => v)));
+    };
+    const s1 = await peak(1), s2 = await peak(2), s3 = await peak(3);
+    expect(s1).toBeLessThan(s2);
+    expect(s2).toBeLessThanOrEqual(s3);
+  });
+  it('前の ばんの せってい（あり／なし）も そのまま つかえる', async () => {
+    fakeAudio();
+    const S = await loadSound();
+    S.setBgm(true); expect(S.bgmVol()).toBe(2); expect(S.bgmOn()).toBe(true);
+    S.setBgm(false); expect(S.bgmVol()).toBe(0); expect(S.bgmOn()).toBe(false);
+    S.setSound(true); expect(S.soundOn()).toBe(true);
+    S.setSound(false); expect(S.soundOn()).toBe(false);
   });
 });

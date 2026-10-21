@@ -205,7 +205,29 @@ export function pickOpts(q: BattleQ, n: number): string[] {
   return shuffle(a);
 }
 
-export interface BattleOpts { level: Level; bsubj: BattleSubj; handi: number; goal: number; players?: 1 | 2 }
+/* 問題文を 1文字ずつ 出すのは みじかい ものだけ。これ以上 長い 文章題は
+   読み終わるまで 待たされて しまうので 最初から ぜんぶ 出す */
+export const PROG_MAX = 20;
+
+/** まちがい直しで 出す 問題の 数。0 = ぜんぶ */
+export const MISS_NS = [5, 10, 20, 0] as const;
+
+/* ヒントの 1つ目を そのまま 問題文に すると「りんご」とだけ 出て、
+   初めて 遊ぶ子には 何を 答えるのか 分からない。ジャンルに あわせて 問いかけの形に する */
+export function askText(key: string, q: RelayQ): string {
+  const h = (q.hints && q.hints[0]) || '';
+  if (!h) return '';
+  if (key === 'pref') return '「' + h + '」で 有名{ゆうめい}なのは どこ？';
+  if (key === 'rika') return h + '。これは なに？';
+  if (key === 'rekishi') return h + '。' + (q.tag === '人物' ? 'この人{ひと}は だれ？' : 'これは なに？');
+  return h;
+}
+
+export interface BattleOpts {
+  level: Level; bsubj: BattleSubj; handi: number; goal: number; players?: 1 | 2;
+  /** まちがい直しで 出す 問題の 数（0／未指定 = ぜんぶ） */
+  missN?: number;
+}
 
 /** 1ゲームぶんの 状態。UI は これを持って 描画する */
 export class BattleSession {
@@ -237,6 +259,9 @@ export class BattleSession {
     if (opts.bsubj === 'miss') {
       /* まちがい帳は 始めた時点で 固定する。当てて 帳から 消えても、この勝負では 出つづける */
       this.missPool = missDeck().filter((q) => q.sub !== 'math' && q.sub !== 'calc' && q.sub !== 'word');
+      /* 「5もんだけ」などを えらんだら その数だけに する。
+         missDeck() は 多く まちがえた ものから ならんで いるので、前から とれば よい */
+      if (opts.missN && opts.missN > 0) this.missPool = this.missPool.slice(0, opts.missN);
       /* まちがい帳は 学年を またぐので、まちがいの選たく肢も 両方の学年から とる。
          こうしないと 低学年の問題を 高学年で 直すとき、選たく肢が 教科ちがいに なる */
       for (const k of ['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo'] as Subject[]) {
@@ -417,7 +442,7 @@ export class BattleSession {
       disp = {};
       deck.forEach((x) => { const r = KOKUGO_REI[x.name]; if (r) disp![x.name] = r.imi; });
     }
-    else { text = q.hints[0] || ''; }
+    else { text = askText(key, q); }
     /* 3秒ごとに 1つずつ 出す ヒント。問題文に つかった ぶんは のぞく */
     const used = key === 'pref' || key === 'rika' || key === 'rekishi' ? 1 : 0;
     const more = q.hints.slice(used).filter((h) => h && h !== text);

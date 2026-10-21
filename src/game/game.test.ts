@@ -4,9 +4,10 @@ import { reloadRecords, markMiss, markHit, missCount, markSeen, seenAt, clearRec
 import { evalTokens, makePuzzle, checkMath, type Token } from './math10';
 import { rankOf, rankNext } from './rank';
 import { plain, furi, furiName, FURI_RE } from './furigana';
-import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, ANSWER_MS_SOLO, HINT_STEP_MS, PTS_BY_STAGE, ptsAtStage, MIX_ALL, mixFor, okSubj, wordRows, nearNums, splitYomi, charOptions, mojiGroups } from './battle';
+import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, ANSWER_MS_SOLO, HINT_STEP_MS, PTS_BY_STAGE, ptsAtStage, MIX_ALL, mixFor, okSubj, wordRows, nearNums, splitYomi, charOptions, mojiGroups, askText, PROG_MAX } from './battle';
 import { cutFuri, plainLen } from './furigana';
 import { relayDeck as deckOf } from './decks';
+import { RIKA_Q } from '../data/rika';
 import { relayDeck, deckFor, hints3, missDeck, kanjiDeck } from './decks';
 import { polyOf, inPoly, geoChoices, geoGroupOf, geoDeck, jpSVG, wSVG, jpFullVB, geoQuestion } from './geo';
 import { newCross, cwCells, cwInput, cwHint, cwAllOk, cwLeft, cwTapCell, cwModify, cwDelete, cycleKana, cwCycle } from './cross';
@@ -613,5 +614,104 @@ describe('都道府県の ヒント', () => {
         expect(new Set(p).size, q.name).toBe(p.length);
       });
     }
+  });
+});
+
+describe('問題文に「何を 答えるか」を 入れる（10/20）', () => {
+  it('都道府県は ヒントだけで なく 問いかけの形で 出る', () => {
+    const s = new BattleSession({ level: 4, bsubj: 'pref', handi: 1, goal: 0 });
+    let seen = 0;
+    for (let i = 0; i < 40; i++) {
+      const q = s.next().q;
+      if (q.chars) continue;            /* もじうめは べつの 出しかた */
+      const t = plain(q.text);
+      expect(t, t).toMatch(/で 有名なのは どこ？$/);
+      /* ヒントそのもの（「りんご」だけ）には ならない */
+      expect(t.length).toBeGreaterThan('で 有名なのは どこ？'.length);
+      seen++;
+    }
+    expect(seen).toBeGreaterThan(0);
+  });
+  it('りかは「これは なに？」で おわる', () => {
+    const s = new BattleSession({ level: 4, bsubj: 'rika', handi: 1, goal: 0 });
+    let seen = 0;
+    for (let i = 0; i < 40; i++) {
+      const q = s.next().q;
+      if (q.num) continue;
+      const t = plain(q.text);
+      /* 理科は 問題文つき（新しい原稿）と ヒント形式が まざる。ヒント形式だけ 見る */
+      if (/？$|\?$/.test(t) && !/これは なに？$/.test(t)) continue;
+      expect(t, t).toMatch(/。これは なに？$/); seen++;
+    }
+    expect(seen).toBeGreaterThan(0);
+  });
+  it('れきしは 人物なら「だれ？」、ものなら「なに？」', () => {
+    expect(plain(askText('rekishi', { tag: '人物', hints: ['ばくふを ひらいた'] } as never)))
+      .toBe('ばくふを ひらいた。この人は だれ？');
+    expect(plain(askText('rekishi', { tag: 'たてもの', hints: ['金色に かがやく'] } as never)))
+      .toBe('金色に かがやく。これは なに？');
+  });
+  it('ヒントが 無ければ 空のまま（こわれない）', () => {
+    expect(askText('pref', { tag: '', hints: [] } as never)).toBe('');
+  });
+});
+
+describe('長い 文章題は 一気に 出す（10/20）', () => {
+  it('さかいめは 20文字', () => {
+    expect(PROG_MAX).toBe(20);
+  });
+  it('みじかい 文は 1文字ずつ、長い 文は そのまま 出す 判定に なる', () => {
+    const short = 'この国旗{こっき}はどこ？';
+    const long = '水{みず}を あたためつづけると 100度{ど}くらいで ぶくぶく わきます。これを なんと いう？';
+    expect(plainLen(short)).toBeLessThan(PROG_MAX);
+    expect(plainLen(long)).toBeGreaterThanOrEqual(PROG_MAX);
+  });
+  it('理科の 文章題は 半分いじょうが 長い（待たされていた もと）', () => {
+    const all = ([3, 4, 5, 6] as const).flatMap((g) => RIKA_Q[g] || []);
+    expect(all.length).toBe(400);
+    const long = all.filter((r) => plainLen(r[1]) >= PROG_MAX).length;
+    expect(long).toBeGreaterThan(all.length / 2);
+  });
+  it('都道府県は 問いかけに しても みじかいので 1文字ずつ のまま', () => {
+    const s = new BattleSession({ level: 4, bsubj: 'pref', handi: 1, goal: 0 });
+    let seen = 0;
+    for (let i = 0; i < 40; i++) {
+      const q = s.next().q;
+      if (q.chars) continue;
+      expect(plainLen(q.text), plain(q.text)).toBeLessThan(PROG_MAX + 14);
+      seen++;
+    }
+    expect(seen).toBeGreaterThan(0);
+  });
+});
+
+describe('まちがい直しの 数を えらぶ（10/20）', () => {
+  const fill = (n: number) => {
+    setKV(memoryKV()); reloadRecords();
+    relayDeck('pref', 2).slice(0, n).forEach((q) => markMiss('pref', q.name));
+  };
+  it('5もんを えらんだら 5もんで おわる', () => {
+    fill(20);
+    const s = new BattleSession({ level: 4, bsubj: 'miss', handi: 1, goal: 0, missN: 5 });
+    expect(s.missPool.length).toBe(5);
+    for (let i = 0; i < 5; i++) { expect(s.missDone()).toBe(false); s.next(); }
+    expect(s.missDone()).toBe(true);
+  });
+  it('0（ぜんぶ）は 帳の 数ぜんぶ', () => {
+    fill(12);
+    expect(new BattleSession({ level: 4, bsubj: 'miss', handi: 1, goal: 0, missN: 0 }).missPool.length).toBe(12);
+    expect(new BattleSession({ level: 4, bsubj: 'miss', handi: 1, goal: 0 }).missPool.length).toBe(12);
+  });
+  it('帳に ある数より 多く えらんでも ある ぶんだけ', () => {
+    fill(3);
+    expect(new BattleSession({ level: 4, bsubj: 'miss', handi: 1, goal: 0, missN: 20 }).missPool.length).toBe(3);
+  });
+  it('多く まちがえた ものから 先に 入る', () => {
+    setKV(memoryKV()); reloadRecords();
+    const d = relayDeck('pref', 2);
+    markMiss('pref', d[0].name);
+    for (let i = 0; i < 3; i++) markMiss('pref', d[5].name);
+    const s = new BattleSession({ level: 4, bsubj: 'miss', handi: 1, goal: 0, missN: 1 });
+    expect(s.missPool[0].name).toBe(d[5].name);
   });
 });

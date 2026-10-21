@@ -37,6 +37,9 @@
   }
   button{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   ruby rt{font-size:.44em;font-weight:500;letter-spacing:.02em}
+  /* ---- 画面の 大きさ（端末に あわせる）----
+     --ui は src/lib/uiscale.ts が 入れる 倍率。zoom が つかえない 古い ブラウザでは
+     なにも 起きない（これまでと 同じ 見た目）ので、入れても こわれない。 */
   .wrap{
     min-height:100svh;
     max-width:520px;
@@ -47,6 +50,14 @@
     flex-direction:column;
     gap:13px;
   }
+  @supports (zoom: 1.1){
+    .wrap{ zoom:var(--ui,1); min-height:calc(100svh / var(--ui,1)); }
+    /* 画面ぜんたいに かぶせる ものは 等倍に もどし、中の シートだけ 大きさを あわせる
+       （fixed の はこは 画面と ぴったり 同じに しないと はみ出す） */
+    .overlay{ zoom:calc(1 / var(--ui,1)); }
+    .sheet{ zoom:var(--ui,1); }
+  }
+
   #s-play,#s-geo{position:relative}
   .screen{display:none;flex:1;flex-direction:column;gap:16px}
   .screen.on{display:flex}

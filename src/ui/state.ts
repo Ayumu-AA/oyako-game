@@ -16,6 +16,7 @@ export interface Settings {
   players: 1 | 2;            // はやおし：2人で対戦 ／ ひとりであそぶ
   kana: 'R' | 'L' | 'F';       // 50音の ならび：みぎから／ひだりから／フリック
   practice: boolean;         // れんしゅう＝ランキングに 送らない
+  missN: number;             // まちがい直しで 出す 数（0 = ぜんぶ）
 }
 
 export function loadSettings(): Settings {
@@ -26,6 +27,7 @@ export function loadSettings(): Settings {
     goal: (g !== null && g !== '') ? Number(g) : 10,
     kana: (k === 'R' || k === 'L' || k === 'F') ? k : 'R',
     practice: false,
+    missN: (() => { const v = Number(store('oyako-missn')); return Number.isFinite(v) && v >= 0 ? v : 10; })(),
   };
 }
 

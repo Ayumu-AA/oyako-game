@@ -5,13 +5,16 @@ import { CONFIG, MODE_NAME, MODE_SUB, MODE_TAG, MODE_LABEL, GROUPS, HOW_LEDE, ST
 import { ICON, GROUP_ICON, TILE_ICON } from '../data/icons';
 import { missCount, seenCount, clearRecords } from '../game/records';
 import { store } from '../lib/storage';
-import { soundOn, setSound, bgmOn, setBgm } from '../lib/sound';
+import { sfxVol, setSfxVol, bgmVol, setBgmVol } from '../lib/sound';
+import type { Vol } from '../lib/sound';
+import { scaleMode, setScaleMode } from '../lib/uiscale';
+import type { ScaleMode } from '../lib/uiscale';
 import { GRADES, gradeLabel } from '../game/types';
 import type { Level, Mode } from '../game/types';
 import { PickGrid, Raw } from './parts';
 import { plowMark } from '../data/logo';
 import { bestKey, isGeo, type Group, type Settings } from './state';
-import { SOLO_SECONDS, okSubj, relayOk, mixFor } from '../game/battle';
+import { SOLO_SECONDS, MISS_NS, okSubj, relayOk, mixFor } from '../game/battle';
 import type { BattleSubj } from '../game/battle';
 
 /** えらぶボタンの 中身：絵文字＋ことば（小さい子にも 見分けが つくように） */
@@ -166,10 +169,9 @@ export function GamesScreen({ players, level, missN, onPick, onBack, onHome }: {
     /* あそべるものを 先に ならべる（当日 まよわないように） */
     .sort((a, b) => Number(a.soon) - Number(b.soon));
   const playN = list.filter((t) => !t.soon).length;
-  /* まちがい直しは 2人なら ヒントリレー方式、1人なら はやおしの「まちがい」で 出す */
-  const miss: Tile = players === 2
-    ? { k: 'miss', m: 'miss', b: 'まちがい直し', s: 'のこり ' + missN + 'もん' }
-    : { k: 'miss1', m: 'miss1', b: 'まちがい直し', s: 'のこり ' + missN + 'もん・はやおしで' };
+  /* まちがい直しは 1人用だけ（10/20の 会議で 2人用は やめると 決めた）。
+     自分が まちがえた問題を 直すのが ねらいなので、早さを きそう ものでは ない */
+  const miss: Tile = { k: 'miss1', m: 'miss1', b: 'まちがい直し', s: 'のこり ' + missN + 'もん・ひとりで' };
   return (
     <section className="screen on colortiles" id="s-games">
       <p className="eyebrow" id="games-eyebrow">{(players === 2 ? '2人で あそぶ' : '1人で あそぶ') + '・' + gradeLabel(level)}</p>
@@ -182,7 +184,7 @@ export function GamesScreen({ players, level, missN, onPick, onBack, onHome }: {
             wide={(playN === 1 && i === 0) || ((list.length - (playN === 1 ? 1 : 0)) % 2 === 1 && i === list.length - 1)}
             onClick={() => onPick(t)} />
         ))}
-        {missN > 0 && <TileBtn t={miss} wide onClick={() => onPick(miss)} />}
+        {players === 1 && missN > 0 && <TileBtn t={miss} wide onClick={() => onPick(miss)} />}
       </div>
       <div className="spacer"></div>
       <BackRow id="btn-games-back" onBack={onBack} onHome={onHome} />
@@ -192,8 +194,9 @@ export function GamesScreen({ players, level, missN, onPick, onBack, onHome }: {
 
 /* ===== せってい ===== */
 export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared, nick, onName }: { open: boolean; seconds: number; onSeconds: (s: number) => void; onClose: () => void; onCleared: () => void; nick: string | null; onName: () => void }) {
-  const [snd, setSnd] = useState(soundOn());
-  const [bgm, setBgm2] = useState(bgmOn());
+  const [snd, setSnd] = useState<Vol>(sfxVol());
+  const [bgm, setBgm2] = useState<Vol>(bgmVol());
+  const [uiS, setUiS] = useState<ScaleMode>(scaleMode());
   const [rec, setRec] = useState({ miss: 0, seen: 0 });
   const [sure, setSure] = useState<0 | 1 | 2>(0);
   const closeBtn = useRef<HTMLButtonElement>(null);
@@ -211,10 +214,13 @@ export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared, 
     <div className="overlay" id="set-ov" hidden={!open} role="dialog" aria-modal="true" aria-labelledby="set-title" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="sheet setsheet">
         <h2 className="display" id="set-title">せってい</h2>
-        <PickGrid id="seg-sound" label="おと（せいかいの音）" cols={2} value={snd ? '1' : '0'} onPick={(v) => { setSound(v === '1'); setSnd(v === '1'); }}
-          options={[{ v: '1', b: pick('🔊', 'あり') }, { v: '0', b: pick('🔇', 'なし') }]} />
-        <PickGrid id="seg-bgm" label="BGM" cols={2} value={bgm ? '1' : '0'} onPick={(v) => { setBgm(v === '1'); setBgm2(v === '1'); }}
-          options={[{ v: '1', b: pick('🎵', 'ながす') }, { v: '0', b: pick('🔕', 'とめる') }]} />
+        <PickGrid id="seg-sound" label="こうかおん（◯・✕の音）" cols={4} value={String(snd)} onPick={(v) => { const n = Number(v) as Vol; setSfxVol(n); setSnd(n); }}
+          options={[{ v: '0', b: pick('🔇', 'なし') }, { v: '1', b: pick('🔈', '小') }, { v: '2', b: pick('🔉', 'ふつう') }, { v: '3', b: pick('🔊', '大') }]} />
+        <PickGrid id="seg-bgm" label="おんがく（BGM）" cols={4} value={String(bgm)} onPick={(v) => { const n = Number(v) as Vol; setBgmVol(n); setBgm2(n); }}
+          options={[{ v: '0', b: pick('🔕', 'なし') }, { v: '1', b: pick('🎵', '小') }, { v: '2', b: pick('🎶', 'ふつう') }, { v: '3', b: pick('📣', '大') }]} />
+        <PickGrid id="seg-uiscale" label="画面の 大きさ" cols={4} value={uiS} onPick={(v) => { setScaleMode(v); setUiS(v); }}
+          options={[{ v: 'auto' as ScaleMode, b: pick('📱', 'じどう') }, { v: 'S' as ScaleMode, b: pick('🔹', '小さめ') }, { v: 'M' as ScaleMode, b: pick('🔷', 'ふつう') }, { v: 'L' as ScaleMode, b: pick('🟦', '大きめ') }]} />
+        <p className="setnote" id="set-uiscale-note">「じどう」は つかっている 端末の 画面に あわせます。</p>
         <PickGrid id="seg-time" label="せいげん時間（2人用）" cols={3} value={seconds} onPick={onSeconds}
           options={[{ v: 60, b: '60秒' }, { v: 90, b: '90秒' }, { v: 120, b: '120秒' }]} />
         <div className="pickrow">
@@ -354,6 +360,15 @@ export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode
               <span><b>まちがい直し</b><small>まちがえた {missN}もんだけ 出す</small></span>
             </button>
           </div>
+        )}
+
+        {/* まちがい直しは「のこり ぜんぶ」だと 多すぎて 途中で いやに なることが ある。
+            何もん 直すかを 先に えらべるように する（帳に ある数より 多い えらびは 出さない） */}
+        {missOnly && missN > 0 && (
+          <PickGrid id="seg-missn" label="もんだいの 数" cols={4} value={s.missN}
+            onPick={(v) => { onChange({ missN: v }); store('oyako-missn', String(v)); }}
+            options={MISS_NS.filter((n) => n === 0 || n < missN)
+              .map((n) => ({ v: n as number, b: n === 0 ? pick('📚', 'ぜんぶ') : pick('✏️', n + 'もん'), s: n === 0 ? missN + 'もん' : undefined }))} />
         )}
 
         {/* ひとりモードは せいげん時間だけ。〇もん先取は 相手が いてこそ */}

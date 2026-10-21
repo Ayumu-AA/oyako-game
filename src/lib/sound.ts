@@ -2,15 +2,37 @@
 import { store } from './storage';
 
 let AC: AudioContext | null = null;
-let SOUND = store('oyako-sound') !== '0';
 
-export function soundOn(): boolean { return SOUND; }
-export function setSound(on: boolean) {
-  SOUND = on; store('oyako-sound', on ? '1' : '0');
-  if (on) { ac(); beep(880, 0, 0.1, 0.16); }     /* 押した合図に 1音 */
+/* ===== 音の 大きさ（4だんかい）=====
+   体育館は ざわざわ して 聞こえにくい 一方、家や 静かな 教室では 大きすぎる。
+   0 = なし ／ 1 = 小 ／ 2 = ふつう ／ 3 = 大。効果音と BGM を べつべつに 決める。 */
+export type Vol = 0 | 1 | 2 | 3;
+export const VOL_MUL: Record<Vol, number> = { 0: 0, 1: 0.45, 2: 1, 3: 1.7 };
+const asVol = (v: string | null, old1: Vol, old0: Vol): Vol => {
+  /* 前の ばん（'1'／'0' の 2だんかい）で 保存した ものも そのまま つかえるように する */
+  if (v === '2' || v === '3') return Number(v) as Vol;
+  if (v === '1') return old1;
+  if (v === '0') return old0;
+  return v === null ? old1 : old1;
+};
+let SFX: Vol = asVol(store('oyako-sound'), 2, 0);
+let BGMV: Vol = store('oyako-bgm') === null ? 0 : asVol(store('oyako-bgm'), 2, 0);
+
+export function sfxVol(): Vol { return SFX; }
+export function setSfxVol(v: Vol) {
+  SFX = v; store('oyako-sound', String(v));
+  if (v > 0) { ac(); beep(880, 0, 0.1, 0.16); }   /* 押した合図に 1音（いまの 大きさで 鳴る） */
 }
+export function bgmVol(): Vol { return BGMV; }
+export function setBgmVol(v: Vol) {
+  BGMV = v; store('oyako-bgm', String(v));
+  bgmGain(); if (v > 0) startBgm(); else stopBgm();
+}
+
+export function soundOn(): boolean { return SFX > 0; }
+export function setSound(on: boolean) { setSfxVol(on ? 2 : 0); }
 export function ac(): AudioContext | null {
-  if (!SOUND) return null;
+  if (SFX <= 0) return null;
   return actx();
 }
 /** 音を 出す もと。効果音の オン・オフとは 切りはなす（BGM が つかう） */
@@ -51,7 +73,8 @@ export function out(c: AudioContext): AudioNode {
 export function beep(freq: number, at: number, dur: number, vol?: number) {
   const c = ac(); if (!c) return;
   const t = c.currentTime + at;
-  const v = Math.min(0.95, (vol || 0.16) * BOOST);
+  const v = Math.min(0.95, (vol || 0.16) * BOOST * VOL_MUL[SFX]);
+  if (v <= 0) return;
   const o = c.createOscillator(), g = c.createGain();
   o.type = 'triangle'; o.frequency.setValueAtTime(freq, t);
   g.gain.setValueAtTime(0.0001, t);
@@ -89,7 +112,9 @@ export const NG_HITS: [number, number, number][] = [
   [0, 0.17, 196],
   [0.22, 0.46, 165],
 ];
-function buzzHit(c: AudioContext, at: number, dur: number, freq: number, vol: number) {
+function buzzHit(c: AudioContext, at: number, dur: number, freq: number, vol0: number) {
+  const vol = Math.min(0.95, vol0 * VOL_MUL[SFX]);
+  if (vol <= 0) return;
   const t = c.currentTime + at;
   const g = c.createGain();
   const lp = c.createBiquadFilter();
@@ -119,7 +144,23 @@ export function buzz(ms: number | number[]) { try { if (navigator.vibrate) navig
 
 
 /* ================= BGM（ファイルなし。その場で 作る しずかな くりかえし） ================= */
-let BGM = store('oyako-bgm') === '1';   /* 会場で うるさくならないよう、はじめは オフ */
+/* はじめは オフ（会場で うるさく ならないように）。大きさは BGMV で 決める */
+let bgmG: GainNode | null = null;
+let bgmGOf: AudioContext | null = null;
+/** BGM だけの つまみ。効果音の じゃまを しない 高さに して おく */
+function bgmOut(c: AudioContext): AudioNode {
+  if (!bgmG || bgmGOf !== c) {
+    bgmG = c.createGain(); bgmGOf = c;
+    bgmG.connect(out(c));
+  }
+  bgmG.gain.setValueAtTime(VOL_MUL[BGMV], c.currentTime);
+  return bgmG;
+}
+/** せっていで 大きさを かえたら すぐ 反映する */
+function bgmGain() {
+  const c = AC; if (!c || !bgmG || bgmGOf !== c) return;
+  bgmG.gain.setValueAtTime(VOL_MUL[BGMV], c.currentTime);
+}
 let bgmTimer: number | null = null;
 let bgmStep = 0;
 /* 4小節ぶんの やさしい 和音。1拍 = 0.5秒 */
@@ -127,14 +168,11 @@ const BGM_CHORD: number[][] = [
   [262, 330, 392], [294, 349, 440], [220, 262, 330], [247, 311, 392],
 ];
 
-export function bgmOn(): boolean { return BGM; }
-export function setBgm(on: boolean) {
-  BGM = on; store('oyako-bgm', on ? '1' : '0');
-  if (on) startBgm(); else stopBgm();
-}
+export function bgmOn(): boolean { return BGMV > 0; }
+export function setBgm(on: boolean) { setBgmVol(on ? 2 : 0); }
 /** 画面を さわった あとに よぶ（さわる前は ブラウザが 音を 出させてくれない） */
 export function startBgm() {
-  if (!BGM || bgmTimer) return;
+  if (BGMV <= 0 || bgmTimer) return;
   const c = actx(); if (!c) return;
   if (c.state === 'suspended') c.resume();
   bgmTick();
@@ -158,6 +196,6 @@ function bgmNote(c: AudioContext, freq: number, vol: number) {
   g.gain.setValueAtTime(0.0001, t);
   g.gain.exponentialRampToValueAtTime(vol, t + 0.06);
   g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
-  o.connect(g); g.connect(out(c));   /* BGM も 同じ 出口（効果音の じゃまを しない） */
+  o.connect(g); g.connect(bgmOut(c));   /* BGM だけの つまみを 通してから 出口へ */
   o.start(t); o.stop(t + 0.95);
 }

@@ -1,6 +1,6 @@
 /* はやおし親子バトル */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BattleSession, BATTLE_CAP, NUMKEYS, ANSWER_MS, ANSWER_MS_SOLO, HINT_STEP_MS, ptsAtStage } from '../game/battle';
+import { BattleSession, BATTLE_CAP, NUMKEYS, ANSWER_MS, ANSWER_MS_SOLO, HINT_STEP_MS, PROG_MAX, ptsAtStage } from '../game/battle';
 
 const REVEAL_MS = 70;   /* 問題文を 1文字ずつ 出す はやさ（クイズ番組ふう） */
 /* まちがえた（または 時間ぎれ）の あと、こたえを 見せておく 時間。
@@ -10,8 +10,9 @@ const NEXT_WAIT_MS = 1500;   /* 2人で 相手に 回るときは こたえを �
 /* 2人用で だれも 赤いボタンを 押さないまま 止まってしまう ことが あるので、
    問題文が 出そろってから この時間で 打ち切って つぎの問題に 行く */
 const IDLE_MS = 10000;
-/** 少しずつ 出すのは けいさん いがい ぜんぶ（もじあて・国旗・えいごも 文は 少しずつ） */
-const isProg = (q: BattleQ | null) => !!(q && !q.num);
+/** 少しずつ 出すのは けいさん いがいの、みじかい 問題文だけ。
+    長い 文章題（理科など）は 読み終わるまで 待たされるので 一気に 出す */
+const isProg = (q: BattleQ | null) => !!(q && !q.num && plainLen(q.text) < PROG_MAX);
 /** こたえる もちじかん。ひとりは 5秒、2人の 取り合いは 3秒 */
 const ansMsOf = (players: 1 | 2) => (players === 1 ? ANSWER_MS_SOLO : ANSWER_MS);
 import { furi, furiName, cutFuri, plainLen } from '../game/furigana';
@@ -27,6 +28,7 @@ import type { BattleResult } from './state';
 
 export interface BattleProps {
   level: Level; seconds: number; bsubj: BattleSubj; handi: number; goal: number; practice?: boolean;
+  missN?: number;   /* まちがい直しで 出す 数（0／未指定 = ぜんぶ） */
   players: 1 | 2;   /* 1 = ひとりモード。こども側だけを 回転なしで 出す */
   onFinish: (r: BattleResult) => void; onRestart: () => void; onQuit: () => void;
 }
@@ -36,7 +38,7 @@ const sideZero = (): SideUI => ({ opts: [], flash: false, locked: false, waiting
 /** 回答権の ようす。2人のときだけ 意味がある */
 type Turn = { owner: Side | null; tried: Record<Side, boolean>; reveal: boolean };
 
-export function BattleScreen({ level, seconds, bsubj, handi, goal, players, practice, onFinish, onRestart, onQuit }: BattleProps) {
+export function BattleScreen({ level, seconds, bsubj, handi, goal, players, practice, missN, onFinish, onRestart, onQuit }: BattleProps) {
   const solo = players === 1;
   const sess = useRef<BattleSession | null>(null);
   const [q, setQ] = useState<BattleQ | null>(null);
@@ -185,7 +187,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
   }, [players, startAns, stopAns, runRev, stopIdle]);
 
   useEffect(() => {
-    const s = new BattleSession({ level, bsubj, handi, goal, players });
+    const s = new BattleSession({ level, bsubj, handi, goal, players, missN });
     sess.current = s; finished.current = false;
     drawScore(s);
     nextBattle();
@@ -406,7 +408,7 @@ function BattleSide({ side, q, u, players, turn, ans, rev, stage, onChoice, onBu
           {stage > 0 && (q.hints || [])[stage - 1]
             ? <Raw as="span" className="hintline" key={stage} id={'hint-' + side}
               html={'<i>ヒント' + (stage + 1) + '</i>' + furi((q.hints || [])[stage - 1])} />
-            : <span className="hintwait">わかったら はやく！</span>}
+            : <span className="hintwait">{(q.hints || []).length ? 'ヒントは 3びょうご' : ''}</span>}
         </div>
       ) : null}
       {q && q.shown && q.shown.length ? (
