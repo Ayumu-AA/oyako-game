@@ -3,9 +3,11 @@ import { relayDeck, missDeck, kanjiDeck, kanjiRows, rikaDeck, KANJI_TAG } from '
 import { KOKUGO_REI } from '../data/kokugo_rei';
 import { WORD_Q } from '../data/word';
 import { RIKA_Q } from '../data/rika';
+import { EIGO_IMI } from '../data/eigo_imi';
 import { preloadArt } from './art';
 import { markSeen, seenAt, markHit, markMiss } from './records';
 import { shuffle, pickN, randInt, rng } from './util';
+import { store } from '../lib/storage';
 import { dataLv } from './types';
 import type { BattleQ, Level, RelayQ, Side, Subject } from './types';
 
@@ -42,6 +44,23 @@ export function rikaQRate(): number {
   try { const v = localStorage.getItem('oyako-rikarate'); if (v) return Number(v); } catch { /* つかえない端末 */ }
   return RIKA_Q_RATE;
 }
+/* えいごは 2つの 向きを 半々で 出す。
+   ・イラスト → 英語で なんと言う？（いままでの 形）
+   ・英単語を 読んで → 日本語で どんな いみ？（高学年で 文字も 読めるように）
+   使う ことばは どちらも 同じ（いま 5・6年で 出ている 136語）。
+   日本語の いみを 持っている ことばだけ 逆向きに できる（src/data/eigo_imi.ts） */
+export const EIGO_WORD_RATE = 0.5;
+export function eigoWordRate(): number {
+  const v = store('oyako-eigorate');
+  if (v !== null && v !== '' && Number.isFinite(Number(v))) return Number(v);
+  return EIGO_WORD_RATE;
+}
+/** 英単語 → 日本語の 向きで 出せるか（いみが あり、まちがいの選たく肢も そろうか） */
+export function eigoWordOk(q: RelayQ, deck: RelayQ[]): boolean {
+  if (!EIGO_IMI[q.name]) return false;
+  return deck.filter((x) => EIGO_IMI[x.name]).length >= 4;
+}
+
 /** その学年の 理科。その学年ぶん＋1つ下の学年（3年は その学年だけ） */
 export function rikaRows(g: Level) { return (g > 3 ? (RIKA_Q[g - 1] || []) : []).concat(RIKA_Q[g] || []); }
 /** まちがいの選たく肢を ならべる。こたえと 字の長さが 近いものを 先に（同じ近さなら ばらばらに）。
@@ -428,7 +447,16 @@ export class BattleSession {
   buildQ(key: Subject, q: RelayQ, deck: RelayQ[]): BattleQ {
     markSeen(key, q.name);
     let text: string, art = null, disp: Record<string, string> | undefined;
+    /* えいごの 逆向き（英単語 → 日本語）。こたえは 英単語の ままに して、
+       ボタンの 表示だけ 日本語に する（まちがい帳の 記録が 英単語で つながる）。
+       イラストは 出さない（出すと こたえが わかってしまう） */
+    const eigoWord = key === 'eigo' && eigoWordOk(q, deck) && rng() < eigoWordRate();
     if (key === 'flag') { text = 'この国旗{こっき}はどこ？'; art = q.art; }
+    else if (eigoWord) {
+      text = '「' + q.name + '」は 日本語{にほんご}で？';
+      disp = {};
+      deck.forEach((x) => { const m = EIGO_IMI[x.name]; if (m) disp![x.name] = m; });
+    }
     else if (key === 'eigo') { text = 'これを英語{えいご}で？'; art = q.art; }
     else if (key === 'kokugo' && q.tag === KANJI_TAG) {
       /* かん字の読み：問題は ことば、選たく肢は よみ。記録は ことばで つける */
@@ -451,10 +479,15 @@ export class BattleSession {
       : pickN(more, Math.max(0, HINT_MAX - 1)).slice(0, HINT_MAX - 1);
     /* 国語は「かん字の読み」と「ことわざ」が まざることが あるので（まちがい直し）、
        まちがいの選たく肢は 同じ 種類の 中から とる */
-    const kind = key === 'kokugo' ? deck.filter((x) => (x.tag === KANJI_TAG) === (q.tag === KANJI_TAG)) : deck;
+    /* えいごの 逆向きでは、日本語の いみを 持つ ことばだけを 選たく肢に する
+       （いみの ない ことばが まざると、そこだけ 英語で 出て こたえが ばれる） */
+    const kind = key === 'kokugo' ? deck.filter((x) => (x.tag === KANJI_TAG) === (q.tag === KANJI_TAG))
+      : eigoWord ? deck.filter((x) => EIGO_IMI[x.name]) : deck;
     const pool = battlePool(key, kind, q);
     const ymap: Record<string, string> = {};
-    kind.forEach((x) => { ymap[x.name] = x.yomi; });
+    /* 逆向きは こたえを 見せるとき「apple（りんご）」のように 出したいので、
+       ふりがなの かわりに 日本語の いみを 入れておく */
+    kind.forEach((x) => { ymap[x.name] = eigoWord ? (EIGO_IMI[x.name] || x.yomi) : x.yomi; });
     return { art, text, num: false, answer: q.name, pool, fact: q.fact, yomi: ymap, sub: key, disp, hints };
   }
 

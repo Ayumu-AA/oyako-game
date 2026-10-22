@@ -1281,3 +1281,75 @@ test('2人用：だれも 押さないと 10秒で つぎの問題へ', async ({
   await expect(page.locator('#buzz-adult')).toBeVisible();             /* つぎの問題が 始まっている */
   expect(errs).toEqual([]);
 });
+
+/** 問題文を ふりがなを のぞいた 文字で 読む（1文字ずつ 出す ときは 見えない .ghost に 全文が ある） */
+async function qPlain(page: Page, side: 'child' | 'adult'): Promise<string> {
+  return await page.evaluate((sd) => {
+    const el = document.querySelector('#side-' + sd + ' .qtext');
+    if (!el) return '';
+    const c = el.cloneNode(true) as HTMLElement;
+    c.querySelectorAll('rt').forEach((r) => r.remove());
+    return (c.textContent || '').replace(/\s+/g, ' ').trim();
+  }, side);
+}
+
+test('えいご：英単語を 読んで 日本語の 4たくから えらぶ（1人用・10/23）', async ({ page }) => {
+  const errs = noErrors(page);
+  /* いつも 逆向きが 出るように しておく（ふだんは 半々） */
+  await open(page, { 'oyako-eigorate': '1' });
+  await nav(page, 1, 6);
+  await page.click('[data-mode="battle1"]');
+  await page.click('#btn-entry-practice');
+  await page.click('#seg-subject button[data-v="eigo"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  await page.waitForSelector('#s-battle .choice', { timeout: 15000 });
+  /* 問題は 英単語の 文字。イラストは 出さない */
+  const q = await qPlain(page, 'child');
+  expect(q, q).toMatch(/^「[a-z]+」は 日本語で？$/);
+  await expect(page.locator('#side-child .qart svg, #side-child .qart img')).toHaveCount(0);
+  /* 選たく肢は ぜんぶ 日本語（アルファベットが まざらない） */
+  const opts = await page.locator('#side-child .choice').allInnerTexts();
+  expect(opts.length).toBe(4);
+  opts.forEach((o) => expect(o, o).not.toMatch(/[A-Za-z]/));
+  expect(new Set(opts).size, '同じ いみが ならんでいる').toBe(opts.length);
+  expect(errs).toEqual([]);
+});
+
+test('えいご：2人用は 赤いボタンを 取ってから 日本語の 選たく肢が 出る（10/23）', async ({ page }) => {
+  const errs = noErrors(page);
+  await open(page, { 'oyako-eigorate': '1' });
+  await nav(page, 2, 6);
+  await page.click('[data-mode="battle"]');
+  await page.click('#seg-subject button[data-v="eigo"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  /* 取る前は どちらにも 選たく肢が 出ていない */
+  await expect(page.locator('#s-battle .choice')).toHaveCount(0);
+  const q = await qPlain(page, 'adult');
+  expect(q, q).toMatch(/^「[a-z]+」は 日本語で？$/);
+  /* 取った人にだけ 日本語の 4たくが 出る */
+  await buzz(page, 'adult');
+  await expect(page.locator('#side-adult .choice')).toHaveCount(4);
+  await expect(page.locator('#side-child .choice')).toHaveCount(0);
+  const opts = await page.locator('#side-adult .choice').allInnerTexts();
+  opts.forEach((o) => expect(o, o).not.toMatch(/[A-Za-z]/));
+  expect(errs).toEqual([]);
+});
+
+test('えいご：半々で イラストの 向きも 出る（10/23）', async ({ page }) => {
+  await open(page, { 'oyako-eigorate': '0' });
+  await nav(page, 1, 6);
+  await page.click('[data-mode="battle1"]');
+  await page.click('#btn-entry-practice');
+  await page.click('#seg-subject button[data-v="eigo"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  await page.waitForSelector('#s-battle .choice', { timeout: 15000 });
+  const q = await qPlain(page, 'child');
+  expect(q).toBe('これを英語で？');
+  /* こちらは イラストが 出て、選たく肢は 英語 */
+  await expect(page.locator('#side-child .qart svg, #side-child .qart img').first()).toBeVisible();
+  const opts = await page.locator('#side-child .choice').allInnerTexts();
+  opts.forEach((o) => expect(o, o).toMatch(/[a-z]/));
+});

@@ -1,13 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { setKV, memoryKV } from '../lib/storage';
+import { setKV, memoryKV, store } from '../lib/storage';
 import { reloadRecords, markMiss, markHit, missCount, markSeen, seenAt, clearRecords } from './records';
 import { evalTokens, makePuzzle, checkMath, type Token } from './math10';
 import { rankOf, rankNext } from './rank';
 import { plain, furi, furiName, FURI_RE } from './furigana';
-import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, ANSWER_MS_SOLO, HINT_STEP_MS, PTS_BY_STAGE, ptsAtStage, MIX_ALL, mixFor, okSubj, wordRows, nearNums, splitYomi, charOptions, mojiGroups, askText, PROG_MAX } from './battle';
+import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, ANSWER_MS_SOLO, HINT_STEP_MS, PTS_BY_STAGE, ptsAtStage, MIX_ALL, mixFor, okSubj, wordRows, nearNums, splitYomi, charOptions, mojiGroups, askText, PROG_MAX, EIGO_WORD_RATE } from './battle';
 import { cutFuri, plainLen } from './furigana';
 import { relayDeck as deckOf } from './decks';
 import { RIKA_Q } from '../data/rika';
+import { EIGO_IMI } from '../data/eigo_imi';
 import { relayDeck, deckFor, hints3, missDeck, kanjiDeck } from './decks';
 import { polyOf, inPoly, geoChoices, geoGroupOf, geoDeck, jpSVG, wSVG, jpFullVB, geoQuestion } from './geo';
 import { newCross, cwCells, cwInput, cwHint, cwAllOk, cwLeft, cwTapCell, cwModify, cwDelete, cycleKana, cwCycle } from './cross';
@@ -713,5 +714,71 @@ describe('まちがい直しの 数を えらぶ（10/20）', () => {
     for (let i = 0; i < 3; i++) markMiss('pref', d[5].name);
     const s = new BattleSession({ level: 4, bsubj: 'miss', handi: 1, goal: 0, missN: 1 });
     expect(s.missPool[0].name).toBe(d[5].name);
+  });
+});
+
+describe('えいご：英単語 → 日本語 の 向きも 出す（10/23）', () => {
+  const run = (rate: string, n = 30) => {
+    setKV(memoryKV()); reloadRecords();
+    store('oyako-eigorate', rate);
+    const s = new BattleSession({ level: 6, bsubj: 'eigo', handi: 1, goal: 0, players: 1 });
+    return Array.from({ length: n }, () => s.next());
+  };
+
+  it('半々が 既定', () => {
+    expect(EIGO_WORD_RATE).toBe(0.5);
+  });
+
+  it('「1」なら ぜんぶ 英単語 → 日本語', () => {
+    for (const { q, opts } of run('1')) {
+      expect(plain(q.text), plain(q.text)).toMatch(/^「[a-z]+」は 日本語で？$/);
+      expect(q.art, 'イラストを 出すと こたえが ばれる').toBeNull();
+      /* こたえは 英単語のまま（まちがい帳が つながる） */
+      expect(q.answer).toMatch(/^[a-z]+$/);
+      /* ボタンの 表示は ぜんぶ 日本語。英語の まま 出るものが あっては いけない */
+      expect(opts.child.length).toBeGreaterThan(1);
+      opts.child.forEach((o) => {
+        expect(q.disp && q.disp[o], o + ' に いみが ない').toBeTruthy();
+        expect(q.disp![o]).toBe(EIGO_IMI[o]);
+      });
+    }
+  });
+
+  it('「0」なら いままでどおり イラスト → 英語', () => {
+    for (const { q } of run('0')) {
+      expect(plain(q.text)).toBe('これを英語で？');
+      expect(q.art, 'イラストが 出ていない').not.toBeNull();
+      expect(q.disp).toBeUndefined();
+    }
+  });
+
+  it('半々だと どちらも 出る', () => {
+    let word = 0, art = 0;
+    for (const { q } of run('0.5', 60)) (q.art ? art++ : word++);
+    expect(word, '英単語の 向きが 出ない').toBeGreaterThan(0);
+    expect(art, 'イラストの 向きが 出ない').toBeGreaterThan(0);
+  });
+
+  it('こたえを 見せるときは「apple（りんご）」の 形', () => {
+    for (const { q } of run('1', 10)) {
+      expect(q.yomi && q.yomi[q.answer]).toBe(EIGO_IMI[q.answer]);
+    }
+  });
+
+  it('同じ いみが 2つ ならばない', () => {
+    for (const { q, opts } of run('1')) {
+      const shown = opts.child.map((o) => q.disp![o]);
+      expect(new Set(shown).size, shown.join('/')).toBe(shown.length);
+    }
+  });
+
+  it('5年でも 6年でも 出る', () => {
+    for (const lv of [5, 6] as const) {
+      setKV(memoryKV()); reloadRecords();
+      store('oyako-eigorate', '1');
+      const s = new BattleSession({ level: lv, bsubj: 'eigo', handi: 1, goal: 0, players: 1 });
+      const { q } = s.next();
+      expect(plain(q.text), lv + '年').toMatch(/は 日本語で？$/);
+    }
   });
 });
