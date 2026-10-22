@@ -485,6 +485,10 @@ test('せってい：おと・時間・記録を消す', async ({ page }) => {
   /* 音は 4だんかい（なし・小・ふつう・大）。こうかおんと BGM は べつべつ */
   await expect(page.locator('#seg-sound button')).toHaveCount(4);
   await expect(page.locator('#seg-bgm button')).toHaveCount(4);
+  await expect(page.locator('#seg-bgm-battle button')).toHaveCount(4);
+  /* はやおし中の 音楽は ふつうの BGM とは べつに 決められる */
+  await page.click('#seg-bgm-battle button[data-v="1"]');
+  expect(await page.evaluate(() => localStorage.getItem('oyako-bgm-battle'))).toBe('1');
   await page.click('#seg-sound button[data-v="0"]');
   expect(await page.evaluate(() => localStorage.getItem('oyako-sound'))).toBe('0');
   await page.click('#seg-bgm button[data-v="3"]');
@@ -673,16 +677,23 @@ test('はやおしバトル：まちがい直しは 帳から 出る・ランキ
   const errs = noErrors(page);
   /* 帳を 1問だけに しておくと、出る問題が それに 決まるので たしかめやすい */
   await open(page, { 'oyako-miss': JSON.stringify({ 'rekishi:徳川家康': { n: 1, t: Date.now() } }) });
-  await nav(page);
+  /* 2人用の あそびかた画面には まちがい直しを 出さない（ジャンルの 下の べつわくも 消した） */
+  await nav(page, 2, 6);
   await page.click('[data-mode="battle"]');
-  /* まちがい直しは ジャンルでは なく「べつわく」のボタン */
   await expect(page.locator('#seg-subject button[data-v="miss"]')).toHaveCount(0);
+  await expect(page.locator('#row-missonly')).toHaveCount(0);
+  await expect(page.locator('#btn-miss-only')).toHaveCount(0);
+  await page.click('#btn-how-back'); await page.click('#btn-games-back'); await page.click('#btn-level-back');
+  /* 1人用の 練習では べつわくから 入れる */
+  await nav(page, 1, 6);
+  await page.click('[data-mode="battle1"]');
+  await page.click('#btn-entry-practice');
   await expect(page.locator('#btn-miss-only')).toBeVisible();
   await page.click('#btn-miss-only');
   await expect(page.locator('#btn-miss-only')).toHaveAttribute('aria-pressed', 'true');
   await page.click('#btn-start');
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
-  /* 2人でも 取り合わない（赤いボタンなし）。1つの 画面を 見て いっしょに 解く */
+  /* 取り合わない（赤いボタンなし）。1つの 画面で 解く */
   await expect(page.locator('#buzz-child')).toHaveCount(0);
   await expect(page.locator('#s-battle')).toHaveClass(/solo/);
   /* 帳に ある問題しか 出ない（こたえが かならず 選たく肢に ある） */

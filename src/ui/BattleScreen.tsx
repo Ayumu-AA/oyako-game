@@ -16,7 +16,7 @@ const isProg = (q: BattleQ | null) => !!(q && !q.num && plainLen(q.text) < PROG_
 /** こたえる もちじかん。ひとりは 5秒、2人の 取り合いは 3秒 */
 const ansMsOf = (players: 1 | 2) => (players === 1 ? ANSWER_MS_SOLO : ANSWER_MS);
 import { furi, furiName, cutFuri, plainLen } from '../game/furigana';
-import { sndOK, sndNG, buzz } from '../lib/sound';
+import { sndOK, sndNG, buzz, startBattleBgm, stopBattleBgm } from '../lib/sound';
 import { esc } from '../game/util';
 import { artHTML } from '../game/art';
 import { rankOf, rankNext, rankLine, rankMsg } from '../game/rank';
@@ -193,8 +193,10 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
     nextBattle();
     t0.current = Date.now();
     startTimer(capSec * 1000);
+    /* 早押しの あいだだけ せかす 音楽。まちがい直しは 早さを きそう ものでは ないので 鳴らさない */
+    if (bsubj !== 'miss') startBattleBgm();
     const tm = timers.current;
-    return () => { stopTimer(); stopAns(); stopRev(); stopStage(); stopIdle(); tm.forEach(clearTimeout); };
+    return () => { stopTimer(); stopAns(); stopRev(); stopStage(); stopIdle(); stopBattleBgm(); tm.forEach(clearTimeout); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -320,11 +322,12 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
   const pause = useCallback(() => {
     if (paused || !timer.current) return;
     setPaused(true); remain.current = Math.max(0, endAt.current - Date.now());
-    stopTimer(); stopAns(); stopRev(); stopStage(); stopIdle();
+    stopTimer(); stopAns(); stopRev(); stopStage(); stopIdle(); stopBattleBgm();
   }, [paused, stopAns, stopRev, stopStage, stopIdle]);
   const resume = useCallback(() => {
     if (!paused) return;
     setPaused(false); startTimer(remain.current);
+    if (bsubj !== 'miss') startBattleBgm();
     /* こたえる もちじかんは 出しなおし（止めたぶん 得しないように はじめから） */
     const s = sess.current;
     if (s && s.q && !s.done) {
@@ -332,7 +335,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
       else if (players === 1) startAns('child');
       if (!(players === 2 && s.owner)) runRev(s.q);
     }
-  }, [paused, startTimer, players, startAns, runRev]);
+  }, [paused, startTimer, players, startAns, runRev, bsubj]);
   usePauseKeys(paused, pause, resume);
 
   const ratio = left / (capSec * 1000);

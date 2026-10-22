@@ -17,6 +17,8 @@ const asVol = (v: string | null, old1: Vol, old0: Vol): Vol => {
 };
 let SFX: Vol = asVol(store('oyako-sound'), 2, 0);
 let BGMV: Vol = store('oyako-bgm') === null ? 0 : asVol(store('oyako-bgm'), 2, 0);
+/* 早押し中だけ 鳴る 音楽。たのんで 入れた ものなので はじめから「ふつう」 */
+let BTV: Vol = store('oyako-bgm-battle') === null ? 2 : asVol(store('oyako-bgm-battle'), 2, 0);
 
 export function sfxVol(): Vol { return SFX; }
 export function setSfxVol(v: Vol) {
@@ -27,6 +29,14 @@ export function bgmVol(): Vol { return BGMV; }
 export function setBgmVol(v: Vol) {
   BGMV = v; store('oyako-bgm', String(v));
   bgmGain(); if (v > 0) startBgm(); else stopBgm();
+}
+
+export function battleVol(): Vol { return BTV; }
+export function setBattleVol(v: Vol) {
+  BTV = v; store('oyako-bgm-battle', String(v));
+  btGain();
+  if (v <= 0) stopBattleBgm();
+  else if (btPlaying) startBattleBgm();   /* 鳴っている さいちゅうなら そのまま つづける */
 }
 
 export function soundOn(): boolean { return SFX > 0; }
@@ -143,6 +153,10 @@ export function sndNG() {
 export function buzz(ms: number | number[]) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch { /* 対応なし */ } }
 
 
+/* 早押しの 音楽が 鳴っているか（下の「早押しの 音楽」で 使う）。
+   ふつうの BGM と 重ならないように、ここで 先に 持っておく */
+let btPlaying = false;
+
 /* ================= BGM（ファイルなし。その場で 作る しずかな くりかえし） ================= */
 /* はじめは オフ（会場で うるさく ならないように）。大きさは BGMV で 決める */
 let bgmG: GainNode | null = null;
@@ -172,7 +186,8 @@ export function bgmOn(): boolean { return BGMV > 0; }
 export function setBgm(on: boolean) { setBgmVol(on ? 2 : 0); }
 /** 画面を さわった あとに よぶ（さわる前は ブラウザが 音を 出させてくれない） */
 export function startBgm() {
-  if (BGMV <= 0 || bgmTimer) return;
+  /* 早押しの 音楽が 鳴っている あいだは 重ねない */
+  if (BGMV <= 0 || bgmTimer || btPlaying) return;
   const c = actx(); if (!c) return;
   if (c.state === 'suspended') c.resume();
   bgmTick();
@@ -198,4 +213,74 @@ function bgmNote(c: AudioContext, freq: number, vol: number) {
   g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
   o.connect(g); g.connect(bgmOut(c));   /* BGM だけの つまみを 通してから 出口へ */
   o.start(t); o.stop(t + 0.95);
+}
+
+/* ================= 早押しの 音楽（対決らしく、少し せかす） =================
+   クイズ番組の「考えている あいだ」の 音を ねらう。
+   ・低い音を 1拍ずつ 刻みつづける（時計のように せかす）
+   ・上に 短調の 音を のせる（明るくしない＝きんちょう感）
+   ・4小節ごとに 1音ずつ 上がって、もどる（じわじわ 追いこまれる感じ）
+   まちがい直しでは 鳴らさない（早さを きそう ものでは ないので）。 */
+const BT_STEP_MS = 280;          /* 1拍。ふつうの BGM（500）より ずっと 速い */
+const BT_BASS = [110, 110, 164.81, 110];              /* ラ ラ ミ ラ（低い刻み） */
+const BT_TOP = [440, 523.25, 587.33, 523.25];         /* ラ ド レ ド（短調） */
+const BT_RISE = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4];  /* 終わりで 半音ずつ 上がる */
+const semi = (f: number, n: number) => f * Math.pow(2, n / 12);
+
+let btG: GainNode | null = null;
+let btGOf: AudioContext | null = null;
+let btTimer: number | null = null;
+let btStep = 0;
+
+/** 早押しの 音楽だけの つまみ */
+function btOut(c: AudioContext): AudioNode {
+  if (!btG || btGOf !== c) {
+    btG = c.createGain(); btGOf = c;
+    btG.connect(out(c));
+  }
+  btG.gain.setValueAtTime(VOL_MUL[BTV], c.currentTime);
+  return btG;
+}
+function btGain() {
+  const c = AC; if (!c || !btG || btGOf !== c) return;
+  btG.gain.setValueAtTime(VOL_MUL[BTV], c.currentTime);
+}
+
+/** 早押しが はじまったら よぶ。ふつうの BGM は 止める（重ならないように） */
+export function startBattleBgm() {
+  btPlaying = true;
+  stopBgm();
+  if (BTV <= 0 || btTimer) return;
+  const c = actx(); if (!c) return;
+  if (c.state === 'suspended') c.resume();
+  btStep = 0;
+  btTick();
+  btTimer = window.setInterval(btTick, BT_STEP_MS);
+}
+/** 早押しが おわったら よぶ。ふつうの BGM に もどす */
+export function stopBattleBgm() {
+  btPlaying = false;
+  if (btTimer) { clearInterval(btTimer); btTimer = null; }
+  startBgm();
+}
+function btTick() {
+  const c = actx(); if (!c) return;
+  const i = btStep % 16;
+  const up = BT_RISE[i];
+  /* 低い刻み：毎拍。4拍目だけ 少し 強く（小節の 頭が わかる） */
+  btNote(c, semi(BT_BASS[i % 4], up), i % 4 === 0 ? 0.085 : 0.055, 0.16, 'square', 420);
+  /* 上の音：2拍に 1回 */
+  if (i % 2 === 0) btNote(c, semi(BT_TOP[(i / 2) % 4], up), 0.05, 0.22, 'triangle', 2600);
+  btStep = (btStep + 1) % 16;
+}
+function btNote(c: AudioContext, freq: number, vol: number, dur: number, type: OscillatorType, lp: number) {
+  const t = c.currentTime;
+  const o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter();
+  f.type = 'lowpass'; f.frequency.setValueAtTime(lp, t); f.Q.setValueAtTime(0.6, t);
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + 0.01);   /* するどく 立ち上げる＝刻みに 聞こえる */
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(f); f.connect(g); g.connect(btOut(c));
+  o.start(t); o.stop(t + dur + 0.02);
 }

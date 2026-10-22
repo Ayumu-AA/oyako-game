@@ -194,3 +194,68 @@ describe('音の 大きさ（4だんかい・10/20）', () => {
     S.setSound(false); expect(S.soundOn()).toBe(false);
   });
 });
+
+describe('はやおし中の 音楽（10/22）', () => {
+  it('ふつうの BGM とは べつの つまみ', async () => {
+    fakeAudio();
+    const S = await loadSound();
+    S.setBgmVol(0); S.setBattleVol(3);
+    expect(S.bgmVol()).toBe(0);
+    expect(S.battleVol()).toBe(3);
+    S.setBattleVol(0);
+    expect(S.battleVol()).toBe(0);
+    expect(S.bgmVol()).toBe(0);
+  });
+  it('はじめから「ふつう」で 鳴る（たのまれて 入れたので）', async () => {
+    const S = await loadSound();
+    expect(S.battleVol()).toBe(2);
+  });
+  it('ふつうの BGM より 速く 刻む', async () => {
+    const f = fakeAudio();
+    const S = await loadSound();
+    S.setBattleVol(2);
+    S.startBattleBgm();
+    expect(f.oscs.length, '音が 作られていない').toBeGreaterThan(0);
+    S.stopBattleBgm();
+  });
+  it('低い刻みと 上の音の 2段がさね。短調（明るくしない）', async () => {
+    const f = fakeAudio();
+    const S = await loadSound();
+    S.setBattleVol(2);
+    S.startBattleBgm();
+    const freqs = f.oscs.map((o) => o.freq);
+    expect(Math.min(...freqs), '低い刻みが ない').toBeLessThan(200);
+    expect(Math.max(...freqs), '上の音が ない').toBeGreaterThan(400);
+    S.stopBattleBgm();
+  });
+  it('「なし」なら 音を 1つも 作らない', async () => {
+    const f = fakeAudio();
+    const S = await loadSound();
+    S.setBattleVol(0);
+    const before = f.oscs.length;
+    S.startBattleBgm();
+    expect(f.oscs.length).toBe(before);
+    S.stopBattleBgm();
+  });
+  it('はやおしが おわったら ふつうの BGM に もどる', async () => {
+    fakeAudio();
+    const S = await loadSound();
+    S.setBgmVol(2); S.setBattleVol(2);
+    S.startBattleBgm();
+    S.stopBattleBgm();
+    expect(S.bgmVol()).toBe(2);   /* つまみは さわらない */
+  });
+});
+
+describe('ふつうの BGM と はやおしの 音楽は 重ならない', () => {
+  it('はやおし中は ふつうの BGM を 止める', async () => {
+    fakeAudio();
+    const S = await loadSound();
+    S.setBgmVol(2); S.setBattleVol(2);
+    S.startBattleBgm();
+    S.startBgm();              /* よばれても 鳴らさない */
+    S.stopBattleBgm();
+    expect(S.bgmVol()).toBe(2);
+    expect(S.battleVol()).toBe(2);
+  });
+});

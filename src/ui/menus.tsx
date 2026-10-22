@@ -5,7 +5,7 @@ import { CONFIG, MODE_NAME, MODE_SUB, MODE_TAG, MODE_LABEL, GROUPS, HOW_LEDE, ST
 import { ICON, GROUP_ICON, TILE_ICON } from '../data/icons';
 import { missCount, seenCount, clearRecords } from '../game/records';
 import { store } from '../lib/storage';
-import { sfxVol, setSfxVol, bgmVol, setBgmVol } from '../lib/sound';
+import { sfxVol, setSfxVol, bgmVol, setBgmVol, battleVol, setBattleVol } from '../lib/sound';
 import type { Vol } from '../lib/sound';
 import { scaleMode, setScaleMode } from '../lib/uiscale';
 import type { ScaleMode } from '../lib/uiscale';
@@ -196,6 +196,7 @@ export function GamesScreen({ players, level, missN, onPick, onBack, onHome }: {
 export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared, nick, onName }: { open: boolean; seconds: number; onSeconds: (s: number) => void; onClose: () => void; onCleared: () => void; nick: string | null; onName: () => void }) {
   const [snd, setSnd] = useState<Vol>(sfxVol());
   const [bgm, setBgm2] = useState<Vol>(bgmVol());
+  const [bt, setBt] = useState<Vol>(battleVol());
   const [uiS, setUiS] = useState<ScaleMode>(scaleMode());
   const [rec, setRec] = useState({ miss: 0, seen: 0 });
   const [sure, setSure] = useState<0 | 1 | 2>(0);
@@ -218,6 +219,8 @@ export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared, 
           options={[{ v: '0', b: pick('🔇', 'なし') }, { v: '1', b: pick('🔈', '小') }, { v: '2', b: pick('🔉', 'ふつう') }, { v: '3', b: pick('🔊', '大') }]} />
         <PickGrid id="seg-bgm" label="おんがく（BGM）" cols={4} value={String(bgm)} onPick={(v) => { const n = Number(v) as Vol; setBgmVol(n); setBgm2(n); }}
           options={[{ v: '0', b: pick('🔕', 'なし') }, { v: '1', b: pick('🎵', '小') }, { v: '2', b: pick('🎶', 'ふつう') }, { v: '3', b: pick('📣', '大') }]} />
+        <PickGrid id="seg-bgm-battle" label="はやおし中の 音楽" cols={4} value={String(bt)} onPick={(v) => { const n = Number(v) as Vol; setBattleVol(n); setBt(n); }}
+          options={[{ v: '0', b: pick('🔕', 'なし') }, { v: '1', b: pick('🥁', '小') }, { v: '2', b: pick('🎺', 'ふつう') }, { v: '3', b: pick('📣', '大') }]} />
         <PickGrid id="seg-uiscale" label="画面の 大きさ" cols={4} value={uiS} onPick={(v) => { setScaleMode(v); setUiS(v); }}
           options={[{ v: 'auto' as ScaleMode, b: pick('📱', 'じどう') }, { v: 'S' as ScaleMode, b: pick('🔹', '小さめ') }, { v: 'M' as ScaleMode, b: pick('🔷', 'ふつう') }, { v: 'L' as ScaleMode, b: pick('🟦', '大きめ') }]} />
         <p className="setnote" id="set-uiscale-note">「じどう」は つかっている 端末の 画面に あわせます。</p>
@@ -350,8 +353,9 @@ export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode
           ] as { v: Settings['bsubj']; b: ReactNode }[])
             .filter((o) => okSubj(o.v as BattleSubj, s.level))} />}
 
-        {/* まちがい直しは ジャンルでは ないので べつわくに する（色も ジャンルと 変える） */}
-        {isBattle && missN > 0 && (!twoWay || entry === 'practice') && (
+        {/* まちがい直しは ジャンルでは ないので べつわくに する（色も ジャンルと 変える）。
+            2人用には 出さない（まちがい直しは 1人用だけ と 決めた） */}
+        {isBattle && s.players === 1 && missN > 0 && (!twoWay || entry === 'practice') && (
           <div className="pickrow missrow" id="row-missonly">
             <span className="picklabel">べつわく</span>
             <button type="button" className="misspick" id="btn-miss-only" aria-pressed={s.bsubj === 'miss'}
