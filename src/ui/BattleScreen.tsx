@@ -381,7 +381,13 @@ function BattleSide({ side, q, u, players, turn, ans, rev, stage, onChoice, onBu
     : turn.owner ? 'あいてが こたえ中…'
       : turn.tried[side] ? 'あいての ばん…'
         : 'はやおし！';
-  const ansHTML = q ? (q.yomi && q.yomi[q.answer] ? furiName(q.answer, q.yomi[q.answer]) : furi(q.answer)) : '';
+  /* えいごの 逆向き（英単語 → 日本語）は こたえが 英単語。furiName は 漢字の ときしか
+     ふりがなを つけないので、そのままだと「こたえは curry」とだけ 出て、
+     まちがえた子に 日本語が のこらない。いみを そえて「curry（カレー）」に する */
+  const ansImi = q && q.sub === 'eigo' && q.disp ? q.disp[q.answer] : undefined;
+  const ansHTML = !q ? ''
+    : ansImi ? furi(q.answer) + '（' + furi(ansImi) + '）'
+      : q.yomi && q.yomi[q.answer] ? furiName(q.answer, q.yomi[q.answer]) : furi(q.answer);
   /* もじあて：いま 何個目の ? を うめるところか と、そこの 選たく肢 */
   const mi = q && q.chars ? u.input.length : 0;
   const mopts = q && q.charOpts && mi < q.charOpts.length ? q.charOpts[mi] : null;

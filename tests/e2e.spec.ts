@@ -780,27 +780,39 @@ test('はやおしバトル：みじかい 問題文は 左から 少しずつ �
   expect(errs).toEqual([]);
 });
 
-test('長い 文章題は 一気に 出る（20文字いじょう・10/20）', async ({ page }) => {
+test('長い 文章題は 一気に 出る／みじかい 文は 1文字ずつ（10/20）', async ({ page }) => {
   const errs = noErrors(page);
   await open(page);
-  await nav(page);
-  await page.click('[data-mode="battle"]');
+  await nav(page, 1, 6);
+  await page.click('[data-mode="battle1"]');
+  await page.click('#btn-entry-practice');
   await page.click('#seg-subject button[data-v="rekishi"]');
   await page.click('#btn-start');
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
-  /* 1文字ずつ 出す はこ（.qprog）を つかわず、最初から 全文が 読める */
-  const txt = page.locator('#side-adult .qtext').first();
-  await expect(txt).toBeVisible();
-  const t0 = (await txt.innerText()).replace(/\n/g, '');
-  expect(t0.length).toBeGreaterThanOrEqual(20);
-  await page.waitForTimeout(600);
-  const t1 = (await txt.innerText()).replace(/\n/g, '');
-  expect(t1, '待っても 文が 変わらない（最初から 全文）').toBe(t0);
-  /* 「何を 答えるか」が 問題文に 入っている */
-  expect(t0, t0).toMatch(/(だれ|なに)？$/);
+  /* 何問か 見て、どの問題でも「20文字いじょうなら 全文・19文字いかなら 1文字ずつ」に
+     なっていることを たしかめる（れきしは 長い問題も みじかい問題も ある） */
+  let long = 0, short = 0;
+  for (let i = 0; i < 6; i++) {
+    await page.waitForSelector('#s-battle .choice', { timeout: 15000 });
+    const t = await qPlain(page, 'child');
+    expect(t.length, t).toBeGreaterThan(0);
+    const prog = await page.locator('#side-child .qprog').count();
+    if (t.length >= 20) {
+      expect(prog, '20文字いじょうなのに 1文字ずつ 出している: ' + t).toBe(0);
+      long++;
+    } else {
+      expect(prog, '19文字いかなのに 一気に 出している: ' + t).toBe(1);
+      short++;
+    }
+    /* 「何を 答えるか」が 問題文に 入っている */
+    expect(t, t).toMatch(/(だれ|なに)？$/);
+    await page.locator('#side-child .choice').first().click();
+    await page.waitForTimeout(2600);
+  }
+  expect(long + short).toBe(6);
+  expect(long, '長い問題が 1問も 出なかった').toBeGreaterThan(0);
   expect(errs).toEqual([]);
 });
-
 test('はやおし（ひとり）：どの ジャンルでも ヒント3つぶん（9秒）で 区切られる', async ({ page }) => {
   const errs = noErrors(page);
   await open(page);
@@ -1317,6 +1329,15 @@ test('えいご：英単語を 読んで 日本語の 4たくから えらぶ（
   const kata = (v: string) => /^[ァ-ヴーｰ・]+$/.test(v.trim());
   const kinds = new Set(opts.map((o) => kata(o)));
   expect(kinds.size, 'カタカナと ひらがなが まざっている: ' + opts.join(' / ')).toBe(1);
+  /* わざと まちがえると「curry（カレー）」の ように 日本語つきで こたえが 出る
+     （英単語だけ 出しても、まちがえた子に 何も のこらない） */
+  const first = await page.locator('#side-child .choice').first().innerText();
+  const wrong = page.locator('#side-child .choice').filter({ hasNotText: first.trim() }).first();
+  await wrong.click();
+  const bans = page.locator('#side-child .bans');
+  await expect(bans).toBeVisible({ timeout: 8000 });
+  const ans = (await bans.innerText()).replace(/\s+/g, ' ');
+  expect(ans, ans).toMatch(/こたえは [a-z]+（.+）/);
   expect(errs).toEqual([]);
 });
 
