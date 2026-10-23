@@ -268,6 +268,8 @@
     display:grid;gap:10px;text-align:center;
   }
   .sheet h2{margin:0 0 2px;font-size:24px}
+  /* シートは いつも しろいので、くらい 画面用の 白い 字（.wrap.night .display）に させない */
+  .wrap .sheet h2.display{color:var(--ink)}
   .sheet p{margin:0 0 8px;color:var(--muted);font-size:13.5px;line-height:1.6}
   .sheet .btn{font-size:17px;padding:15px 18px}
   .sheet small{color:var(--muted);font-size:11.5px;display:block;margin-top:-2px}
@@ -524,6 +526,22 @@
   .pickgrid.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
   .pickgrid.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
   .pickgrid.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  /* ---- はやおしの ジャンル ----
+     よはく：見出し↔ボタン・だん どうしは 8、まとまり どうしは 20 と 差を つける。
+     ほかの 行（しょうぶの きめかた など）とも まざらないよう 下を 少し あける。
+     ボタンは 画面はばに あわせて のばさず、きまった はばで ならべる */
+  #row-subject{gap:12px;margin-bottom:8px}
+  .subjpick{display:grid;gap:20px}
+  .subjgrp{display:grid;gap:8px}
+  /* 160px×2＋すきま＝328。スマホ（はば343）でも 2れつ。あまりが 出ても 中央よせなので かたよらない */
+  /* .pickgrid button（たてならび）より 後ろに あっても 勝つよう .pickgrid.subjrow で 書く。
+     絵文字の 右に ことば、ボタンの 中で 中央よせ */
+  .pickgrid.subjrow{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+  .pickgrid.subjrow button{flex:0 0 auto;width:160px;min-height:46px;padding:6px 4px;flex-direction:row;align-items:center;justify-content:center;gap:0;font-size:13.5px;white-space:nowrap}
+  .pickgrid.subjrow button .pi{font-size:18px;margin-right:7px}
+  /* 小見出し：目立たせないが 読める こさ。中央よせで、両わきの 短い 線で 見出しだと わかる */
+  .subjh{display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;font-weight:800;color:var(--sea);line-height:1.3}
+  .subjh::before,.subjh::after{content:'';width:18px;border-top:2px solid var(--sky)}
   .pickgrid button{
     font:inherit;font-weight:700;font-size:13px;line-height:1.2;
     min-width:0;min-height:46px;padding:7px 3px;
@@ -557,7 +575,49 @@
   .rulesheet .step p{font-size:14px}
 
 
-  .setsheet{max-width:360px;text-align:left;gap:14px}
+  /* 画面より 高いと 上下が はみ出して 角が 切れ、「とじる」にも とどかない。
+     高さを 画面に おさめ、あふれたら シートの 中だけ スクロール */
+  .setsheet{max-width:360px;text-align:left;gap:14px;max-height:calc(100svh - 40px);overflow-y:auto;overscroll-behavior:contain}
+  .sethead{
+    position:sticky;top:-22px;z-index:1;margin:-22px -18px 0;padding:16px 14px 8px 18px;
+    background:var(--surface);display:flex;align-items:center;justify-content:center;
+  }
+  .sethead h2{margin:0}
+  .sheetx{
+    position:absolute;right:12px;top:50%;transform:translateY(-38%);
+    width:40px;height:40px;border-radius:999px;border:none;cursor:pointer;
+    background:rgba(27,73,101,.08);color:var(--sea);font:inherit;font-size:24px;font-weight:700;line-height:1;
+    display:grid;place-items:center;padding:0 0 2px;
+  }
+  .sheetx:active{background:rgba(27,73,101,.16)}
+  /* 音の 大きさ：見出し｜🔇 ━━●━━ 🔊｜いまの だんかい を 1行に */
+  .volrow{grid-template-columns:5.6em minmax(0,1fr);align-items:center;column-gap:8px}
+  .volrow .picklabel{letter-spacing:.04em}
+  .volctl{display:flex;align-items:center;gap:6px}
+  .volend{font-size:14px;line-height:1;flex:none}
+  .volval{flex:none;width:3.2em;text-align:right;font-size:13px;font-weight:900;color:var(--sea)}
+  .volctl input[type=range]{
+    flex:1;min-width:0;height:32px;margin:0;background:transparent;cursor:pointer;
+    -webkit-appearance:none;appearance:none;
+  }
+  /* 線：つまみより 左は 色つき（--p＝いまの 位置） */
+  .volctl input[type=range]::-webkit-slider-runnable-track{
+    height:8px;border-radius:999px;
+    background:linear-gradient(90deg,var(--sky) 0 var(--p),rgba(27,73,101,.15) var(--p) 100%);
+  }
+  .volctl input[type=range]::-moz-range-track{
+    height:8px;border-radius:999px;
+    background:linear-gradient(90deg,var(--sky) 0 var(--p),rgba(27,73,101,.15) var(--p) 100%);
+  }
+  /* つまみは 大きめ（おとなが さっと うごかせる） */
+  .volctl input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:26px;height:26px;margin-top:-9px;border-radius:50%;
+    background:#fff;border:3px solid var(--sea);box-shadow:0 2px 5px rgba(16,38,46,.25);
+  }
+  .volctl input[type=range]::-moz-range-thumb{
+    width:20px;height:20px;border-radius:50%;
+    background:#fff;border:3px solid var(--sea);box-shadow:0 2px 5px rgba(16,38,46,.25);
+  }
   .setnote{margin:0;font-size:12.5px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
   /* まちがい直しは わき役なので カードを 小さく */
   .mode.miss{}
@@ -565,6 +625,25 @@
   .mode.miss b{font-size:14.5px}
   .mode.miss small{font-size:11px;margin-top:1px}
   .setsheet h2{text-align:center}
+  /* せっていの 中の ボタンは しろい シートの 上なので、くらい 画面用の すけた 見た目（.wrap.night .btn-ghost）を つかわない。
+     うすく 色を しいて おせると わかるように し、「もどる」用の ‹ も 出さない */
+  .wrap .setsheet .btn.btn-ghost{
+    background:rgba(98,182,203,.24);color:var(--sea);font-weight:800;
+    border:1.5px solid rgba(27,73,101,.35);border-radius:14px;
+  }
+  .setsheet .btn-ghost::before{content:none}
+  /* きろくを 消すのは もどせないので 赤みに */
+  .wrap .setsheet .btn#btn-clear-rec{background:rgba(224,69,47,.1);color:var(--vermilion);border-color:rgba(224,69,47,.45)}
+  /* なまえの「やめる」も しろい シートの 上なので 同じ 赤みに（すけた 見た目だと うすくて 見えない） */
+  .wrap .namesheet .btn#btn-nick-cancel{
+    background:rgba(224,69,47,.1);color:var(--vermilion);font-weight:800;
+    border:1.5px solid rgba(224,69,47,.45);border-radius:14px;
+  }
+  .namesheet #btn-nick-cancel::before{content:none}
+  /* 見出しも くらい 画面用の 水色（.wrap.night .pickrow .picklabel）だと しろい シートで よめないので こく。
+     あちらは この 下（後ろ）に あって 強さも 同じ なので、.sheet を 足して 1だん 強く する */
+  .wrap .sheet.setsheet .pickrow .picklabel{color:var(--sea);font-size:12.5px}
+  .wrap .sheet.setsheet .setnote{color:var(--muted)}
   /* グループ画面も 1画面に。カードは 2列のタイル */
   #s-sub{gap:11px}
   #s-sub .lede{font-size:13.5px;line-height:1.6}
@@ -612,12 +691,13 @@
     .howlede{padding:7px 11px;font-size:12px;line-height:1.5}
     #sub-modes .mode{padding:9px 6px}
     #sub-modes .mode .icon{width:46px;height:30px}
-    /* ジャンルが 9つに ふえて 3れつに なるので、せの低い 端末では 詰める */
-    /* 9つを 5れつに すると 2だんで おさまる */
-    #row-subject .pickgrid{gap:4px;grid-template-columns:repeat(5,minmax(0,1fr))}
-    #row-subject .pickgrid button{min-height:0;padding:3px 2px;font-size:11px;gap:0}
-    #row-subject .pickgrid button .pi{font-size:11px;margin-right:2px}
-    #row-subject .picklabel{margin-bottom:1px}
+    /* せの低い 端末では ジャンルの だんを 詰める（絵文字を 小さく・見出しの すきまを へらす） */
+    #row-subject{gap:8px;margin-bottom:4px}
+    .subjpick{gap:13px}
+    .subjgrp{gap:6px}
+    .pickgrid.subjrow{gap:6px}
+    .pickgrid.subjrow button{min-height:38px;padding:4px}
+    .pickgrid.subjrow button .pi{font-size:15px}
     /* しょうぶの きめかた・ハンデ・まちがい直し も 少し 詰める */
     #row-goal .pickgrid button,#row-handi .pickgrid button{min-height:0;padding:5px 2px;font-size:12px}
     #row-goal .pickgrid button small,#row-handi .pickgrid button small{font-size:9px}
@@ -1213,7 +1293,12 @@
   .rankrow.me{background:#FFF6DC;border-radius:10px;margin:2px -4px;padding-inline:8px}
   .rankrow.apart{border-top:2px dashed var(--line);margin-top:6px}
   .ranknote{margin:6px 4px 4px;color:var(--muted);font-size:11.5px;text-align:right}
-  #s-rank .rm-brand{text-align:center;font-size:12px;font-weight:700;color:var(--sea);margin:0}
+  /* 表は のこりの 高さを ぜんぶ つかうので、もどる・塾名は 画面の 下に つく。
+     もどるの 上は あけて 表と はなし、塾名は もどるから はなして いちばん下に */
+  #s-rank .rm-brand{text-align:center;font-size:11px;font-weight:700;color:var(--muted);margin:12px 0 0;line-height:1.2}
+  #s-rank .backrow{margin-top:6px}
+  /* 「がくねん」の 見出しと ボタンが くっつかないよう */
+  #row-rank-level{gap:12px}
 
   /* ===== ランキング画面（くらい背景・1画面に おさめる） ===== */
   #s-rank .howttl h2{display:flex;align-items:center;gap:8px}
@@ -1281,12 +1366,14 @@
   .rankmsg .cup svg{display:block;width:100%;height:auto}
   /* 下の 塾名に 校舎の しるし */
   .wrap.night #s-rank .rm-brand{
-    color:#9fd0ff;display:flex;align-items:center;justify-content:center;gap:7px;
+    color:rgba(207,228,255,.75);display:flex;align-items:center;justify-content:center;gap:6px;
   }
-  .wrap.night #s-rank .rm-brand::before{content:'🏫';font-size:15px;line-height:1}
+  .wrap.night #s-rank .rm-brand::before{content:'🏫';font-size:13px;line-height:1}
   /* 1画面に おさめる（6学年＋表＋もどる）。
      人数が ふえても 画面からは はみ出さず、表の 中だけ 動く */
+  /* 高さは 倍率（--ui）で わる。zoom で 縮むぶん わらないと 下に すきまが できて、表が のびず もどるが 浮く */
   .wrap.fit{height:100svh;min-height:0;overflow:hidden}
+  @supports (zoom: 1.1){ .wrap.fit{height:calc(100svh / var(--ui,1))} }
   .wrap.fit .screen{min-height:0}
   #s-rank{gap:10px;min-height:0}
   /* 表は あまった 高さを ぜんぶ つかう（のびすぎず、足りなければ 中だけ 動く）。
@@ -1413,6 +1500,8 @@
   }
   .wrap.night .btn-ghost{ color:#cfe4ff; border-color:rgba(207,228,255,.4); }
   .wrap.night .pickrow .picklabel{ color:#9fd0ff; }
+  .wrap.night .subjh{ color:#dcebff; }
+  .wrap.night .subjh::before,.wrap.night .subjh::after{ border-top-color:#5ab8f0; }
 
   /* ---- 当日 あそべない ゲーム（COMING SOON） ---- */
   .colortiles .mode.soon{
@@ -1468,10 +1557,11 @@
     padding:11px 14px;
   }
   .entrynote b{display:block;font-size:13.5px;color:var(--sea)}
-  /* 「もどる」と「さいしょから」を よこに ならべる */
+  /* 「もどる」と「さいしょから」を よこに ならべる（はばは 同じ） */
   .backrow{display:flex;gap:8px}
   .backrow .btn{flex:1 1 0;min-width:0}
-  .backrow .btn-home{flex:0 1 44%}
+  /* 「もどる」だけの 画面（がくねん など）は よこいっぱいだと 間のびするので、2つ ならぶ ときの 1つぶんの はばで 中央に */
+  .backrow .btn:only-child{flex:0 1 calc(50% - 4px);margin-inline:auto}
   .entrynote p{margin:4px 0 0;font-size:12.5px;line-height:1.6}
   .entrynote p b{display:inline;font-size:inherit}
 
@@ -1744,14 +1834,38 @@
   }
   .wrap.night .pickgrid button[aria-pressed="true"] small{opacity:.95}
   /* ジャンルの 色 */
-  .wrap.night #seg-subject button[data-v="mix"]{--bc:#1b63c4}
-  .wrap.night #seg-subject button[data-v="pref"]{--bc:#2a7fd4}
-  .wrap.night #seg-subject button[data-v="flag"]{--bc:#cc3346}
-  .wrap.night #seg-subject button[data-v="kokugo"]{--bc:#7b46c9}
-  .wrap.night #seg-subject button[data-v="rika"]{--bc:#1f8b56}
-  .wrap.night #seg-subject button[data-v="rekishi"]{--bc:#bf7a24}
-  .wrap.night #seg-subject button[data-v="eigo"]{--bc:#2a7fd4}
-  .wrap.night #seg-subject button[data-v="calc"]{--bc:#6d47c7}
+  /* 9つとも ちがう 色あいに する。2れつの ならび（かん字｜けいさん／りか｜れきし／えいご｜都道府県／国旗｜おかいもの）で
+     よこ・たてに となりあう 色が にないように わりふる */
+  /* ジャンルは 色で えらぶので、ふつうの ボタンより 明るく：くらく する フィルタを やめ、下の かげも うすく。
+     明るい 地でも 白い 字が よめるよう 字に うすい かげ */
+  .wrap.night #seg-subject button{
+    filter:none;
+    background:
+      linear-gradient(160deg, rgba(255,255,255,.30) 0%, rgba(255,255,255,.08) 50%, rgba(0,0,0,.08) 100%),
+      var(--bc);
+    text-shadow:0 1px 2px rgba(0,0,0,.35);
+  }
+  /* ミックスだけ「格上」に：こんの 地に 金の ふち、上から うっすら 金の つや */
+  .wrap.night #seg-subject button[data-v="mix"]{
+    --bc:#22408f;
+    border-color:#d9b25a;
+    background:
+      linear-gradient(160deg, rgba(255,214,120,.34) 0%, rgba(255,214,120,.08) 45%, rgba(0,0,0,.12) 100%),
+      var(--bc);
+    color:#fff3d6;
+  }
+  .wrap.night #seg-subject button[data-v="mix"][aria-pressed="true"]{
+    border-color:#ffd67a;
+    box-shadow:0 0 0 3px rgba(255,200,90,.35), 0 10px 22px rgba(0,20,60,.5), inset 0 1px 0 rgba(255,236,190,.5);
+  }
+  .wrap.night #seg-subject button[data-v="kokugo"]{--bc:#e04355}    /* あか */
+  .wrap.night #seg-subject button[data-v="calc"]{--bc:#3a84ea}      /* あお */
+  .wrap.night #seg-subject button[data-v="rika"]{--bc:#dcaa1c}      /* きいろ（白い字が よめる こさ） */
+  .wrap.night #seg-subject button[data-v="rekishi"]{--bc:#8f5ade}   /* むらさき */
+  .wrap.night #seg-subject button[data-v="eigo"]{--bc:#1fa6c2}      /* みずいろ */
+  .wrap.night #seg-subject button[data-v="pref"]{--bc:#a56c36}      /* ちゃいろ */
+  .wrap.night #seg-subject button[data-v="flag"]{--bc:#ec7a2c}      /* オレンジ */
+  .wrap.night #seg-subject button[data-v="word"]{--bc:#3ba24c}      /* みどり（はいいろだと 🛒 が とけこむ） */
   /* しょうぶの きめかた・ハンデ の 色 */
   .wrap.night #seg-goal button[data-v="5"]{--bc:#c9922f}
   .wrap.night #seg-goal button[data-v="10"]{--bc:#2a7fd4}

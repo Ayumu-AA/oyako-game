@@ -156,9 +156,10 @@ export function RankingScreen({ mode0, level0, nick, onBack, onName }: { mode0: 
         {/* 送れていない 点数が あるときだけ 出す（当日 気づけるように） */}
         {pend > 0 && <p className="ranknote warn" id="rank-pend">まだ 送れていない 点数が {pend}件 あります</p>}
       </div>
-      <p className="rm-brand">{CONFIG.schoolName}</p>
       <div className="spacer"></div>
-      <button className="btn btn-ghost" id="btn-rank-back" onClick={onBack}>もどる</button>
+      <div className="backrow"><button className="btn btn-ghost" id="btn-rank-back" onClick={onBack}>もどる</button></div>
+      {/* 塾名は タイトル画面の presented by と 同じく「さいごに そっと」。表と もどるの 間には 入れない */}
+      <p className="rm-brand">{CONFIG.schoolName}</p>
     </section>
   );
 }

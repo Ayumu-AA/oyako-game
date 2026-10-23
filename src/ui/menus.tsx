@@ -210,6 +210,25 @@ export function GamesScreen({ players, level, missN, onPick, onBack, onHome }: {
 }
 
 /* ===== せってい ===== */
+/* 音の 大きさは「なし→小→ふつう→大」と つづく だんかいなので、ボタン4つより スライダーの ほうが 見て わかる。
+   見出しと 1行に ならぶので 高さも 半分。目もりに ぴったり 止まる（とちゅうの 大きさは 作らない） */
+const VOL_NAME = ['なし', '小', 'ふつう', '大'];
+function VolSlider({ id, label, value, onChange }: { id: string; label: string; value: Vol; onChange: (v: Vol) => void }) {
+  return (
+    <div className="pickrow volrow" id={'row-' + id.replace(/^seg-/, '')}>
+      <span className="picklabel">{label}</span>
+      <div className="volctl">
+        <span className="volend" aria-hidden="true">🔇</span>
+        <input type="range" id={id} min={0} max={3} step={1} value={value} aria-label={label} aria-valuetext={VOL_NAME[value]}
+          style={{ '--p': (value / 3) * 100 + '%' } as React.CSSProperties}
+          onChange={(e) => { const n = Number(e.target.value) as Vol; if (n !== value) onChange(n); }} />
+        <span className="volend" aria-hidden="true">🔊</span>
+        <b className="volval">{VOL_NAME[value]}</b>
+      </div>
+    </div>
+  );
+}
+
 export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared, nick, onName }: { open: boolean; seconds: number; onSeconds: (s: number) => void; onClose: () => void; onCleared: () => void; nick: string | null; onName: () => void }) {
   const [snd, setSnd] = useState<Vol>(sfxVol());
   const [bgm, setBgm2] = useState<Vol>(bgmVol());
@@ -231,13 +250,14 @@ export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared, 
   return (
     <div className="overlay" id="set-ov" hidden={!open} role="dialog" aria-modal="true" aria-labelledby="set-title" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="sheet setsheet">
-        <h2 className="display" id="set-title">せってい</h2>
-        <PickGrid id="seg-sound" label="こうかおん（◯・✕の音）" cols={4} value={String(snd)} onPick={(v) => { const n = Number(v) as Vol; setSfxVol(n); setSnd(n); }}
-          options={[{ v: '0', b: pick('🔇', 'なし') }, { v: '1', b: pick('🔈', '小') }, { v: '2', b: pick('🔉', 'ふつう') }, { v: '3', b: pick('🔊', '大') }]} />
-        <PickGrid id="seg-bgm" label="おんがく（BGM）" cols={4} value={String(bgm)} onPick={(v) => { const n = Number(v) as Vol; setBgmVol(n); setBgm2(n); }}
-          options={[{ v: '0', b: pick('🔕', 'なし') }, { v: '1', b: pick('🎵', '小') }, { v: '2', b: pick('🎶', 'ふつう') }, { v: '3', b: pick('📣', '大') }]} />
-        <PickGrid id="seg-bgm-battle" label="はやおし中の 音楽" cols={4} value={String(bt)} onPick={(v) => { const n = Number(v) as Vol; setBattleVol(n); setBt(n); }}
-          options={[{ v: '0', b: pick('🔕', 'なし') }, { v: '1', b: pick('🥁', '小') }, { v: '2', b: pick('🎺', 'ふつう') }, { v: '3', b: pick('📣', '大') }]} />
+        {/* 上に はりつく 見出し。中身が スクロールしても × は いつも 見える */}
+        <div className="sethead">
+          <h2 className="display" id="set-title">せってい</h2>
+          <button type="button" className="sheetx" id="btn-set-x" aria-label="とじる" onClick={onClose}>×</button>
+        </div>
+        <VolSlider id="seg-sound" label="こうかおん" value={snd} onChange={(n) => { setSfxVol(n); setSnd(n); }} />
+        <VolSlider id="seg-bgm" label="おんがく" value={bgm} onChange={(n) => { setBgmVol(n); setBgm2(n); }} />
+        <VolSlider id="seg-bgm-battle" label="はやおし中" value={bt} onChange={(n) => { setBattleVol(n); setBt(n); }} />
         <PickGrid id="seg-uiscale" label="画面の 大きさ" cols={4} value={uiS} onPick={(v) => { setScaleMode(v); setUiS(v); }}
           options={[{ v: 'auto' as ScaleMode, b: pick('📱', 'じどう') }, { v: 'S' as ScaleMode, b: pick('🔹', '小さめ') }, { v: 'M' as ScaleMode, b: pick('🔷', 'ふつう') }, { v: 'L' as ScaleMode, b: pick('🟦', '大きめ') }]} />
         <p className="setnote" id="set-uiscale-note">「じどう」は つかっている 端末の 画面に あわせます。</p>
@@ -256,7 +276,6 @@ export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared, 
               if (sure === 1) { clearRecords(); setRec({ miss: 0, seen: 0 }); setSure(2); onCleared(); setTimeout(() => setSure(0), 1600); }
             }}>{clearLabel}</button>
         </div>
-        <p className="setnote" id="build-id" style={{ textAlign: 'center', opacity: .7 }}>ばんごう {__BUILD__}</p>
         <button className="btn btn-ok" id="btn-set-close" style={{ fontSize: 18, padding: '15px 18px' }} ref={closeBtn} onClick={onClose}>とじる</button>
       </div>
     </div>
@@ -315,6 +334,40 @@ export function bestLine(mode: Mode, s: Settings): string {
   return v ? 'この端末のベスト　' + s.seconds + '秒で ' + v + 'もん' : 'この端末にはまだ記録がありません';
 }
 
+/* はやおしの ジャンル。9つを 4れつに ならべると あまりが 出て ごちゃっと 見えるので、
+   ミックスだけ 上に、のこりは 2れつに ならべる（きょうか→ものしりの じゅん）。
+   ボタンは みな 同じ はばで 中央よせ。学年で 出ない ジャンルは ぬけて つめるだけ。
+   ミックス いがいは いくつでも えらべる（光らせる ものは values、おした ときの きまりは pickSubj） */
+const SUBJ_GROUPS: { h: string; o: { v: BattleSubj; e: string; t: string }[] }[] = [
+  { h: 'きょうか', o: [{ v: 'kokugo', e: '📖', t: 'かん字' }, { v: 'calc', e: '🔢', t: 'けいさん' }, { v: 'rika', e: '🧪', t: 'りか' }, { v: 'rekishi', e: '🏯', t: 'れきし' }, { v: 'eigo', e: '🔤', t: 'えいご' }] },
+  { h: 'ものしり', o: [{ v: 'pref', e: '🗾', t: '都道府県' }, { v: 'flag', e: '🚩', t: '国旗' }, { v: 'word', e: '🛒', t: 'おかいもの' }] },
+];
+function SubjectPick({ level, values, onPick, note }: { level: Level; values: readonly BattleSubj[]; onPick: (v: BattleSubj) => void; note: ReactNode }) {
+  const btn = (v: BattleSubj, body: ReactNode) => (
+    <button type="button" key={v} aria-pressed={values.indexOf(v) >= 0} onClick={() => onPick(v)} data-v={v}>{body}</button>
+  );
+  return (
+    <div className="pickrow" id="row-subject">
+      <span className="picklabel">ジャンル</span>
+      <div className="subjpick" id="seg-subject" role="group" aria-label="ジャンル">
+        {/* 「ぜんぶの ジャンルから」「えらんだ ジャンルから」を 同じ かたちの 見出しに して、2たくだと 見て わかるように する */}
+        <div className="subjgrp">
+          <span className="subjh">ぜんぶの ジャンルから</span>
+          <div className="pickgrid subjrow">{btn('mix', pick('⭐', 'ミックス'))}</div>
+        </div>
+        <div className="subjgrp">
+          <span className="subjh">えらんだ ジャンルから</span>
+          <div className="pickgrid subjrow">
+            {SUBJ_GROUPS.flatMap((g) => g.o).filter((o) => okSubj(o.v, level))
+              .map((o) => btn(o.v, <><i className="pi" aria-hidden="true">{o.e}</i>{o.t}</>))}
+          </div>
+        </div>
+      </div>
+      <p className="setnote picknote">{note}</p>
+    </div>
+  );
+}
+
 export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode: Mode; s: Settings; onChange: (p: Partial<Settings> | ((cur: Settings) => Partial<Settings>)) => void; onStart: () => void; onBack: () => void; onHome?: () => void }) {
   const [rules, setRules] = useState(false);
   /* ひとりの はやおしは「ランキングに のる」か「れんしゅう」かを 先に えらぶ */
@@ -360,17 +413,9 @@ export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode
           <div className="rs tate"><b>タテのカギ</b><span className="arrow">↓</span><span className="who">おとな</span></div>
         </div>
 
-        {isBattle && !missOnly && (!twoWay || entry === 'practice') && <PickGrid id="seg-subject" label="ジャンル" cols={4}
-          value={s.bsubj} values={pickedSubs(s)} onPick={(v) => onChange((cur) => pickSubj(cur, v as BattleSubj))}
-          note={s.subs.length >= 2 ? s.subs.length + 'つの ジャンルから 出ます（もう一度 おすと はずせます）' : 'ジャンルは いくつでも えらべます'}
-          options={([
-            { v: 'mix', b: pick('⭐', 'ミックス') }, { v: 'pref', b: pick('🗾', '都道府県') },
-            { v: 'flag', b: pick('🚩', '国旗') }, { v: 'kokugo', b: pick('📖', 'かん字') },
-            { v: 'rika', b: pick('🧪', 'りか') }, { v: 'rekishi', b: pick('🏯', 'れきし') },
-            { v: 'eigo', b: pick('🔤', 'えいご') }, { v: 'calc', b: pick('🔢', 'けいさん') },
-            { v: 'word', b: pick('🛒', 'おかいもの') },
-          ] as { v: Settings['bsubj']; b: ReactNode }[])
-            .filter((o) => okSubj(o.v as BattleSubj, s.level))} />}
+        {isBattle && !missOnly && (!twoWay || entry === 'practice') && <SubjectPick level={s.level} values={pickedSubs(s)}
+          onPick={(v) => onChange((cur) => pickSubj(cur, v))}
+          note={s.subs.length >= 2 ? s.subs.length + 'つの ジャンルから 出ます（もう一度 おすと はずせます）' : 'ジャンルは いくつでも えらべます'} />}
 
         {/* まちがい直しは ジャンルでは ないので べつわくに する（色も ジャンルと 変える）。
             2人用には 出さない（まちがい直しは 1人用だけ と 決めた） */}

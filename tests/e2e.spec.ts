@@ -486,15 +486,18 @@ test('せってい：おと・時間・記録を消す', async ({ page }) => {
   await page.click('#btn-settings');
   await expect(page.locator('#set-rec')).toHaveText('まちがい帳 1もん ／ 出題きろく 1もん');
   /* 音は 4だんかい（なし・小・ふつう・大）。こうかおんと BGM は べつべつ */
-  await expect(page.locator('#seg-sound button')).toHaveCount(4);
-  await expect(page.locator('#seg-bgm button')).toHaveCount(4);
-  await expect(page.locator('#seg-bgm-battle button')).toHaveCount(4);
+  /* スライダーで、目もりは 0〜3 */
+  for (const id of ['#seg-sound', '#seg-bgm', '#seg-bgm-battle']) {
+    await expect(page.locator(id)).toHaveAttribute('min', '0');
+    await expect(page.locator(id)).toHaveAttribute('max', '3');
+  }
   /* はやおし中の 音楽は ふつうの BGM とは べつに 決められる */
-  await page.click('#seg-bgm-battle button[data-v="1"]');
+  await page.locator('#seg-bgm-battle').fill('1');
   expect(await page.evaluate(() => localStorage.getItem('oyako-bgm-battle'))).toBe('1');
-  await page.click('#seg-sound button[data-v="0"]');
+  await expect(page.locator('#row-bgm-battle .volval')).toHaveText('小');
+  await page.locator('#seg-sound').fill('0');
   expect(await page.evaluate(() => localStorage.getItem('oyako-sound'))).toBe('0');
-  await page.click('#seg-bgm button[data-v="3"]');
+  await page.locator('#seg-bgm').fill('3');
   expect(await page.evaluate(() => localStorage.getItem('oyako-bgm'))).toBe('3');
   expect(await page.evaluate(() => localStorage.getItem('oyako-sound'))).toBe('0');   /* かたほうだけ 変わる */
   /* 画面の 大きさ：えらぶと --ui が 変わる */
