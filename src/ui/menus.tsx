@@ -95,10 +95,10 @@ export const GAMES: Record<1 | 2, Tile[]> = {
   ],
 };
 
-function TileBtn({ t, wide, hero, onClick }: { t: Tile; wide?: boolean; hero?: boolean; onClick: () => void }) {
+function TileBtn({ t, wide, hero, lone, onClick }: { t: Tile; wide?: boolean; hero?: boolean; lone?: boolean; onClick: () => void }) {
   const soon = !!t.soon;
   return (
-    <button className={'mode' + (wide ? ' wide' : '') + (hero ? ' hero' : '') + (soon ? ' soon' : '')} data-tile={t.k} data-group={t.g} data-mode={t.m}
+    <button className={'mode' + (wide ? ' wide' : '') + (hero ? ' hero' : '') + (lone ? ' lone' : '') + (soon ? ' soon' : '')} data-tile={t.k} data-group={t.g} data-mode={t.m}
       disabled={soon} aria-disabled={soon} onClick={soon ? undefined : onClick}>
       <Raw className="icon" html={TILE_SVG[t.k]} />
       <span>{soon && <em className="soontag">COMING SOON</em>}<b>{t.b}</b><small>{soon ? 'いまは あそべません' : t.s}</small></span>
@@ -194,13 +194,17 @@ export function GamesScreen({ players, level, missN, onPick, onBack, onHome }: {
       <p className="eyebrow" id="games-eyebrow">{(players === 2 ? '2人で あそぶ' : '1人で あそぶ') + '・' + gradeLabel(level)}</p>
       <h1 className="display">どれで あそぶ？</h1>
       <div className="modes" id="game-modes">
-        {list.map((t, i) => (
+        {list.map((t, i) => {
           /* あそべるのが 1つだけの ときは それを 主役として 大きく。
-             数が 奇数のときは 最後の1つを 横いっぱいにして すき間を 作らない */
-          <TileBtn key={t.k} t={t} hero={playN === 1 && i === 0}
-            wide={(playN === 1 && i === 0) || ((list.length - (playN === 1 ? 1 : 0)) % 2 === 1 && i === list.length - 1)}
-            onClick={() => onPick(t)} />
-        ))}
+             数が 奇数のときは 最後の1つを 横いっぱいにして すき間を 作らない。
+             ただし 押せない（COMING SOON）タイルは 主役と 同じ 大きさに しない：半分の はばの まま 中央に おく */
+          const last = (list.length - (playN === 1 ? 1 : 0)) % 2 === 1 && i === list.length - 1;
+          return (
+            <TileBtn key={t.k} t={t} hero={playN === 1 && i === 0}
+              wide={(playN === 1 && i === 0) || (last && !t.soon)} lone={last && t.soon}
+              onClick={() => onPick(t)} />
+          );
+        })}
         {players === 1 && missN > 0 && <TileBtn t={miss} wide onClick={() => onPick(miss)} />}
       </div>
       <div className="spacer"></div>
