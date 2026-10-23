@@ -4,7 +4,7 @@ import { reloadRecords, markMiss, markHit, missCount, markSeen, seenAt, clearRec
 import { evalTokens, makePuzzle, checkMath, type Token } from './math10';
 import { rankOf, rankNext } from './rank';
 import { plain, furi, furiName, FURI_RE } from './furigana';
-import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, ANSWER_MS_SOLO, HINT_STEP_MS, PTS_BY_STAGE, ptsAtStage, MIX_ALL, mixFor, okSubj, wordRows, nearNums, splitYomi, charOptions, mojiGroups, askText, PROG_MAX, EIGO_WORD_RATE } from './battle';
+import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, ANSWER_MS_SOLO, HINT_STEP_MS, PTS_BY_STAGE, ptsAtStage, MIX_ALL, mixFor, okSubj, wordRows, nearNums, splitYomi, charOptions, mojiGroups, askText, PROG_MAX, EIGO_WORD_RATE, isKata } from './battle';
 import { cutFuri, plainLen } from './furigana';
 import { relayDeck as deckOf } from './decks';
 import { RIKA_Q } from '../data/rika';
@@ -639,9 +639,10 @@ describe('問題文に「何を 答えるか」を 入れる（10/20）', () => 
     for (let i = 0; i < 40; i++) {
       const q = s.next().q;
       if (q.num) continue;
+      /* 理科は 問題文つき（新しい原稿）と ヒント形式が まざる。
+         問題文つきは ヒントが「ヒント：「〇〇」の もんだい」の 1つだけ。それで 見分ける */
+      if ((q.hints || []).some((h) => h.startsWith('ヒント：'))) continue;
       const t = plain(q.text);
-      /* 理科は 問題文つき（新しい原稿）と ヒント形式が まざる。ヒント形式だけ 見る */
-      if (/？$|\?$/.test(t) && !/これは なに？$/.test(t)) continue;
       expect(t, t).toMatch(/。これは なに？$/); seen++;
     }
     expect(seen).toBeGreaterThan(0);
@@ -763,6 +764,22 @@ describe('えいご：英単語 → 日本語 の 向きも 出す（10/23）', 
     for (const { q } of run('1', 10)) {
       expect(q.yomi && q.yomi[q.answer]).toBe(EIGO_IMI[q.answer]);
     }
+  });
+
+  it('4たくは こたえと 同じ 文字の種類で そろう（見た目で しぼれない）', () => {
+    for (const { q, opts } of run('1', 40)) {
+      const shown = opts.child.map((o) => q.disp![o]);
+      const k = isKata(q.disp![q.answer]);
+      shown.forEach((v) => expect(isKata(v), shown.join(' / ') + ' ← こたえ ' + q.disp![q.answer]).toBe(k));
+    }
+  });
+
+  it('カタカナの こたえには カタカナだけ、ひらがなの こたえには ひらがなだけ', () => {
+    let kata = 0, hira = 0;
+    for (const { q } of run('1', 60)) (isKata(q.disp![q.answer]) ? kata++ : hira++);
+    /* どちらの 種類も 出る（かたよって いない） */
+    expect(kata, 'カタカナの こたえが 出ない').toBeGreaterThan(0);
+    expect(hira, 'ひらがなの こたえが 出ない').toBeGreaterThan(0);
   });
 
   it('同じ いみが 2つ ならばない', () => {

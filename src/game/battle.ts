@@ -60,6 +60,18 @@ export function eigoWordOk(q: RelayQ, deck: RelayQ[]): boolean {
   if (!EIGO_IMI[q.name]) return false;
   return deck.filter((x) => EIGO_IMI[x.name]).length >= 4;
 }
+/** カタカナだけの ことばか（ペンギン・バイオリン など） */
+export const isKata = (v: string) => /^[ァ-ヴーｰ・]+$/.test(v);
+/** えいごの 逆向きの 選たく肢。こたえと 同じ 文字の 種類（カタカナか そうでないか）で そろえる。
+    そろえないと「3つカタカナ・1つひらがな」の ような ならびに なり、
+    いみを 知らなくても 見た目で しぼれてしまう（理科で 字数を そろえたのと 同じ 考え方）。
+    同じ種類が 足りない ときだけ ぜんぶから とる */
+export function eigoKind(q: RelayQ, deck: RelayQ[]): RelayQ[] {
+  const withImi = deck.filter((x) => EIGO_IMI[x.name]);
+  const k = isKata(EIGO_IMI[q.name]);
+  const same = withImi.filter((x) => isKata(EIGO_IMI[x.name]) === k);
+  return same.length >= 4 ? same : withImi;
+}
 
 /** その学年の 理科。その学年ぶん＋1つ下の学年（3年は その学年だけ） */
 export function rikaRows(g: Level) { return (g > 3 ? (RIKA_Q[g - 1] || []) : []).concat(RIKA_Q[g] || []); }
@@ -479,10 +491,11 @@ export class BattleSession {
       : pickN(more, Math.max(0, HINT_MAX - 1)).slice(0, HINT_MAX - 1);
     /* 国語は「かん字の読み」と「ことわざ」が まざることが あるので（まちがい直し）、
        まちがいの選たく肢は 同じ 種類の 中から とる */
-    /* えいごの 逆向きでは、日本語の いみを 持つ ことばだけを 選たく肢に する
-       （いみの ない ことばが まざると、そこだけ 英語で 出て こたえが ばれる） */
+    /* えいごの 逆向きでは、日本語の いみを 持ち、かつ こたえと 同じ 文字の種類の
+       ことばだけを 選たく肢に する（いみの ない ことばが まざると そこだけ 英語で 出て
+       ばれるし、カタカナ3つ＋ひらがな1つ の ような ならびでも 見た目で しぼれてしまう） */
     const kind = key === 'kokugo' ? deck.filter((x) => (x.tag === KANJI_TAG) === (q.tag === KANJI_TAG))
-      : eigoWord ? deck.filter((x) => EIGO_IMI[x.name]) : deck;
+      : eigoWord ? eigoKind(q, deck) : deck;
     const pool = battlePool(key, kind, q);
     const ymap: Record<string, string> = {};
     /* 逆向きは こたえを 見せるとき「apple（りんご）」のように 出したいので、

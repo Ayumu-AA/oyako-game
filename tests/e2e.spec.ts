@@ -1313,6 +1313,10 @@ test('えいご：英単語を 読んで 日本語の 4たくから えらぶ（
   expect(opts.length).toBe(4);
   opts.forEach((o) => expect(o, o).not.toMatch(/[A-Za-z]/));
   expect(new Set(opts).size, '同じ いみが ならんでいる').toBe(opts.length);
+  /* こたえと 同じ 文字の種類で そろえる（カタカナ3つ＋ひらがな1つ では 見た目で しぼれる） */
+  const kata = (v: string) => /^[ァ-ヴーｰ・]+$/.test(v.trim());
+  const kinds = new Set(opts.map((o) => kata(o)));
+  expect(kinds.size, 'カタカナと ひらがなが まざっている: ' + opts.join(' / ')).toBe(1);
   expect(errs).toEqual([]);
 });
 
