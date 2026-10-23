@@ -529,18 +529,19 @@
   .pickgrid.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
   .pickgrid.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
   /* ---- はやおしの ジャンル ----
-     よはく：見出し↔ボタン・だん どうしは 8、まとまり どうしは 20 と 差を つける。
+     よはく：見出し↔ボタン・だん どうしは 8、まとまり どうしは 16 と 差を つける。
      ほかの 行（しょうぶの きめかた など）とも まざらないよう 下を 少し あける。
      ボタンは 画面はばに あわせて のばさず、きまった はばで ならべる */
   #row-subject{gap:12px;margin-bottom:8px}
-  .subjpick{display:grid;gap:20px}
+  .subjpick{display:grid;gap:16px}
   .subjgrp{display:grid;gap:8px}
-  /* 160px×2＋すきま＝328。スマホ（はば343）でも 2れつ。あまりが 出ても 中央よせなので かたよらない */
+  /* 132×38（もとの 160×46 を 同じ 比率で 縮めた）。2人用は 下に しょうぶの きめかた・ハンデが 続くので、
+     これより 大きいと iPhone14 などで 1画面から はみ出す。あまりが 出ても 中央よせなので かたよらない */
   /* .pickgrid button（たてならび）より 後ろに あっても 勝つよう .pickgrid.subjrow で 書く。
      絵文字の 右に ことば、ボタンの 中で 中央よせ */
   .pickgrid.subjrow{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
-  .pickgrid.subjrow button{flex:0 0 auto;width:160px;min-height:46px;padding:6px 4px;flex-direction:row;align-items:center;justify-content:center;gap:0;font-size:13.5px;white-space:nowrap}
-  .pickgrid.subjrow button .pi{font-size:18px;margin-right:7px}
+  .pickgrid.subjrow button{flex:0 0 auto;width:132px;min-height:38px;padding:4px;flex-direction:row;align-items:center;justify-content:center;gap:0;font-size:12.5px;white-space:nowrap}
+  .pickgrid.subjrow button .pi{font-size:16px;margin-right:6px}
   /* 小見出し：目立たせないが 読める こさ。中央よせで、両わきの 短い 線で 見出しだと わかる */
   .subjh{display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;font-weight:800;color:var(--sea);line-height:1.3}
   .subjh::before,.subjh::after{content:'';width:18px;border-top:2px solid var(--sky)}
@@ -699,7 +700,7 @@
     .subjpick{gap:13px}
     .subjgrp{gap:6px}
     .pickgrid.subjrow{gap:6px}
-    .pickgrid.subjrow button{min-height:38px;padding:4px}
+    .pickgrid.subjrow button{min-height:34px;padding:3px 4px}
     .pickgrid.subjrow button .pi{font-size:15px}
     /* しょうぶの きめかた・ハンデ・まちがい直し も 少し 詰める */
     #row-goal .pickgrid button,#row-handi .pickgrid button{min-height:0;padding:5px 2px;font-size:12px}
