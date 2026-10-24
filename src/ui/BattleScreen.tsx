@@ -13,6 +13,11 @@ const IDLE_MS = 10000;
 /** 少しずつ 出すのは けいさん いがいの、みじかい 問題文だけ。
     長い 文章題（理科など）は 読み終わるまで 待たされるので 一気に 出す */
 const isProg = (q: BattleQ | null) => !!(q && !q.num && plainLen(q.text) < PROG_MAX);
+/** いま 画面に 出ている ヒント。だんかいの ぶんだけ 前から とる（持っている ぶんまで） */
+function shownHints(q: BattleQ | null, stage: number): string[] {
+  if (!q || stage <= 0) return [];
+  return (q.hints || []).slice(0, stage);
+}
 /** こたえる もちじかん。ひとりは 5秒、2人の 取り合いは 3秒 */
 const ansMsOf = (players: 1 | 2) => (players === 1 ? ANSWER_MS_SOLO : ANSWER_MS);
 import { furi, furiName, cutFuri, plainLen } from '../game/furigana';
@@ -29,6 +34,7 @@ import type { BattleResult } from './state';
 export interface BattleProps {
   level: Level; seconds: number; bsubj: BattleSubj; handi: number; goal: number; practice?: boolean;
   missN?: number;   /* まちがい直しで 出す 数（0／未指定 = ぜんぶ） */
+  subs?: BattleSubj[];   /* ジャンルを 2つ いじょう えらんだとき */
   players: 1 | 2;   /* 1 = ひとりモード。こども側だけを 回転なしで 出す */
   onFinish: (r: BattleResult) => void; onRestart: () => void; onQuit: () => void;
 }
@@ -38,7 +44,7 @@ const sideZero = (): SideUI => ({ opts: [], flash: false, locked: false, waiting
 /** 回答権の ようす。2人のときだけ 意味がある */
 type Turn = { owner: Side | null; tried: Record<Side, boolean>; reveal: boolean };
 
-export function BattleScreen({ level, seconds, bsubj, handi, goal, players, practice, missN, onFinish, onRestart, onQuit }: BattleProps) {
+export function BattleScreen({ level, seconds, bsubj, handi, goal, players, practice, missN, subs, onFinish, onRestart, onQuit }: BattleProps) {
   const solo = players === 1;
   const sess = useRef<BattleSession | null>(null);
   const [q, setQ] = useState<BattleQ | null>(null);
@@ -98,16 +104,24 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
   /* ヒントと ポイントの だんかい。問題文が 出そろったら 動きだし、3秒ごとに 1つ 進む。
      赤いボタンを 取られたら そこで 止める（取った ときの だんかいで 点が 決まる） */
   const stopStage = useCallback(() => {
-    if (stageTimer.current) { clearInterval(stageTimer.current); stageTimer.current = null; }
+    if (stageTimer.current) { clearTimeout(stageTimer.current); clearInterval(stageTimer.current); stageTimer.current = null; }
   }, []);
-  const startStage = useCallback(() => {
+  /** いまの だんかいに なった 時こく（一時停止で のこりを 計るため） */
+  const stageAt = useRef(0);
+  /** from＝その だんかいから、wait＝つぎの だんかいまでの のこり時間 */
+  const startStage = useCallback((from = 0, wait = HINT_STEP_MS) => {
     stopStage();
-    stageRef.current = 0; setStage(0);
-    stageTimer.current = window.setInterval(() => {
+    stageRef.current = from; setStage(from);
+    stageAt.current = Date.now() - (HINT_STEP_MS - Math.max(0, Math.min(HINT_STEP_MS, wait)));
+    if (from >= 2) return;                 /* もう 出しきっている */
+    const tick = () => {
       const n = Math.min(stageRef.current + 1, 2);
       stageRef.current = n; setStage(n);
-      if (n >= 2) stopStage();
-    }, HINT_STEP_MS);
+      stageAt.current = Date.now();
+      if (n >= 2) { stopStage(); return; }
+      stageTimer.current = window.setTimeout(tick, HINT_STEP_MS);
+    };
+    stageTimer.current = window.setTimeout(tick, Math.max(0, wait));
   }, [stopStage]);
 
   /* こたえる もちじかん（ひとり5秒／2人3秒）。赤いボタンを 取ったとき と、もじあての 1文字ごとに 動かす */
@@ -117,10 +131,11 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
   }, []);
   const ansSideRef = useRef<Side | null>(null);
   const timeUpRef = useRef<(side: Side) => void>(() => undefined);
-  const startAns = useCallback((side: Side) => {
+  /** ms を わたすと その のこり時間で 走らせる（一時停止から 再開する とき） */
+  const startAns = useCallback((side: Side, ms?: number) => {
     if (ansTimer.current) clearInterval(ansTimer.current);
     ansSideRef.current = side;
-    const full = ansMsOf(players);
+    const full = ms !== undefined ? Math.max(0, ms) : ansMsOf(players);
     ansEnd.current = Date.now() + full;
     setAnsLeft(full);
     ansTimer.current = window.setInterval(() => {
@@ -187,7 +202,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
   }, [players, startAns, stopAns, runRev, stopIdle]);
 
   useEffect(() => {
-    const s = new BattleSession({ level, bsubj, handi, goal, players, missN });
+    const s = new BattleSession({ level, bsubj, handi, goal, players, missN, subs });
     sess.current = s; finished.current = false;
     drawScore(s);
     nextBattle();
@@ -319,23 +334,42 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
   };
   const ansSide: Side | null = players === 1 ? 'child' : turn.owner;
 
+  /* 一時停止したときの のこり。再開で その つづきから 走らせる。
+     もとは どちらも 出しなおしに していたが、それだと 止めるたびに もちじかんが 満タンに もどり、
+     ヒントの だんかいも 3点に もどるので、一時停止が 得をする 操作に なっていた */
+  const pausedAns = useRef(-1);       /* こたえる もちじかんの のこり（-1＝走っていなかった） */
+  const pausedStage = useRef(0);      /* ヒントの だんかい */
+  const pausedWait = useRef(HINT_STEP_MS);   /* つぎの だんかいまでの のこり */
   const pause = useCallback(() => {
     if (paused || !timer.current) return;
     setPaused(true); remain.current = Math.max(0, endAt.current - Date.now());
+    pausedAns.current = ansTimer.current ? Math.max(0, ansEnd.current - Date.now()) : -1;
+    pausedStage.current = stageRef.current;
+    pausedWait.current = stageTimer.current
+      ? Math.max(0, HINT_STEP_MS - (Date.now() - stageAt.current)) : HINT_STEP_MS;
     stopTimer(); stopAns(); stopRev(); stopStage(); stopIdle(); stopBattleBgm();
   }, [paused, stopAns, stopRev, stopStage, stopIdle]);
   const resume = useCallback(() => {
     if (!paused) return;
     setPaused(false); startTimer(remain.current);
     if (bsubj !== 'miss') startBattleBgm();
-    /* こたえる もちじかんは 出しなおし（止めたぶん 得しないように はじめから） */
     const s = sess.current;
     if (s && s.q && !s.done) {
-      if (players === 2 && s.owner) startAns(s.owner);
-      else if (players === 1) startAns('child');
-      if (!(players === 2 && s.owner)) runRev(s.q);
+      /* 止めた ところから つづける（もちじかんも ヒントの だんかいも そのまま） */
+      if (pausedAns.current >= 0) {
+        if (players === 2 && s.owner) startAns(s.owner, pausedAns.current);
+        else if (players === 1) startAns('child', pausedAns.current);
+      }
+      if (!(players === 2 && s.owner)) {
+        /* 問題文が まだ 出きっていなければ つづきから 出す。
+           出しおわっていれば ヒントの だんかいだけ つづける（runRev が 走ると 0から に なる） */
+        if (revPos.current < plainLen(s.q.text)) runRev(s.q);
+        else startStage(pausedStage.current, pausedWait.current);
+      } else {
+        startStage(pausedStage.current, pausedWait.current);
+      }
     }
-  }, [paused, startTimer, players, startAns, runRev, bsubj]);
+  }, [paused, startTimer, players, startAns, runRev, startStage, bsubj]);
   usePauseKeys(paused, pause, resume);
 
   const ratio = left / (capSec * 1000);
@@ -414,9 +448,15 @@ function BattleSide({ side, q, u, players, turn, ans, rev, stage, onChoice, onBu
       {q && !q.num && !turn.reveal ? (
         <div className="hintbox">
           <span className="ptsnow" id={'pts-' + side}>{ptsAtStage(stage)}点</span>
-          {stage > 0 && (q.hints || [])[stage - 1]
-            ? <Raw as="span" className="hintline" key={stage} id={'hint-' + side}
-              html={'<i>ヒント' + (stage + 1) + '</i>' + furi((q.hints || [])[stage - 1])} />
+          {/* 出た ヒントは 消さずに 積む。番号は 画面に 出た 順（データの 何番目かでは ない）。
+              ヒントが 1つしか ない 問題（理科の 4たく）でも、最後の ヒントが そのまま のこる */}
+          {shownHints(q, stage).length
+            ? <span className="hintlines" id={'hint-' + side}>
+              {shownHints(q, stage).map((h, i) => (
+                <Raw as="span" className={'hintline' + (i > 0 ? ' sub' : '')} key={i}
+                  html={'<i>ヒント' + (i + 1) + '</i>' + furi(h)} />
+              ))}
+            </span>
             : <span className="hintwait">{(q.hints || []).length ? 'ヒントは 3びょうご' : ''}</span>}
         </div>
       ) : null}

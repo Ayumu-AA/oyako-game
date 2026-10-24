@@ -17,6 +17,7 @@ export interface Settings {
   kana: 'R' | 'L' | 'F';       // 50音の ならび：みぎから／ひだりから／フリック
   practice: boolean;         // れんしゅう＝ランキングに 送らない
   missN: number;             // まちがい直しで 出す 数（0 = ぜんぶ）
+  subs: BattleSubj[];        // ジャンルを 2つ いじょう えらんだとき（ミックスとは べつ）
 }
 
 export function loadSettings(): Settings {
@@ -28,6 +29,7 @@ export function loadSettings(): Settings {
     kana: (k === 'R' || k === 'L' || k === 'F') ? k : 'R',
     practice: false,
     missN: (() => { const v = Number(store('oyako-missn')); return Number.isFinite(v) && v >= 0 ? v : 10; })(),
+    subs: [],
   };
 }
 

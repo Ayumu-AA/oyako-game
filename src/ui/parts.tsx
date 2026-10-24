@@ -10,20 +10,25 @@ export function Raw({ html, as: Tag = 'span', className, id, hidden, style }: { 
 }
 
 /** 2〜4列の えらぶボタン */
-export function PickGrid<T extends string | number>({ id, label, cols, value, options, onPick, className }: {
+export function PickGrid<T extends string | number>({ id, label, cols, value, values, options, onPick, className, note }: {
   id: string; label: string; cols: 2 | 3 | 4 | 5; value: T;
+  /** わたすと 2つ いじょう えらべる（おしたものが ぜんぶ 光る）。value は 1つだけの ときの ため */
+  values?: readonly T[];
   options: { v: T; b: ReactNode; s?: ReactNode }[]; onPick: (v: T) => void; className?: string;
+  note?: ReactNode;
 }) {
+  const on = (v: T) => (values ? values.indexOf(v) >= 0 : v === value);
   return (
     <div className={'pickrow' + (className ? ' ' + className : '')} id={'row-' + id.replace(/^seg-/, '')}>
       <span className="picklabel">{label}</span>
       <div className={'pickgrid c' + cols} id={id} role="group" aria-label={label}>
         {options.map((o) => (
-          <button type="button" key={String(o.v)} aria-pressed={o.v === value} onClick={() => onPick(o.v)} data-v={String(o.v)}>
+          <button type="button" key={String(o.v)} aria-pressed={on(o.v)} onClick={() => onPick(o.v)} data-v={String(o.v)}>
             {o.s ? <><b>{o.b}</b><small>{o.s}</small></> : o.b}
           </button>
         ))}
       </div>
+      {note ? <p className="setnote picknote">{note}</p> : null}
     </div>
   );
 }

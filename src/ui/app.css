@@ -791,6 +791,8 @@
   #s-battle:not(.solo) .mshown{font-size:clamp(16px,4.2vw,26px);gap:3px 12px}
   #s-battle:not(.solo) .hintbox{min-height:0;margin:0}
   #s-battle:not(.solo) .hintbox .hintline{font-size:13px;padding:4px 9px;line-height:1.35}
+  #s-battle:not(.solo) .hintbox .hintline.sub{font-size:11.5px;padding:3px 8px}
+  #s-battle:not(.solo) .hintlines{gap:2px}
   #s-battle:not(.solo) .hintbox .hintline i{font-size:9px}
   #s-battle:not(.solo) .hintbox .hintwait{font-size:11.5px}
   #s-battle:not(.solo) .hintbox .ptsnow{font-size:12px}
@@ -798,6 +800,7 @@
   @media (max-height:680px){
     #s-battle:not(.solo) .qart{width:min(58px,8.4vh)}
     #s-battle:not(.solo) .hintbox .hintline{font-size:12px;padding:3px 8px}
+    #s-battle:not(.solo) .hintbox .hintline.sub{font-size:10.5px;padding:2px 7px}
     #s-battle:not(.solo) .choice{padding:clamp(5px,1vh,9px) 4px}
   }
 
@@ -1437,16 +1440,23 @@
     flex:none;font-size:11.5px;font-weight:800;color:#fff;background:var(--leaf);
     border-radius:999px;padding:2px 10px;font-variant-numeric:tabular-nums;
   }
+  /* 出た ヒントは 消さずに 積む（2つまで）。2つ目は 少し 小さくして 高さを おさえる */
+  .hintlines{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
+  .picknote{margin:5px 0 0;font-size:11.5px;color:var(--muted);text-align:left}
   .hintbox .hintline{
     font-size:12.5px;font-weight:700;color:var(--sea);
     background:rgba(98,182,203,.16);border-radius:10px;padding:3px 9px;line-height:1.45;
   }
+  .hintbox .hintline.sub{font-size:11.5px;padding:2px 8px;opacity:.92}
   .mpts{
     flex:none;display:flex;align-items:baseline;gap:2px;
     font-size:19px;font-weight:800;color:var(--sea);font-variant-numeric:tabular-nums;
   }
   .mpts small{font-size:10px;font-weight:700;color:var(--muted)}
-  @media (max-height:710px){ .hintbox .hintline{font-size:11.5px;padding:2px 8px} }
+  @media (max-height:710px){
+    .hintbox .hintline{font-size:11.5px;padding:2px 8px}
+    .hintbox .hintline.sub{font-size:10.5px;padding:2px 7px}
+  }
 
   /* ---- ひとりの はやおし：ランキング／練習 の えらび ---- */
   #solo-entry{margin-top:4px}

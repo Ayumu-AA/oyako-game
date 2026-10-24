@@ -8,6 +8,7 @@ import { preloadArt } from './art';
 import { markSeen, seenAt, markHit, markMiss } from './records';
 import { shuffle, pickN, randInt, rng } from './util';
 import { store } from '../lib/storage';
+import { plain } from './furigana';
 import { dataLv } from './types';
 import type { BattleQ, Level, RelayQ, Side, Subject } from './types';
 
@@ -75,6 +76,22 @@ export function eigoKind(q: RelayQ, deck: RelayQ[]): RelayQ[] {
 
 /** その学年の 理科。その学年ぶん＋1つ下の学年（3年は その学年だけ） */
 export function rikaRows(g: Level) { return (g > 3 ? (RIKA_Q[g - 1] || []) : []).concat(RIKA_Q[g] || []); }
+/** 似ている ヒントを 1つに しぼる。
+    「善光寺」と「善光寺が ある」の ように 片方が もう片方を ふくむ ものが 両方 候補に 入っていると、
+    2つ えらんだ ときに ほぼ 同じ ヒントが 2回 出てしまう（47県中 29県に あった）。
+    先に 来た ほう（みじかい 名物の ほうが 先に ならんでいる）を のこす。 */
+export function noOverlap(hints: string[]): string[] {
+  const key = (h: string) => plain(h).replace(/[（(][^）)]*[）)]/g, '').replace(/\s/g, '');
+  const out: string[] = [];
+  for (const h of hints) {
+    const k = key(h);
+    if (!k) continue;
+    if (out.some((o) => { const ok = key(o); return ok.includes(k) || k.includes(ok); })) continue;
+    out.push(h);
+  }
+  return out;
+}
+
 /** まちがいの選たく肢を ならべる。こたえと 字の長さが 近いものを 先に（同じ近さなら ばらばらに）。
     理由をきく問題は こたえだけ 文が 長くなりがちで、そのままだと
    「いちばん長いのを えらべば 当たる」に なってしまう */
@@ -103,6 +120,18 @@ export const SUBJ_FROM: Partial<Record<BattleSubj, Level>> = { pref: 2, rekishi:
 export const okSubj = (v: BattleSubj, g: Level) => g >= (SUBJ_FROM[v] || 1);
 /** そのがくねんで ミックスに 出る ジャンル */
 export const mixFor = (g: Level): BattleSubj[] => MIX_ALL.filter((v) => okSubj(v, g));
+/** いま 出す ジャンルの 一覧。
+    ・ミックス … その学年の ぜんぶ（いままでどおり。ランキングは これだけ）
+    ・2つ いじょう えらんだ … えらんだ ものだけ（「都道府県と けいさん」など）
+    ・1つだけ … そのジャンル
+    どれも その学年に ない ジャンルは のぞく。のこらなければ ミックスに もどす */
+export function subjKeys(o: { level: Level; bsubj: BattleSubj; subs?: BattleSubj[] }): BattleSubj[] {
+  if (o.bsubj === 'mix') return mixFor(o.level);
+  const many = (o.subs || []).filter((v) => okSubj(v, o.level));
+  if (many.length >= 2) return [...new Set(many)];
+  if (okSubj(o.bsubj, o.level)) return [o.bsubj];
+  return mixFor(o.level);
+}
 
 /* もじあて：こたえの よみを 「本体」と「県・都・府・道」に 分ける。
    青森県 → あおもり ＋ 県 ／ 北海道 → ほっかい ＋ 道 ／ 国旗は そのまま */
@@ -258,6 +287,9 @@ export interface BattleOpts {
   level: Level; bsubj: BattleSubj; handi: number; goal: number; players?: 1 | 2;
   /** まちがい直しで 出す 問題の 数（0／未指定 = ぜんぶ） */
   missN?: number;
+  /** えらんだ ジャンル（2つ いじょうの ときだけ 使う）。
+      ミックスは いままでどおり bsubj:'mix'。ここは「都道府県と けいさん」のような まぜ方 */
+  subs?: BattleSubj[];
 }
 
 /** 1ゲームぶんの 状態。UI は これを持って 描画する */
@@ -343,8 +375,7 @@ export class BattleSession {
     }
     /* その学年の ジャンルに ないものは 出さない。
        （前の 学年で えらんだ ジャンルが のこっていても、学年の ジャンルだけに する） */
-    const keys: BattleSubj[] = this.opts.bsubj !== 'mix' && okSubj(this.opts.bsubj, this.opts.level)
-      ? [this.opts.bsubj] : mixFor(this.opts.level);
+    const keys: BattleSubj[] = subjKeys(this.opts);
     const key = keys[Math.floor(rng() * keys.length)] as Subject | 'moji';
     if (key === 'moji') return this.mojiQ();
     if (key === 'calc') return calcQuestion(this.opts.level);
@@ -485,7 +516,7 @@ export class BattleSession {
     else { text = askText(key, q); }
     /* 3秒ごとに 1つずつ 出す ヒント。問題文に つかった ぶんは のぞく */
     const used = key === 'pref' || key === 'rika' || key === 'rekishi' ? 1 : 0;
-    const more = q.hints.slice(used).filter((h) => h && h !== text);
+    const more = noOverlap(q.hints.slice(used).filter((h) => h && h !== text));
     /* かん字の読みは ヒントの 順番が 決まっている（いみ → よみの 文字数）ので 抽選しない */
     const hints = q.tag === KANJI_TAG ? more.slice(0, HINT_MAX - 1)
       : pickN(more, Math.max(0, HINT_MAX - 1)).slice(0, HINT_MAX - 1);

@@ -4,7 +4,7 @@ import { reloadRecords, markMiss, markHit, missCount, markSeen, seenAt, clearRec
 import { evalTokens, makePuzzle, checkMath, type Token } from './math10';
 import { rankOf, rankNext } from './rank';
 import { plain, furi, furiName, FURI_RE } from './furigana';
-import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, ANSWER_MS_SOLO, HINT_STEP_MS, PTS_BY_STAGE, ptsAtStage, MIX_ALL, mixFor, okSubj, wordRows, nearNums, splitYomi, charOptions, mojiGroups, askText, PROG_MAX, EIGO_WORD_RATE, isKata } from './battle';
+import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, ANSWER_MS_SOLO, HINT_STEP_MS, PTS_BY_STAGE, ptsAtStage, MIX_ALL, mixFor, okSubj, wordRows, nearNums, splitYomi, charOptions, mojiGroups, askText, PROG_MAX, EIGO_WORD_RATE, isKata, noOverlap, subjKeys } from './battle';
 import { cutFuri, plainLen } from './furigana';
 import { relayDeck as deckOf } from './decks';
 import { RIKA_Q } from '../data/rika';
@@ -797,5 +797,82 @@ describe('えいご：英単語 → 日本語 の 向きも 出す（10/23）', 
       const { q } = s.next();
       expect(plain(q.text), lv + '年').toMatch(/は 日本語で？$/);
     }
+  });
+});
+
+describe('ヒントの かさなりを さける（10/24）', () => {
+  it('片方が もう片方を ふくむ ものは 1つに する', () => {
+    expect(noOverlap(['善光寺', '善光寺が ある'])).toEqual(['善光寺']);
+    expect(noOverlap(['道後温泉', 'タオル', '道後温泉が ある'])).toEqual(['道後温泉', 'タオル']);
+    expect(noOverlap(['日本の首都', '日本の首都'])).toEqual(['日本の首都']);
+  });
+  it('かっこの ふりがなは 数に 入れない', () => {
+    expect(noOverlap(['高野山{こうやさん}', '高野山が 有名'])).toEqual(['高野山{こうやさん}']);
+  });
+  it('ちがう ヒントは のこる', () => {
+    const a = ['りんご', 'ねぶたまつり', 'にんにくの 生産量が 日本一'];
+    expect(noOverlap(a)).toEqual(a);
+  });
+  it('どの県でも ヒントが かさならない', () => {
+    for (const lv of [1, 2] as const) {
+      relayDeck('pref', lv).forEach((q) => {
+        const hs = noOverlap(q.hints.slice(1));
+        const key = (h: string) => plain(h).replace(/[（(][^）)]*[）)]/g, '').replace(/\s/g, '');
+        hs.forEach((a, i) => hs.slice(i + 1).forEach((b) => {
+          expect(key(a).includes(key(b)) || key(b).includes(key(a)), q.name + ': ' + a + ' ／ ' + b).toBe(false);
+        }));
+        expect(hs.length, q.name + ' の ヒントが 足りない').toBeGreaterThanOrEqual(2);
+      });
+    }
+  });
+});
+
+describe('ジャンルを 2つ いじょう えらぶ（10/24）', () => {
+  it('ミックスは いままでどおり その学年 ぜんぶ', () => {
+    expect(subjKeys({ level: 6, bsubj: 'mix' })).toEqual(mixFor(6));
+    expect(subjKeys({ level: 6, bsubj: 'mix', subs: ['pref', 'calc'] })).toEqual(mixFor(6));
+  });
+  it('2つ えらんだら その2つだけ', () => {
+    expect(subjKeys({ level: 6, bsubj: 'pref', subs: ['pref', 'calc'] })).toEqual(['pref', 'calc']);
+  });
+  it('1つだけなら そのジャンル', () => {
+    expect(subjKeys({ level: 6, bsubj: 'pref', subs: [] })).toEqual(['pref']);
+    expect(subjKeys({ level: 6, bsubj: 'pref', subs: ['pref'] })).toEqual(['pref']);
+  });
+  it('その学年に ない ジャンルは のぞく', () => {
+    /* えいごは 5年から。3年で えらんでも 出さない */
+    expect(subjKeys({ level: 3, bsubj: 'pref', subs: ['pref', 'eigo', 'calc'] })).toEqual(['pref', 'calc']);
+  });
+  it('のこらなければ ミックスに もどす（画面が 止まらない）', () => {
+    expect(subjKeys({ level: 3, bsubj: 'eigo', subs: ['eigo'] })).toEqual(mixFor(3));
+  });
+  it('同じものを 2回 入れても 1つ', () => {
+    expect(subjKeys({ level: 6, bsubj: 'pref', subs: ['pref', 'calc', 'pref'] })).toEqual(['pref', 'calc']);
+  });
+  it('えらんだ 2つからしか 出ない', () => {
+    setKV(memoryKV()); reloadRecords();
+    const s = new BattleSession({ level: 6, bsubj: 'pref', handi: 1, goal: 0, players: 1, subs: ['pref', 'calc'] });
+    for (let i = 0; i < 30; i++) {
+      const { q } = s.next();
+      expect(q.num || q.sub === 'pref', q.sub + ' が 出た').toBe(true);
+    }
+  });
+});
+
+describe('都道府県の 1つ目を 直した（10/24）', () => {
+  const h1 = (nm: string) => plain(relayDeck('pref', 2).find((q) => q.name === nm)!.hints[0]);
+  it('埼玉県は「海がない」を やめた（海のない県は 8つ ある）', () => {
+    expect(h1('埼玉県')).not.toBe('海がない');
+  });
+  it('りんご・みかんの かぶりが なくなった', () => {
+    expect(h1('青森県')).toBe('りんご');
+    expect(h1('長野県')).not.toBe('りんご');
+    expect(h1('和歌山県')).toBe('みかん');
+    expect(h1('愛媛県')).not.toBe('みかん');
+  });
+  it('47県 ぜんぶで 1つ目が かぶらない', () => {
+    const hs = relayDeck('pref', 2).map((q) => plain(q.hints[0]));
+    const dup = hs.filter((h, i) => hs.indexOf(h) !== i);
+    expect(dup, 'かぶり: ' + dup.join(', ')).toEqual([]);
   });
 });

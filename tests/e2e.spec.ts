@@ -319,6 +319,9 @@ test('はやおしバトル：国語は かん字の読み（選たく肢は よ
   /* 結果画面の ボタン（まちがい帳に 1つ あるので 出る） */
   await nav(page);
   await page.click('[data-mode="battle"]');
+  /* まえに えらんだ かん字が のこっているので、ミックスに もどしてから けいさんだけに する
+     （ジャンルは 2つ いじょう えらべるように なったので、おすと 足される） */
+  await page.click('#seg-subject button[data-v="mix"]');
   await page.click('#seg-subject button[data-v="calc"]');
   await page.click('#seg-goal button[data-v="5"]'); await page.click('#seg-handi button[data-v="0"]');
   await page.click('#btn-start');
@@ -1139,12 +1142,15 @@ test('理科：ヒント形式だけに すると 3秒ごとに ヒントが 出
   await rikaRun(page, 6, '0');          /* いつも ヒント形式 */
   await qFull(page);
   /* 問題文が 出そろった ちょくごは ヒントなし・3点 */
-  await expect(page.locator('.hintwait')).toBeVisible();
   await expect(page.locator('#pts-child')).toHaveText('3点');
-  /* 3秒で ヒント2、さらに 3秒で ヒント3。点は へっていく */
-  await expect(page.locator('#hint-child')).toContainText('ヒント2', { timeout: 6000 });
+  await expect(page.locator('#hint-child')).toHaveCount(0);
+  /* 3秒で ヒント1、さらに 3秒で ヒント2。出た ヒントは 消えずに のこる（10/24） */
+  const box = page.locator('#hint-child');
+  await expect(box).toContainText('ヒント1', { timeout: 6000 });
   await expect(page.locator('#pts-child')).toHaveText('2点');
-  await expect(page.locator('#hint-child')).toContainText('ヒント3', { timeout: 6000 });
+  await expect(box.locator('.hintline')).toHaveCount(2, { timeout: 6000 });
+  await expect(box).toContainText('ヒント2');
+  await expect(box).toContainText('ヒント1');   /* 1つ目は 消えない */
   await expect(page.locator('#pts-child')).toHaveText('1点');
 });
 
@@ -1331,9 +1337,10 @@ test('えいご：英単語を 読んで 日本語の 4たくから えらぶ（
   expect(kinds.size, 'カタカナと ひらがなが まざっている: ' + opts.join(' / ')).toBe(1);
   /* わざと まちがえると「curry（カレー）」の ように 日本語つきで こたえが 出る
      （英単語だけ 出しても、まちがえた子に 何も のこらない） */
-  const first = await page.locator('#side-child .choice').first().innerText();
-  const wrong = page.locator('#side-child .choice').filter({ hasNotText: first.trim() }).first();
-  await wrong.click();
+  /* こたえ（英単語）いがいを おす。合っていると こたえは 出ないので、かならず まちがえる */
+  const word = (q.match(/「([a-z]+)」/) || [])[1]!;
+  expect(word, q).toBeTruthy();
+  await page.locator('#side-child .choice:not([data-a="' + word + '"])').first().click();
   const bans = page.locator('#side-child .bans');
   await expect(bans).toBeVisible({ timeout: 8000 });
   const ans = (await bans.innerText()).replace(/\s+/g, ' ');
@@ -1377,4 +1384,125 @@ test('えいご：半々で イラストの 向きも 出る（10/23）', async 
   await expect(page.locator('#side-child .qart svg, #side-child .qart img').first()).toBeVisible();
   const opts = await page.locator('#side-child .choice').allInnerTexts();
   opts.forEach((o) => expect(o, o).toMatch(/[a-z]/));
+});
+
+test('ヒントは 1から 数えて、出たものは 消えずに 積む（10/24）', async ({ page }) => {
+  const errs = noErrors(page);
+  await open(page);
+  await nav(page, 1, 6);
+  await page.click('[data-mode="battle1"]');
+  await page.click('#btn-entry-practice');
+  await page.click('#seg-subject button[data-v="pref"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  /* ヒントが 出る前は 3点 */
+  await expect(page.locator('#pts-child')).toHaveText('3点', { timeout: 8000 });
+  /* 1つ目は「ヒント1」。「ヒント2」から はじまらない */
+  const box = page.locator('#hint-child');
+  await expect(box).toBeVisible({ timeout: 6000 });
+  await expect(box.locator('.hintline')).toHaveCount(1);
+  await expect(box).toContainText('ヒント1');
+  await expect(box).not.toContainText('ヒント2');
+  await expect(page.locator('#pts-child')).toHaveText('2点');
+  /* 2つ目が 出ても 1つ目は のこる */
+  await expect(box.locator('.hintline')).toHaveCount(2, { timeout: 6000 });
+  await expect(box).toContainText('ヒント1');
+  await expect(box).toContainText('ヒント2');
+  await expect(page.locator('#pts-child')).toHaveText('1点');
+  /* 「ヒントは 3びょうご」には もどらない */
+  await expect(page.locator('.hintwait')).toHaveCount(0);
+  expect(errs).toEqual([]);
+});
+
+test('理科の 4たくは ヒントが 1つ。1点に なっても ヒントが のこる（10/24）', async ({ page }) => {
+  const errs = noErrors(page);
+  await open(page, { 'oyako-rikarate': '1' });   /* いつも 4たく問題 */
+  await nav(page, 1, 6);
+  await page.click('[data-mode="battle1"]');
+  await page.click('#btn-entry-practice');
+  await page.click('#seg-subject button[data-v="rika"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  const box = page.locator('#hint-child');
+  await expect(box).toContainText('ヒント1', { timeout: 8000 });
+  await expect(page.locator('#pts-child')).toHaveText('2点');
+  /* 3秒後、1点に なっても「ヒントは 3びょうご」に もどらない（前の バグ） */
+  await expect(page.locator('#pts-child')).toHaveText('1点', { timeout: 6000 });
+  await expect(page.locator('.hintwait')).toHaveCount(0);
+  await expect(box).toContainText('ヒント1');
+  expect(errs).toEqual([]);
+});
+
+test('一時停止しても もちじかんと ヒントの だんかいは もどらない（10/24）', async ({ page }) => {
+  const errs = noErrors(page);
+  await open(page);
+  await nav(page, 1, 6);
+  await page.click('[data-mode="battle1"]');
+  await page.click('#btn-entry-practice');
+  await page.click('#seg-subject button[data-v="pref"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  /* ヒントが 2つ 出て 1点に なるまで 待つ */
+  await expect(page.locator('#pts-child')).toHaveText('1点', { timeout: 12000 });
+  const left = () => page.evaluate(() => {
+    const el = document.querySelector('#anst-child div') as HTMLElement | null;
+    return el ? parseFloat(el.style.width) : -1;
+  });
+  const before = await left();
+  await page.click('#btn-bpause');
+  await expect(page.locator('#overlay')).toBeVisible();
+  await page.waitForTimeout(1200);
+  await page.click('#btn-resume');
+  /* 点は 1点の まま（3点に もどらない） */
+  await expect(page.locator('#pts-child')).toHaveText('1点');
+  /* もちじかんも 満タンに もどらない */
+  const after = await left();
+  expect(after, 'もちじかんが 満タンに もどっている: ' + before + ' → ' + after).toBeLessThanOrEqual(before + 2);
+  expect(errs).toEqual([]);
+});
+
+test('ジャンルを 2つ えらべる。ミックスは 1つだけ（10/24）', async ({ page }) => {
+  const errs = noErrors(page);
+  await open(page);
+  await nav(page, 1, 6);
+  await page.click('[data-mode="battle1"]');
+  await page.click('#btn-entry-practice');
+  const on = () => page.locator('#seg-subject button[aria-pressed="true"]');
+  /* はじめは ミックスだけ 光る */
+  await expect(on()).toHaveCount(1);
+  await expect(on()).toHaveAttribute('data-v', 'mix');
+  /* 都道府県＋けいさん */
+  await page.click('#seg-subject button[data-v="pref"]');
+  await page.click('#seg-subject button[data-v="calc"]');
+  await expect(on()).toHaveCount(2);
+  await expect(page.locator('#row-subject .picknote')).toContainText('2つの ジャンル');
+  /* もう一度 おすと はずれる */
+  await page.click('#seg-subject button[data-v="calc"]');
+  await expect(on()).toHaveCount(1);
+  await expect(on()).toHaveAttribute('data-v', 'pref');
+  /* ぜんぶ はずすと ミックスに もどる */
+  await page.click('#seg-subject button[data-v="pref"]');
+  await expect(on()).toHaveAttribute('data-v', 'mix');
+  /* ミックスを おすと それだけに なる */
+  await page.click('#seg-subject button[data-v="pref"]');
+  await page.click('#seg-subject button[data-v="flag"]');
+  await expect(on()).toHaveCount(2);
+  await page.click('#seg-subject button[data-v="mix"]');
+  await expect(on()).toHaveCount(1);
+  await expect(on()).toHaveAttribute('data-v', 'mix');
+  expect(errs).toEqual([]);
+});
+
+test('ランキングは いままでどおり ミックスだけ（10/24）', async ({ page }) => {
+  await open(page);
+  await nav(page, 1, 6);
+  await page.click('[data-mode="battle1"]');
+  /* 練習で 2つ えらんでから ランキングに 入り直すと ミックスに もどる */
+  await page.click('#btn-entry-practice');
+  await page.click('#seg-subject button[data-v="pref"]');
+  await page.click('#seg-subject button[data-v="calc"]');
+  await page.click('#btn-how-back');
+  await page.click('#btn-entry-rank');
+  await expect(page.locator('#rank-note')).toBeVisible();
+  await expect(page.locator('#seg-subject')).toHaveCount(0);   /* ランキングでは えらばせない */
 });

@@ -31,6 +31,23 @@ function BackRow({ id, onBack, onHome }: { id: string; onBack: () => void; onHom
   );
 }
 
+/** いま 光らせる ジャンル。ミックスは それ 1つだけ、ほかは えらんだ ぶん ぜんぶ */
+export function pickedSubs(s: Settings): BattleSubj[] {
+  if (s.bsubj === 'mix' || s.bsubj === 'miss') return [s.bsubj];
+  return s.subs.length >= 2 ? s.subs : [s.bsubj];
+}
+/** ジャンルの ボタンを おしたとき。
+    ・ミックス … それだけに する（ランキングの 条件なので まぜない）
+    ・ほか … おすたびに 入れる・はずす。ぜんぶ はずしたら ミックスに もどる */
+export function pickSubj(s: Settings, v: BattleSubj): Partial<Settings> {
+  if (v === 'mix') return { bsubj: 'mix', subs: [] };
+  const now = s.bsubj === 'mix' || s.bsubj === 'miss' ? [] : (s.subs.length >= 2 ? s.subs : [s.bsubj]);
+  const next = now.indexOf(v) >= 0 ? now.filter((x) => x !== v) : now.concat(v);
+  if (!next.length) return { bsubj: 'mix', subs: [] };
+  if (next.length === 1) return { bsubj: next[0], subs: [] };
+  return { bsubj: next[0], subs: next };
+}
+
 const MN = MODE_NAME as Record<string, string>;
 const G = GROUPS as Record<Group, { eyebrow: string; title: string; lede: string; note: string; modes: string[] }>;
 /* はやおし（ひとり）は 教科アイコンが ないので、ホームの タイルと 同じ絵を つかう */
@@ -343,7 +360,9 @@ export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode
           <div className="rs tate"><b>タテのカギ</b><span className="arrow">↓</span><span className="who">おとな</span></div>
         </div>
 
-        {isBattle && !missOnly && (!twoWay || entry === 'practice') && <PickGrid id="seg-subject" label="ジャンル" cols={4} value={s.bsubj} onPick={(v) => onChange({ bsubj: v })}
+        {isBattle && !missOnly && (!twoWay || entry === 'practice') && <PickGrid id="seg-subject" label="ジャンル" cols={4}
+          value={s.bsubj} values={pickedSubs(s)} onPick={(v) => onChange(pickSubj(s, v as BattleSubj))}
+          note={s.subs.length >= 2 ? s.subs.length + 'つの ジャンルから 出ます（もう一度 おすと はずせます）' : 'ジャンルは いくつでも えらべます'}
           options={([
             { v: 'mix', b: pick('⭐', 'ミックス') }, { v: 'pref', b: pick('🗾', '都道府県') },
             { v: 'flag', b: pick('🚩', '国旗') }, { v: 'kokugo', b: pick('📖', 'かん字') },
@@ -402,7 +421,7 @@ export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode
         {twoWay && entry === 'none' && (
           <div className="modes colortiles" id="solo-entry">
             <button className="mode wide" data-tile="battle1" data-entry="rank" id="btn-entry-rank"
-              onClick={() => { onChange({ bsubj: 'mix', practice: false }); setEntry('rank'); }}>
+              onClick={() => { onChange({ bsubj: 'mix', subs: [], practice: false }); setEntry('rank'); }}>
               <Raw className="icon" html={TILE_SVG.battle1} />
               <span><b>ランキング</b><small>ミックス・90秒・とくてんで きそう</small></span>
             </button>
@@ -418,6 +437,7 @@ export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode
           <div className="entrynote" id="rank-note">
             <b>ランキングに のる モード</b>
             <p>ジャンルは <b>ミックス</b>、時間は <b>90秒</b>。早く こたえるほど とくてんが 高くなります。</p>
+            <p>ジャンルを えらんで あそびたい ときは「練習」へ。みんなと くらべるために、ランキングは ミックスだけに しています。</p>
           </div>
         )}
 

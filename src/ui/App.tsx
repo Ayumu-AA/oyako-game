@@ -191,7 +191,7 @@ export default function App() {
           （自分が まちがえた問題を 直すのが ねらいなので、早さを きそう ものでは ない） */}
       {screen === 'battle' && <BattleScreen key={round} level={s.level} bsubj={s.bsubj} handi={s.handi}
         goal={s.players === 1 || s.bsubj === 'miss' ? 0 : s.goal}
-        players={s.bsubj === 'miss' ? 1 : s.players} practice={s.practice} missN={s.missN}
+        players={s.bsubj === 'miss' ? 1 : s.players} practice={s.practice} missN={s.missN} subs={s.subs}
         seconds={s.players === 1 || s.bsubj === 'miss' ? SOLO_SECONDS : s.seconds}
         onFinish={finishBattle} onRestart={restart} onQuit={quit} />}
       {screen === 'cross' && <CrossScreen key={round} level={s.level} kana={s.kana} players={s.players} prevIdx={cwIdx} forceIdx={cwForce} onIdx={(i) => { cwCur.current = i; }} onFinish={(r) => { setCr(r); if (r.idx !== undefined) setCwIdx(r.idx); go('cresult'); }} onRestart={restart} onQuit={quit} />}
