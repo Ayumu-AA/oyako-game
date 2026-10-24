@@ -315,7 +315,7 @@ export function bestLine(mode: Mode, s: Settings): string {
   return v ? 'この端末のベスト　' + s.seconds + '秒で ' + v + 'もん' : 'この端末にはまだ記録がありません';
 }
 
-export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode: Mode; s: Settings; onChange: (p: Partial<Settings>) => void; onStart: () => void; onBack: () => void; onHome?: () => void }) {
+export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode: Mode; s: Settings; onChange: (p: Partial<Settings> | ((cur: Settings) => Partial<Settings>)) => void; onStart: () => void; onBack: () => void; onHome?: () => void }) {
   const [rules, setRules] = useState(false);
   /* ひとりの はやおしは「ランキングに のる」か「れんしゅう」かを 先に えらぶ */
   const [entry, setEntry] = useState<'none' | 'rank' | 'practice'>('none');
@@ -361,7 +361,7 @@ export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode
         </div>
 
         {isBattle && !missOnly && (!twoWay || entry === 'practice') && <PickGrid id="seg-subject" label="ジャンル" cols={4}
-          value={s.bsubj} values={pickedSubs(s)} onPick={(v) => onChange(pickSubj(s, v as BattleSubj))}
+          value={s.bsubj} values={pickedSubs(s)} onPick={(v) => onChange((cur) => pickSubj(cur, v as BattleSubj))}
           note={s.subs.length >= 2 ? s.subs.length + 'つの ジャンルから 出ます（もう一度 おすと はずせます）' : 'ジャンルは いくつでも えらべます'}
           options={([
             { v: 'mix', b: pick('⭐', 'ミックス') }, { v: 'pref', b: pick('🗾', '都道府県') },

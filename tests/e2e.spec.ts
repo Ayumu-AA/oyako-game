@@ -1475,6 +1475,17 @@ test('ジャンルを 2つ えらべる。ミックスは 1つだけ（10/24）'
   await page.click('#seg-subject button[data-v="pref"]');
   await page.click('#seg-subject button[data-v="calc"]');
   await expect(on()).toHaveCount(2);
+  /* つづけて すばやく 2回 おしても どちらも のこる（前の 1回を 見落とさない） */
+  await page.evaluate(() => {
+    (document.querySelector('#seg-subject button[data-v="flag"]') as HTMLElement).click();
+    (document.querySelector('#seg-subject button[data-v="kokugo"]') as HTMLElement).click();
+  });
+  await expect(on()).toHaveCount(4);
+  await page.evaluate(() => {
+    (document.querySelector('#seg-subject button[data-v="flag"]') as HTMLElement).click();
+    (document.querySelector('#seg-subject button[data-v="kokugo"]') as HTMLElement).click();
+  });
+  await expect(on()).toHaveCount(2);
   await expect(page.locator('#row-subject .picknote')).toContainText('2つの ジャンル');
   /* もう一度 おすと はずれる */
   await page.click('#seg-subject button[data-v="calc"]');

@@ -48,7 +48,11 @@ export default function App() {
   /* いまの 学年の 受付番号。点数の 行に つけると、端末が ちがっても 同じ人として 数えられる */
   const seatNow = (lv: Level): number | null => { const ev = eventCode(); return seatAsk(ev) ? getSeat(ev, lv) : null; };
 
-  const change = useCallback((p: Partial<Settings>) => setS((x) => ({ ...x, ...p })), []);
+  /* p には「足す ぶん」か「いまの 設定から 作る 関数」を わたせる。
+     関数の ほうは、つづけて 2回 おしたときに 前の 1回を 見落とさない ため
+     （ジャンルの えらび直しのように、前の 状態を もとに 決める もの） */
+  const change = useCallback((p: Partial<Settings> | ((cur: Settings) => Partial<Settings>)) =>
+    setS((x) => ({ ...x, ...(typeof p === 'function' ? p(x) : p) })), []);
   const go = useCallback((sc: Screen) => { setScreen(sc); window.scrollTo(0, 0); if (sc === 'title' || sc === 'games') setMissN(missCount()); }, []);
   useEffect(() => { window.scrollTo(0, 0); }, [screen]);
   /* サーバーの記録を 取りこむ（取りこめたら まちがい帳の数を 出しなおす） */
