@@ -257,7 +257,8 @@ export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared, 
         {/* 上に はりつく 見出し。中身が スクロールしても × は いつも 見える */}
         <div className="sethead">
           <h2 className="display" id="set-title">せってい</h2>
-          <button type="button" className="sheetx" id="btn-set-x" aria-label="とじる" onClick={onClose}>×</button>
+          {/* ひらいた ときの フォーカスは 上の × に。下の「とじる」に あてると シートが 下まで スクロールした 状態で ひらく */}
+          <button type="button" className="sheetx" id="btn-set-x" aria-label="とじる" ref={closeBtn} onClick={onClose}>×</button>
         </div>
         <VolSlider id="seg-sound" label="こうかおん" value={snd} onChange={(n) => { setSfxVol(n); setSnd(n); }} />
         <VolSlider id="seg-bgm" label="おんがく" value={bgm} onChange={(n) => { setBgmVol(n); setBgm2(n); }} />
@@ -280,7 +281,7 @@ export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared, 
               if (sure === 1) { clearRecords(); setRec({ miss: 0, seen: 0 }); setSure(2); onCleared(); setTimeout(() => setSure(0), 1600); }
             }}>{clearLabel}</button>
         </div>
-        <button className="btn btn-ok" id="btn-set-close" style={{ fontSize: 18, padding: '15px 18px' }} ref={closeBtn} onClick={onClose}>とじる</button>
+        <button className="btn btn-ok" id="btn-set-close" style={{ fontSize: 18, padding: '15px 18px' }} onClick={onClose}>とじる</button>
       </div>
     </div>
   );
@@ -390,7 +391,8 @@ export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode
   useEffect(() => { setRules(false); }, [mode]);
   useEffect(() => {
     if (!rules) return;
-    closeBtn.current?.focus();
+    /* 「わかった」は いちばん下。ふつうに フォーカスすると シートが 下まで スクロールして ひらくので 動かさない */
+    closeBtn.current?.focus({ preventScroll: true });
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setRules(false); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
