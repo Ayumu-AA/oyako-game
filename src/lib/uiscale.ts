@@ -27,12 +27,31 @@ export function scaleOf(mode: ScaleMode, w: number, h: number): number {
   return mode === 'auto' ? autoScale(w, h) : FIXED[mode];
 }
 
+/** ツールバーが 出入りしても かわらない 高さ。
+    innerHeight は スマホで スクロールすると アドレスバーが 引っこんで 80px ほど かわり、
+    そのたびに 倍率が かわって 画面ぜんたいが のび縮みしていた（長い けっか画面で 目立つ）。
+    100svh（バーが 出ている ときの 小さい ほう）を じっさいに はかって つかう。CSS の 高さも 100svh が もと */
+function stableHeight(): number {
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:100svh;visibility:hidden;pointer-events:none';
+  document.body.appendChild(probe);
+  const h = probe.getBoundingClientRect().height;
+  probe.remove();
+  return h || window.innerHeight || BASE_H;   /* svh が つかえない 古い ブラウザは 今までどおり */
+}
+
+/* さいごに 書きこんだ ときの 条件。同じなら 書きなおさない（バーの 出入りでは 何も おきない） */
+let lastKey = '';
+
 /** いまの 画面に あわせて --ui を 書きこむ */
 export function applyScale() {
-  if (typeof document === 'undefined') return;
-  const w = window.innerWidth || BASE_W, h = window.innerHeight || BASE_H;
-  const v = scaleOf(scaleMode(), w, h);
-  document.documentElement.style.setProperty('--ui', String(v));
+  if (typeof document === 'undefined' || !document.body) return;
+  const mode = scaleMode();
+  const w = window.innerWidth || BASE_W, h = stableHeight();
+  const key = mode + ':' + w + 'x' + Math.round(h);
+  if (key === lastKey) return;
+  lastKey = key;
+  document.documentElement.style.setProperty('--ui', String(scaleOf(mode, w, h)));
 }
 
 export function setScaleMode(m: ScaleMode) {

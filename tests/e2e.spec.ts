@@ -478,6 +478,25 @@ test('けいさんクロス：こたえあわせ', async ({ page }) => {
   await expect(page.locator('#cw-msg')).toHaveText('たて・よこ ぜんぶの 計算が そろいました。');
 });
 
+/* スマホで スクロールすると アドレスバーが 引っこんで innerHeight だけ かわる。
+   そのたびに 倍率が かわると 長い けっか画面が スクロールの たびに のび縮みする。
+   ここでは バーの 出入りと 同じく「innerHeight だけ かわって resize が とどく」ように して、倍率が かわらないことを みる */
+test('画面の 大きさ：アドレスバーの 出入り（innerHeight だけ かわる）では 倍率が かわらない', async ({ page }) => {
+  await open(page);
+  const ui = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--ui').trim());
+  const before = await ui();
+  await page.evaluate(() => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, get: () => 600 });
+    window.dispatchEvent(new Event('resize'));
+  });
+  await page.waitForTimeout(300);   /* resize は 120ms まとめてから つけ直す */
+  expect(await ui()).toBe(before);
+  /* ほんとうに 画面が かわった（回転など）ときは つけ直す */
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.waitForTimeout(300);
+  expect(await ui()).not.toBe(before);
+});
+
 test('せってい：おと・時間・記録を消す', async ({ page }) => {
   await open(page, { 'oyako-miss': JSON.stringify({ 'pref:北海道': { n: 1, t: 1 } }), 'oyako-seen': JSON.stringify({ 'pref:北海道': 1 }) });
   await nav(page, 1);
