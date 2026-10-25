@@ -432,7 +432,8 @@ export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode
             2人用には 出さない（まちがい直しは 1人用だけ と 決めた） */}
         {isBattle && s.players === 1 && missN > 0 && (!twoWay || entry === 'practice') && (
           <div className="pickrow missrow" id="row-missonly">
-            <span className="picklabel">べつわく</span>
+            {/* 見出しは こどもにも わかる ことばで（まえは 作る がわの ことば「べつわく」だった） */}
+            <span className="picklabel">ふくしゅう</span>
             <button type="button" className="misspick" id="btn-miss-only" aria-pressed={s.bsubj === 'miss'}
               onClick={() => onChange({ bsubj: s.bsubj === 'miss' ? 'mix' : 'miss' })}>
               <span className="mi" aria-hidden="true">✓</span>
@@ -444,7 +445,7 @@ export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode
         {/* まちがい直しは「のこり ぜんぶ」だと 多すぎて 途中で いやに なることが ある。
             何もん 直すかを 先に えらべるように する（帳に ある数より 多い えらびは 出さない） */}
         {missOnly && missN > 0 && (
-          <PickGrid id="seg-missn" label="もんだいの 数" cols={4} value={s.missN}
+          <PickGrid id="seg-missn" label="もんだいの 数" cols={4} className="centerpick" value={s.missN}
             onPick={(v) => { onChange({ missN: v }); store('oyako-missn', String(v)); }}
             options={MISS_NS.filter((n) => n === 0 || n < missN)
               .map((n) => ({ v: n as number, b: n === 0 ? pick('📚', 'ぜんぶ') : pick('✏️', n + 'もん'), s: n === 0 ? missN + 'もん' : undefined }))} />

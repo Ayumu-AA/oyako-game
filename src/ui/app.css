@@ -1786,7 +1786,11 @@
   .pickgrid.c4 .pi{margin-right:3px;font-size:1.05em}
   /* 見出しの 左に 絵文字（行ごとに ちがう） */
   #row-subject .picklabel::before{content:'🎯 ';font-size:13px}
-  #row-missonly .picklabel::before{content:'⚙️ ';font-size:13px}
+  #row-missonly .picklabel::before{content:'🔁 ';font-size:13px}
+  /* もんだいの 数：まちがいが 少ないと えらびが へる。左に つめると 右が あくので、
+     4れつの ときと 同じ はばの まま 中央に よせる（いくつでも かたよらない） */
+  .centerpick .pickgrid{display:flex;flex-wrap:wrap;justify-content:center}
+  .centerpick .pickgrid button{flex:0 0 calc((100% - 18px) / 4)}
   #row-goal .picklabel::before{content:'⏱ ';font-size:13px}
   #row-handi .picklabel::before{content:'👥 ';font-size:13px}
   #row-kana .picklabel::before{content:'⌨️ ';font-size:13px}
