@@ -347,7 +347,7 @@ const SUBJ_GROUPS: { h: string; o: { v: BattleSubj; e: string; t: string }[] }[]
   { h: 'きょうか', o: [{ v: 'kokugo', e: '📖', t: 'かん字' }, { v: 'calc', e: '🔢', t: 'けいさん' }, { v: 'rika', e: '🧪', t: 'りか' }, { v: 'rekishi', e: '🏯', t: 'れきし' }, { v: 'eigo', e: '🔤', t: 'えいご' }] },
   { h: 'ものしり', o: [{ v: 'pref', e: '🗾', t: '都道府県' }, { v: 'flag', e: '🚩', t: '国旗' }, { v: 'word', e: '🛒', t: 'おかいもの' }] },
 ];
-function SubjectPick({ level, values, onPick, note }: { level: Level; values: readonly BattleSubj[]; onPick: (v: BattleSubj) => void; note: ReactNode }) {
+function SubjectPick({ level, values, onPick, head }: { level: Level; values: readonly BattleSubj[]; onPick: (v: BattleSubj) => void; head: ReactNode }) {
   const btn = (v: BattleSubj, body: ReactNode) => (
     <button type="button" key={v} aria-pressed={values.indexOf(v) >= 0} onClick={() => onPick(v)} data-v={v}>{body}</button>
   );
@@ -361,14 +361,14 @@ function SubjectPick({ level, values, onPick, note }: { level: Level; values: re
           <div className="pickgrid subjrow">{btn('mix', pick('⭐', 'ミックス'))}</div>
         </div>
         <div className="subjgrp">
-          <span className="subjh">えらんだ ジャンルから</span>
+          {/* いくつでも えらべる ことは、べつの 行の 注記に せず この 見出しで つたえる（1行 ふえると 2人用が 1画面に おさまらない） */}
+          <span className="subjh" id="subj-head">{head}</span>
           <div className="pickgrid subjrow">
             {SUBJ_GROUPS.flatMap((g) => g.o).filter((o) => okSubj(o.v, level))
               .map((o) => btn(o.v, <><i className="pi" aria-hidden="true">{o.e}</i>{o.t}</>))}
           </div>
         </div>
       </div>
-      <p className="setnote picknote">{note}</p>
     </div>
   );
 }
@@ -421,7 +421,7 @@ export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode
 
         {isBattle && !missOnly && (!twoWay || entry === 'practice') && <SubjectPick level={s.level} values={pickedSubs(s)}
           onPick={(v) => onChange((cur) => pickSubj(cur, v))}
-          note={s.subs.length >= 2 ? s.subs.length + 'つの ジャンルから 出ます（もう一度 おすと はずせます）' : 'ジャンルは いくつでも えらべます'} />}
+          head={s.subs.length >= 2 ? 'えらんだ ' + s.subs.length + 'つの ジャンルから' : 'えらんだ ジャンルから（いくつでも）'} />}
 
         {/* まちがい直しは ジャンルでは ないので べつわくに する（色も ジャンルと 変える）。
             2人用には 出さない（まちがい直しは 1人用だけ と 決めた） */}
