@@ -1567,10 +1567,14 @@
   }
 
   /* ---- ひとりの はやおし：ランキング／練習 の えらび ---- */
-  #solo-entry{margin-top:4px}
-  #solo-entry .mode.wide{min-height:74px;padding:13px 15px}
-  #solo-entry .mode.wide b{font-size:17px}
-  #solo-entry .mode.wide small{font-size:11.5px;margin-top:2px;line-height:1.5}
+  /* トップの「何人で あそぶ」と 同じ かたち：はば いっぱいの カードを たてに 2だん、
+     のこりの 高さで 上・あいだ・下が 同じに なるよう ばらけて おく（すきまは spacer では なく ここで とる） */
+  #solo-entry{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:12px}
+  #s-how.entrypick .spacer{display:none}
+  #solo-entry .mode.wide{min-height:clamp(110px,18vh,160px);padding:16px 22px;gap:18px}
+  #solo-entry .mode.wide .icon{width:56px;height:56px}
+  #solo-entry .mode.wide b{font-size:21px}
+  #solo-entry .mode.wide small{font-size:13px;margin-top:4px;line-height:1.5}
   .entrynote{
     background:rgba(98,182,203,.14);border:1.5px solid var(--line);border-radius:14px;
     padding:11px 14px;

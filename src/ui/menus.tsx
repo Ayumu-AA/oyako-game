@@ -68,6 +68,10 @@ const TILE_SVG: Record<string, string> = {
   math: svgText('=10', 12),
   numcross: LINE + '<rect x="3.2" y="3.2" width="7.6" height="7.6"/><rect x="13.2" y="3.2" width="7.6" height="7.6"/><rect x="3.2" y="13.2" width="7.6" height="7.6"/><rect x="13.2" y="13.2" width="7.6" height="7.6"/></svg>',
   miss: TI.miss, miss1: TI.miss,
+  /* ひとりの はやおしの 入口。どちらも 早押しの 絵だと 見分けが つかないので、ランキング＝王かん・練習＝えんぴつ */
+  rank: '<svg viewBox="0 0 24 18" aria-hidden="true"><path d="M2 15.2 1 3.6l6 4.4L12 1.4l5 6.6 6-4.4-1 11.6z" fill="currentColor"/>'
+    + '<rect x="2" y="15.4" width="20" height="2.4" rx="1.2" fill="currentColor" opacity=".8"/></svg>',
+  practice: LINE + '<path d="M4 20l4.6-1.1L19.3 8.2a2.2 2.2 0 0 0-3.1-3.1L5.5 15.8z"/><path d="M14.4 6.9l3.1 3.1"/></svg>',
 };
 
 /** ホームの タイル1つぶん。g（ジャンルえらびへ）か m（あそびかたへ）の どちらかを 持つ */
@@ -399,7 +403,8 @@ export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode
   }, [rules]);
   return (
     <>
-      <section className="screen on" id="s-how">
+      {/* ランキング／練習を えらぶ あいだは トップの「何人で」と 同じ ならべかた（entrypick） */}
+      <section className={'screen on' + (twoWay && entry === 'none' ? ' entrypick' : '')} id="s-how">
         <div className="howhead">
           <div className="howttl">
             <p className="eyebrow">あそぶ ゲーム<span className="lvchip" id="how-lv">{gradeLabel(s.level)}</span></p>
@@ -473,12 +478,12 @@ export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode
           <div className="modes colortiles" id="solo-entry">
             <button className="mode wide" data-tile="battle1" data-entry="rank" id="btn-entry-rank"
               onClick={() => { onChange({ bsubj: 'mix', subs: [], practice: false }); setEntry('rank'); }}>
-              <Raw className="icon" html={TILE_SVG.battle1} />
+              <Raw className="icon" html={TILE_SVG.rank} />
               <span><b>ランキング</b><small>ミックス・90秒・とくてんで きそう</small></span>
             </button>
             <button className="mode wide" data-tile="miss1" data-entry="practice" id="btn-entry-practice"
               onClick={() => { onChange({ practice: true }); setEntry('practice'); }}>
-              <Raw className="icon" html={TILE_SVG.battle} />
+              <Raw className="icon" html={TILE_SVG.practice} />
               <span><b>練習</b><small>ジャンルを えらぶ・きろくに のこりません</small></span>
             </button>
           </div>
