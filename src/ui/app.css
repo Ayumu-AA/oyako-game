@@ -140,10 +140,19 @@
   }
   .colortiles .mode.wide b{margin-top:0}
   .colortiles .mode.wide .icon{flex:none}
-  /* 1画面目の 2択は 大きく（指が とどきやすいように）。画面の高さに あわせて のびる */
-  .colortiles .mode.tall{min-height:clamp(150px,30vh,220px)}
-  .colortiles .mode.tall .icon{width:34px;height:34px}
-  .colortiles .mode.tall b{font-size:17px}
+  /* 1画面目の 2択は 大きく（指が とどきやすいように）。画面の高さに あわせて のびる。
+     よこ ならびだと 下半分が ぽっかり あくので、はば いっぱいの カードを たてに 2だん（がくねん・ランキング/練習と 同じ かたち） */
+  /* 下の すきまに 寄せず、のこりの 高さ ぜんぶを つかって 上・あいだ・下が 同じに なるよう ばらけて おく */
+  #players-modes{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:12px}
+  #s-title .spacer{display:none}
+  .colortiles .mode.tall{
+    grid-column:1/-1;min-height:clamp(110px,18vh,160px);
+    flex-direction:row;align-items:center;justify-content:flex-start;gap:18px;padding:16px 22px;
+    text-align:left;
+  }
+  .colortiles .mode.tall .icon{width:56px;height:56px;flex:none}
+  .colortiles .mode.tall b{font-size:21px;margin-top:0}
+  .colortiles .mode.tall small{font-size:13px;margin-top:4px}
   .colortiles .mode[data-tile="p2"],.colortiles .mode[data-tile="relay"],.colortiles .mode[data-tile="lv2"],.colortiles .mode[data-tile="numcross"]{--c:var(--plow-blue-bg)}
   .colortiles .mode[data-tile="p1"],.colortiles .mode[data-tile="math"]{--c:var(--plow-purple-bg)}
   .colortiles .mode[data-tile="battle"],.colortiles .mode[data-tile="battle1"]{--c:var(--plow-red-bg)}
@@ -1638,7 +1647,8 @@
     box-shadow:inset 0 0 0 1px rgba(255,255,255,.3);
     color:var(--on); font-size:21px; font-weight:800; line-height:28px; text-align:center;
   }
-  .wrap.night .colortiles .mode.wide:not(.soon)::after{ top:50%; bottom:auto; transform:translateY(-50%); }
+  .wrap.night .colortiles .mode.wide:not(.soon)::after,
+  .wrap.night .colortiles .mode.tall::after{ top:50%; bottom:auto; transform:translateY(-50%); }
   /* 右はしの 矢印と かさならないように。絵（.icon）は span なので のぞく */
   .wrap.night .colortiles .mode.wide span:not(.icon){ padding-right:34px; }
 
