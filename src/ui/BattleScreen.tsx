@@ -568,7 +568,7 @@ export function BResultScreen({ r, practice, onAgain, onPractice, onMiss, onTitl
       {onRank && !r.miss && <button className="btn btn-rank" id="btn-brank-view" onClick={onRank} disabled={lock > 0}>ランキングを 見る</button>}
       {onPractice && !r.miss && <button className="btn btn-sea" id="btn-bpractice" onClick={onPractice} disabled={lock > 0}>練習する（きろくに のこらない）</button>}
       <button className="btn btn-sea" id="btn-bmiss" hidden={missN === 0} onClick={onMiss} disabled={lock > 0}>まちがえた問題を もう一回</button>
-      <button className="btn btn-ghost" data-back="s-title" onClick={onTitle}>さいしょの画面へ</button>
+      <button className="btn btn-ghost btn-totop" data-back="s-title" onClick={onTitle}>さいしょの画面へ</button>
     </section>
   );
 }

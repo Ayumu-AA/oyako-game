@@ -55,7 +55,7 @@ export function ResultScreen({ r, onAgain, onMiss, onTitle, onRank }: { r: PlayR
       <button className="btn btn-go" id="btn-again" onClick={onAgain} disabled={lock > 0}>{lock > 0 ? 'けっかを 見てね… ' + lock : 'もういちど'}</button>
       {onRank && <button className="btn btn-rank" id="btn-rank" onClick={onRank} disabled={lock > 0}>ランキングを 見る</button>}
       <button className="btn btn-sea" id="btn-miss" hidden={missN === 0} onClick={onMiss}>まちがえた問題を もう一回</button>
-      <button className="btn btn-ghost" data-back="s-title" onClick={onTitle}>さいしょの画面へ</button>
+      <button className="btn btn-ghost btn-totop" data-back="s-title" onClick={onTitle}>さいしょの画面へ</button>
     </section>
   );
 }

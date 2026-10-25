@@ -228,6 +228,12 @@
     border:1.5px solid var(--line);box-shadow:none;font-size:15px;padding:14px 20px;
   }
   .btn-ghost:active{transform:translateY(2px)}
+  /* けっか画面の「さいしょの画面へ」。あかるい 背景に すけた ボタンだと 灰色の 字が うすくて 見えないので、
+     しろい 地・こんの 字・はっきりした ふちに する（「もういちど」より 目立たせない 2ばん手の あつかい） */
+  .btn-ghost.btn-totop{
+    background:var(--surface);color:var(--sea);font-weight:800;
+    border:1.5px solid rgba(27,73,101,.35);box-shadow:0 2px 0 rgba(27,73,101,.12);
+  }
   .btn-sea{background:var(--sea);color:#fff}
   :where(button,a):focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 

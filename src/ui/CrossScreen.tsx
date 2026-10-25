@@ -227,7 +227,7 @@ export function CResultScreen({ r, onAgain, onTitle }: { r: CrossResult; onAgain
       <Hee prefix="cw" name={r.heeName} text={r.heeText} />
       <Promo prefix="c" />
       <button className="btn btn-go" id="btn-cagain" onClick={onAgain}>べつのもんだい</button>
-      <button className="btn btn-ghost" data-back="s-title" onClick={onTitle}>さいしょの画面へ</button>
+      <button className="btn btn-ghost btn-totop" data-back="s-title" onClick={onTitle}>さいしょの画面へ</button>
     </section>
   );
 }
