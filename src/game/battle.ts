@@ -279,7 +279,8 @@ export function askText(key: string, q: RelayQ): string {
   if (!h) return '';
   if (key === 'pref') return '「' + h + '」で 有名{ゆうめい}なのは どこ？';
   if (key === 'rika') return h + '。これは なに？';
-  if (key === 'rekishi') return h + '。' + (q.tag === '人物' ? 'この人{ひと}は だれ？' : 'これは なに？');
+  if (key === 'rekishi') return h + '。' + (q.tag === '人物' ? 'この人{ひと}は だれ？'
+    : q.tag === '時代' ? '何時代{なにじだい}？' : 'これは なに？');
   return h;
 }
 

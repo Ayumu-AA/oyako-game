@@ -830,7 +830,7 @@ test('長い 文章題は 一気に 出る／みじかい 文は 1文字ずつ�
       short++;
     }
     /* 「何を 答えるか」が 問題文に 入っている */
-    expect(t, t).toMatch(/(だれ|なに)？$/);
+    expect(t, t).toMatch(/(だれ|なに|何時代)？$/);
     await page.locator('#side-child .choice').first().click();
     await page.waitForTimeout(2600);
   }
@@ -1538,4 +1538,32 @@ test('ランキングは いままでどおり ミックスだけ（10/24）', a
   await page.click('#btn-entry-rank');
   await expect(page.locator('#rank-note')).toBeVisible();
   await expect(page.locator('#seg-subject')).toHaveCount(0);   /* ランキングでは えらばせない */
+});
+
+test('一時停止しても のこり時間は へりつづける（10/26）', async ({ page }) => {
+  const errs = noErrors(page);
+  await open(page);
+  await nav(page, 1, 6);
+  await page.click('[data-mode="battle1"]');
+  await page.click('#btn-entry-practice');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  const sec = () => page.evaluate(() => {
+    const m = /のこり (\d+)秒/.exec(document.querySelector('#pause-info')?.textContent || '');
+    return m ? Number(m[1]) : -1;
+  });
+  const barW = () => page.evaluate(() => parseFloat((document.querySelector('#btimer') as HTMLElement).style.width));
+  await page.click('#btn-bpause');
+  await expect(page.locator('#overlay')).toBeVisible();
+  const t0 = await sec(), w0 = await barW();
+  expect(t0, 'のこり時間が 読めない').toBeGreaterThan(0);
+  await page.waitForTimeout(2600);
+  const t1 = await sec(), w1 = await barW();
+  /* 止めている あいだも 時計は 進む（2.6秒 待って 2秒以上 へっている） */
+  expect(t0 - t1, '一時停止中に 時間が 止まっている: ' + t0 + ' → ' + t1).toBeGreaterThanOrEqual(2);
+  /* 赤い線（もちじかんの バー）も いっしょに 進む */
+  expect(w1, 'バーが 動いていない: ' + w0 + ' → ' + w1).toBeLessThan(w0);
+  await page.click('#btn-resume');
+  await expect(page.locator('#overlay')).toBeHidden();
+  expect(errs).toEqual([]);
 });

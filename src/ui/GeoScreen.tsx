@@ -5,7 +5,7 @@ import { markHit, markMiss, subjOf } from '../game/records';
 import { dataLv } from '../game/types';
 import type { Level, Mode } from '../game/types';
 import { celebrate, fxClear, streakReset } from '../lib/fx';
-import { sndNG, buzz } from '../lib/sound';
+import { sndNG, buzz, sndWhistle } from '../lib/sound';
 import { Hud, PauseOverlay, usePauseKeys } from './parts';
 import type { PlayResult } from './state';
 
@@ -26,7 +26,7 @@ export function GeoScreen({ mode, level, seconds, onFinish, onRestart, onQuit }:
   const got = useRef<string[]>([]);
   const [left, setLeft] = useState(seconds * 1000);
   const [paused, setPaused] = useState(false);
-  const endAt = useRef(0), remain = useRef(0), timer = useRef<number | null>(null);
+  const endAt = useRef(0), timer = useRef<number | null>(null);
   const finished = useRef(false);
   const onFinishRef = useRef(onFinish); onFinishRef.current = onFinish;
   const mapEl = useRef<HTMLDivElement>(null);
@@ -41,7 +41,8 @@ export function GeoScreen({ mode, level, seconds, onFinish, onRestart, onQuit }:
   const stopTimer = () => { if (timer.current) { clearInterval(timer.current); timer.current = null; } };
   const finish = useCallback(() => {
     if (finished.current) return; finished.current = true;
-    stopTimer(); if (nextTimer.current) clearTimeout(nextTimer.current);
+    stopTimer(); setPaused(false); sndWhistle();
+    if (nextTimer.current) clearTimeout(nextTimer.current);
     fxClear({ layer: fxLayer.current, stamp: fxStamp.current }); streakReset();
     onFinishRef.current({ mode, score: got.current.length, seconds, got: [], geoKind: kind, geoGot: got.current.slice() });
   }, [mode, seconds, kind]);
@@ -138,16 +139,20 @@ export function GeoScreen({ mode, level, seconds, onFinish, onRestart, onQuit }:
     return () => { el.removeEventListener('pointerdown', down); el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up); };
   }, [kind]);
 
-  const pause = useCallback(() => { if (paused || !timer.current) return; setPaused(true); remain.current = Math.max(0, endAt.current - Date.now()); stopTimer(); }, [paused]);
-  const resume = useCallback(() => { if (!paused) return; setPaused(false); startTimer(remain.current); }, [paused, startTimer]);
+  /* 一時停止しても もちじかんは 止めない（10/26）。こたえは かくす ままなので
+     見ながら 待つことは できず、時計だけが 進む ＝ 止めて 考える 時間かせぎが できない */
+  const pause = useCallback(() => { if (paused || !timer.current) return; setPaused(true); }, [paused]);
+  const resume = useCallback(() => { if (!paused) return; setPaused(false); }, [paused]);
   usePauseKeys(paused, pause, resume);
   const pausedRef = useRef(paused); pausedRef.current = paused;
 
-  const scheduleNext = () => {
+  const scheduleNext = (ms = 1600) => {
     nextTimer.current = window.setTimeout(() => {
-      if (finished.current || pausedRef.current) return;
+      if (finished.current) return;
+      /* 止めている あいだは 進めない。つづきを おしたら すぐ つぎへ */
+      if (pausedRef.current) { scheduleNext(200); return; }
       setIdx((i) => i + 1);
-    }, 1600);
+    }, ms);
   };
   const answer = (p: string) => {
     if (!q || locked) return;
@@ -205,7 +210,7 @@ export function GeoScreen({ mode, level, seconds, onFinish, onRestart, onQuit }:
         <button className="btn btn-ghost" id="btn-gpass" onClick={pass}>わからない（パス）</button>
       </div>
 
-      <PauseOverlay open={paused} info={'のこり ' + Math.ceil(remain.current / 1000) + '秒 ／ いま ' + score + 'もん'} onResume={resume} onRestart={() => { setPaused(false); stopTimer(); onRestart(); }} onQuit={() => { setPaused(false); stopTimer(); onQuit(); }} />
+      <PauseOverlay open={paused} info={'のこり ' + Math.ceil(left / 1000) + '秒 ／ いま ' + score + 'もん'} onResume={resume} onRestart={() => { setPaused(false); stopTimer(); onRestart(); }} onQuit={() => { setPaused(false); stopTimer(); onQuit(); }} />
     </section>
   );
 }

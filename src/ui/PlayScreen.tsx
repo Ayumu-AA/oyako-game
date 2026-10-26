@@ -8,7 +8,7 @@ import { markSeen, markHit, markMiss } from '../game/records';
 import { capOf, capSameName, jpSVG, wSVG } from '../game/geo';
 import { isMathQ, type DeckItem, type Level, type MathQ, type Mode, type RelayQ } from '../game/types';
 import { celebrate, fxClear, streakReset, type StreakWord } from '../lib/fx';
-import { sndNG, buzz } from '../lib/sound';
+import { sndNG, buzz, sndWhistle } from '../lib/sound';
 import { Hud, PauseOverlay, Raw, usePauseKeys } from './parts';
 import type { PlayResult } from './state';
 
@@ -28,7 +28,7 @@ export function PlayScreen({ mode, level, seconds, role, onFinish, onRestart, on
   const got = useRef<DeckItem[]>([]);
   const [left, setLeft] = useState(seconds * 1000);
   const [paused, setPaused] = useState(false);
-  const endAt = useRef(0), remain = useRef(0), timer = useRef<number | null>(null);
+  const endAt = useRef(0), timer = useRef<number | null>(null);
   const finished = useRef(false);
   const onFinishRef = useRef(onFinish); onFinishRef.current = onFinish;
   const [h3, setH3] = useState<{ k: number; v: string[] }>({ k: -1, v: [] });
@@ -52,7 +52,8 @@ export function PlayScreen({ mode, level, seconds, role, onFinish, onRestart, on
   const stopTimer = () => { if (timer.current) { clearInterval(timer.current); timer.current = null; } };
   const finish = useCallback(() => {
     if (finished.current) return; finished.current = true;
-    stopTimer(); fxClear({ layer: fxLayer.current, stamp: fxStamp.current }); streakReset();
+    stopTimer(); setPaused(false); sndWhistle();
+    fxClear({ layer: fxLayer.current, stamp: fxStamp.current }); streakReset();
     const g = got.current;
     const first = deck[0];
     onFinishRef.current({
@@ -88,17 +89,16 @@ export function PlayScreen({ mode, level, seconds, role, onFinish, onRestart, on
     markSeen(q.sub || mode, q.name);
   }, [q, idx, mode]);
 
+  /* 一時停止しても もちじかんは 止めない（10/26）。こたえは かくす ままなので
+     見ながら 待つことは できず、時計だけが 進む ＝ 止めて 考える 時間かせぎが できない */
   const pause = useCallback(() => {
     if (paused || !timer.current) return;
     setPaused(true);
-    remain.current = Math.max(0, endAt.current - Date.now());
-    stopTimer();
   }, [paused]);
   const resume = useCallback(() => {
     if (!paused) return;
     setPaused(false);
-    startTimer(remain.current);
-  }, [paused, startTimer]);
+  }, [paused]);
   usePauseKeys(paused, pause, resume);
 
   const next = () => { hideFlash(); setIdx((i) => i + 1); };
@@ -138,7 +138,7 @@ export function PlayScreen({ mode, level, seconds, role, onFinish, onRestart, on
 
   const ratio = left / (seconds * 1000);
   const warn = left <= 10000;
-  const pauseInfo = 'のこり ' + Math.ceil(remain.current / 1000) + '秒 ／ いま ' + score + 'もん';
+  const pauseInfo = 'のこり ' + Math.ceil(left / 1000) + '秒 ／ いま ' + score + 'もん';
 
   if (!q) return <section className="screen on" id="s-play" />;
 

@@ -259,3 +259,38 @@ describe('ふつうの BGM と はやおしの 音楽は 重ならない', () =>
     expect(S.battleVol()).toBe(2);
   });
 });
+
+describe('しゅうりょうの 笛（ピピー）', () => {
+  it('みじかい「ピ」と 長い「ピー」の 2回 鳴る', async () => {
+    const f = fakeAudio();
+    const S = await loadSound();
+    S.sndWhistle();
+    expect(f.oscs.length, '音が 1つも 作られていない').toBeGreaterThan(0);
+    const starts = [...new Set(f.oscs.map((o) => Math.round(o.start * 1000)))].sort((a, b) => a - b);
+    expect(starts.length, '2回に 分かれていない').toBe(2);
+    /* 2回目のほうが 長く のびる */
+    const len = (at: number) => Math.max(...f.oscs.filter((o) => Math.round(o.start * 1000) === at).map((o) => o.stop - o.start));
+    expect(len(starts[1]), '2回目が 長くない').toBeGreaterThan(len(starts[0]) * 2);
+  });
+
+  it('笛らしい 高い音で、玉の ふるえ（ゆらし）が ついている', async () => {
+    const f = fakeAudio();
+    const S = await loadSound();
+    S.sndWhistle();
+    const hi = f.oscs.filter((o) => o.freq > 1000);
+    expect(hi.length, '高い音が ない').toBe(4);              /* 2回 × かさねる 2音 */
+    expect(Math.min(...hi.map((o) => o.freq))).toBeGreaterThan(1800);
+    /* ゆらしの もと（ゆっくりの 波）が 1回に 1つ ある */
+    const lfo = f.oscs.filter((o) => o.freq < 100);
+    expect(lfo.length, 'ゆらしが ない').toBe(2);
+    expect(lfo.every((o) => o.type === 'sine')).toBe(true);
+  });
+
+  it('効果音を 0 に すると 鳴らない', async () => {
+    const f = fakeAudio();
+    const S = await loadSound();
+    S.setSfxVol(0);
+    S.sndWhistle();
+    expect(f.oscs.length).toBe(0);
+  });
+});

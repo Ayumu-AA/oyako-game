@@ -415,7 +415,7 @@ export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode
           </button>
         </div>
 
-        <Raw as="p" className="howlede" id="how-lede" html={(HOW_LEDE as Record<string, string>)[solo ? 'battle1' : soloCross ? 'cross1' : mode] || (HOW_LEDE as Record<string, string>).pref} />
+        <Raw as="p" className="howlede" id="how-lede" html={(HOW_LEDE as Record<string, string>)[missOnly ? 'miss' : solo ? 'battle1' : soloCross ? 'cross1' : mode] || (HOW_LEDE as Record<string, string>).pref} />
 
         <div className="spacer top"></div>
 

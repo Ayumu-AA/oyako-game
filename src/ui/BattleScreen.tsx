@@ -21,7 +21,7 @@ function shownHints(q: BattleQ | null, stage: number): string[] {
 /** こたえる もちじかん。ひとりは 5秒、2人の 取り合いは 3秒 */
 const ansMsOf = (players: 1 | 2) => (players === 1 ? ANSWER_MS_SOLO : ANSWER_MS);
 import { furi, furiName, cutFuri, plainLen } from '../game/furigana';
-import { sndOK, sndNG, buzz, startBattleBgm, stopBattleBgm } from '../lib/sound';
+import { sndOK, sndNG, buzz, startBattleBgm, stopBattleBgm, sndWhistle } from '../lib/sound';
 import { esc } from '../game/util';
 import { artHTML } from '../game/art';
 import { rankOf, rankNext, rankLine, rankMsg } from '../game/rank';
@@ -62,7 +62,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
   const [left, setLeft] = useState(seconds * 1000);
   const [paused, setPaused] = useState(false);
   const [fin, setFin] = useState(false);
-  const endAt = useRef(0), remain = useRef(0), timer = useRef<number | null>(null), t0 = useRef(0);
+  const endAt = useRef(0), timer = useRef<number | null>(null), t0 = useRef(0);
   const capSec = goal ? BATTLE_CAP : seconds;
   const finished = useRef(false);
   const timers = useRef<number[]>([]);
@@ -159,7 +159,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
     if (finished.current) return; finished.current = true;
     const s = sess.current!;
     s.done = true;
-    stopTimer(); stopAns(); stopIdle();
+    stopTimer(); stopAns(); stopIdle(); setPaused(false); sndWhistle();
     setSide('adult', { waiting: false });
     setFin(true);
     later(() => {
@@ -342,16 +342,18 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
   const pausedWait = useRef(HINT_STEP_MS);   /* つぎの だんかいまでの のこり */
   const pause = useCallback(() => {
     if (paused || !timer.current) return;
-    setPaused(true); remain.current = Math.max(0, endAt.current - Date.now());
+    setPaused(true);
     pausedAns.current = ansTimer.current ? Math.max(0, ansEnd.current - Date.now()) : -1;
     pausedStage.current = stageRef.current;
     pausedWait.current = stageTimer.current
       ? Math.max(0, HINT_STEP_MS - (Date.now() - stageAt.current)) : HINT_STEP_MS;
-    stopTimer(); stopAns(); stopRev(); stopStage(); stopIdle(); stopBattleBgm();
+    /* 一時停止しても もちじかんは 止めない（10/26）。こたえは かくす ままなので
+       見ながら 待つことは できず、時計だけが 進む ＝ 止めて 考える 時間かせぎが できない */
+    stopAns(); stopRev(); stopStage(); stopIdle(); stopBattleBgm();
   }, [paused, stopAns, stopRev, stopStage, stopIdle]);
   const resume = useCallback(() => {
     if (!paused) return;
-    setPaused(false); startTimer(remain.current);
+    setPaused(false);
     if (bsubj !== 'miss') startBattleBgm();
     const s = sess.current;
     if (s && s.q && !s.done) {
@@ -374,7 +376,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
 
   const ratio = left / (capSec * 1000);
   const s = sess.current;
-  const info = 'のこり ' + Math.ceil(remain.current / 1000) + '秒'
+  const info = 'のこり ' + Math.ceil(left / 1000) + '秒'
     + (s ? (solo ? ' ／ ' + s.pts.child + '点' : ' ／ おとな ' + s.score.adult + ' − こども ' + s.score.child) : '');
 
   return (

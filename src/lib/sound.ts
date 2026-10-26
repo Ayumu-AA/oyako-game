@@ -111,6 +111,47 @@ export function sndOK(n: number) {
     beep(659, 0, 0.10, 0.15); beep(988, 0.075, 0.18, 0.14);
   }
 }
+/* ===== しゅうりょうの 笛（「ピピー」） =====
+   本物の 笛は 中の 玉が まわって 音が こまかく ふるえる。
+   ・2000Hz ふきんの 2つの 音を かさねる（ぴったりでは ない ほうが 笛らしい）
+   ・その 高さを 小きざみに ゆらす（玉の ふるえ）
+   ・みじかい「ピ」の あと、長めの「ピー」で おわる
+   音の 大きさは せっていの「効果音」で 変わる */
+const WH_LO = 2050, WH_HI = 2730;
+function whistleNote(c: AudioContext, at: number, dur: number, vol: number) {
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, at);
+  g.gain.exponentialRampToValueAtTime(vol, at + 0.014);
+  g.gain.setValueAtTime(vol, at + Math.max(0.03, dur - 0.06));
+  g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+  g.connect(out(c));
+  /* 玉の ふるえ：音の 高さを 上下に ゆらす */
+  const lfo = c.createOscillator(), lfoG = c.createGain();
+  lfo.type = 'sine';
+  lfo.frequency.setValueAtTime(32, at);
+  lfoG.gain.setValueAtTime(48, at);
+  lfo.connect(lfoG);
+  [WH_LO, WH_HI].forEach((f, i) => {
+    const o = c.createOscillator(), og = c.createGain();
+    o.type = i ? 'sine' : 'triangle';
+    o.frequency.setValueAtTime(f, at);
+    lfoG.connect(o.frequency);
+    og.gain.setValueAtTime(i ? 0.4 : 1, at);
+    o.connect(og); og.connect(g);
+    o.start(at); o.stop(at + dur + 0.02);
+  });
+  lfo.start(at); lfo.stop(at + dur + 0.02);
+}
+/** ゲームの おわりに 鳴らす 笛。「ピ」＋「ピー」 */
+export function sndWhistle() {
+  const c = ac(); if (!c) return;
+  const v = Math.min(0.95, 0.12 * BOOST * VOL_MUL[SFX]);
+  if (v <= 0) return;
+  const t = c.currentTime + 0.03;
+  whistleNote(c, t, 0.14, v);
+  whistleNote(c, t + 0.21, 0.52, v);
+}
+
 /* ===== おてつきの 音（テレビの クイズ番組の「ブッブー」） =====
    ピーという きれいな音では なく、ざらっとした 低い ブザーに する。
    ・のこぎり波を 3つ かさねる（ぴったり 同じ音に せず すこし ずらすと「ブー」と うなる）

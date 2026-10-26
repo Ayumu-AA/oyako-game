@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setKV, memoryKV, store } from '../lib/storage';
+import { REKISHI } from '../data/questions';
 import { reloadRecords, markMiss, markHit, missCount, markSeen, seenAt, clearRecords } from './records';
 import { evalTokens, makePuzzle, checkMath, type Token } from './math10';
 import { rankOf, rankNext } from './rank';
@@ -652,6 +653,19 @@ describe('問題文に「何を 答えるか」を 入れる（10/20）', () => 
       .toBe('ばくふを ひらいた。この人は だれ？');
     expect(plain(askText('rekishi', { tag: 'たてもの', hints: ['金色に かがやく'] } as never)))
       .toBe('金色に かがやく。これは なに？');
+  });
+  it('れきしの 時代は「何時代？」で きく（10/26）', () => {
+    expect(plain(askText('rekishi', { tag: '時代', hints: ['都は 京都'] } as never)))
+      .toBe('都は 京都。何時代？');
+    /* 時代を こたえる 問題が「これは なに？」で 終わっていない */
+    const eras = (REKISHI as unknown[][]).filter((r) => r[2] === '時代');
+    expect(eras.length, '時代の 問題が 無い').toBeGreaterThan(5);
+    for (const r of eras) {
+      const t = plain(askText('rekishi', { tag: r[2], hints: r[3] } as never));
+      expect(t, t).toMatch(/。何時代？$/);
+      /* 問いかけの 前が 文として 切れていない（「〜に。」「〜を。」で 終わらない） */
+      expect(t, '文が 切れている: ' + t).not.toMatch(/[をにがはでとへ]。何時代？$/);
+    }
   });
   it('ヒントが 無ければ 空のまま（こわれない）', () => {
     expect(askText('pref', { tag: '', hints: [] } as never)).toBe('');
