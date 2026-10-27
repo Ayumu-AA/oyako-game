@@ -114,12 +114,16 @@ function TileBtn({ t, wide, hero, lone, onClick }: { t: Tile; wide?: boolean; he
 export function TitleScreen({ onPlayers, onSettings, onRank }: {
   onPlayers: (p: 1 | 2) => void; onSettings: () => void; onRank: () => void;
 }) {
+  const brand = [CONFIG.schoolName, CONFIG.eventName].filter(Boolean).join('\u3000');
   return (
     <section className="screen on colortiles" id="s-title">
       <div className="howhead">
         <div className="brandmark">
           <Raw as="div" className="pin" html={plowMark(30)} />
-          <span id="brand-title">{[CONFIG.schoolName, CONFIG.eventName].filter(Boolean).join('\u3000')}</span>
+          {/* 塾名は 空いている 幅に あわせて 字を 小さくする（--chars は 文字の 数）。
+              それでも 入らない ときは「PLOW」に かえる（app.css の @container） */}
+          <span id="brand-title" style={{ '--chars': [...brand].length } as React.CSSProperties}>{brand}</span>
+          <span id="brand-short" aria-hidden="true">PLOW</span>
         </div>
         <button type="button" className="rulesbtn" id="btn-rank-title" onClick={onRank}>
           <span className="qm" aria-hidden="true">👑</span>ランキング
