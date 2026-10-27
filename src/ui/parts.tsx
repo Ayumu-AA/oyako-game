@@ -77,7 +77,7 @@ export function PauseOverlay({ open, info, onResume, onRestart, onQuit }: { open
 export function Promo({ prefix = '' }: { prefix?: string }) {
   return (
     <div className="promo">
-      <b id={prefix + 'promo-name'}><Raw as="span" className="footmark" html={plowMark(17)} />{CONFIG.schoolName}</b>
+      <b id={prefix + 'promo-name'}><Raw as="span" className="footmark" html={plowMark(24)} />{CONFIG.schoolName}</b>
       <p id={prefix + 'promo-text'}>{CONFIG.promoText}</p>
     </div>
   );

@@ -118,7 +118,7 @@ export function TitleScreen({ onPlayers, onSettings, onRank }: {
     <section className="screen on colortiles" id="s-title">
       <div className="howhead">
         <div className="brandmark">
-          <Raw as="div" className="pin" html={plowMark(22)} />
+          <Raw as="div" className="pin" html={plowMark(30)} />
           <span id="brand-title">{[CONFIG.schoolName, CONFIG.eventName].filter(Boolean).join('\u3000')}</span>
         </div>
         <button type="button" className="rulesbtn" id="btn-rank-title" onClick={onRank}>
@@ -145,7 +145,7 @@ export function TitleScreen({ onPlayers, onSettings, onRank }: {
       </div>
 
       <div className="spacer"></div>
-      <p className="foot" id="brand-foot"><Raw as="span" className="footmark" html={plowMark(14)} />presented by {CONFIG.schoolName}</p>
+      <p className="foot" id="brand-foot"><Raw as="span" className="footmark" html={plowMark(20)} />presented by {CONFIG.schoolName}</p>
     </section>
   );
 }
