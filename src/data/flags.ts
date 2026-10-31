@@ -142,7 +142,27 @@ export const FLAGS={
     return s;
   },
   /* ---- ここから 2026-09 追加 ---- */
-  es:function(){return '<rect width="60" height="40" fill="#AA151B"/><rect y="10" width="60" height="20" fill="#F1BF00"/>';},
+  es:function(){
+    let s='<rect width="60" height="40" fill="#AA151B"/><rect y="10" width="60" height="20" fill="#F1BF00"/>';
+    /* 紋章（左から 1/3 の ところ）。こまかいので、王かん・4つに わけた たて・両わきの 柱 だけで 形が わかるように 簡単にしてある。
+       黄色の 帯の 上で きえないよう 金は こい 色に する */
+    const G='#C8961E', E='#7A5A14';
+    // 両わきの 柱（ヘラクレスの 柱）
+    s+='<rect x="13.4" y="15.4" width="1.6" height="9.2" fill="#E6E6E6" stroke="'+E+'" stroke-width=".25"/>';
+    s+='<rect x="25" y="15.4" width="1.6" height="9.2" fill="#E6E6E6" stroke="'+E+'" stroke-width=".25"/>';
+    s+='<rect x="13" y="14.6" width="2.4" height=".9" fill="'+G+'"/><rect x="13" y="24.5" width="2.4" height=".9" fill="'+G+'"/>';
+    s+='<rect x="24.6" y="14.6" width="2.4" height=".9" fill="'+G+'"/><rect x="24.6" y="24.5" width="2.4" height=".9" fill="'+G+'"/>';
+    // たて：左上 赤（城）・右上 白（ライオン）・左下 金と赤の しま・右下 赤
+    s+='<rect x="16.6" y="14.8" width="3.4" height="3.6" fill="#AD1519"/><rect x="17.6" y="15.9" width="1.4" height="1.6" fill="#F1BF00"/>';
+    s+='<rect x="20" y="14.8" width="3.4" height="3.6" fill="#F4EBD9"/><circle cx="21.7" cy="16.6" r=".8" fill="#8E3A8C"/>';
+    s+='<path d="M16.6 18.4H20V24.8Q17.4 24 16.6 21.4Z" fill="#E8B400"/>';
+    s+='<path d="M17.6 18.4V23.2M18.8 18.4V24.2" stroke="#AD1519" stroke-width=".5"/>';
+    s+='<path d="M20 18.4H23.4V21.4Q22.6 24 20 24.8Z" fill="#AD1519"/>';
+    s+='<path d="M16.6 14.8H23.4V21.4Q22.6 24 20 24.8Q17.4 24 16.6 21.4Z" fill="none" stroke="'+E+'" stroke-width=".35"/>';
+    // 王かん
+    s+='<path d="M16.8 14.4V12.6L18 13.4L19 11.6L20 12.9L21 11.6L22 13.4L23.2 12.6V14.4Z" fill="'+G+'" stroke="'+E+'" stroke-width=".25"/>';
+    return s;
+  },
   mx:function(){
     let s='<rect width="20" height="40" fill="#006847"/><rect x="20" width="20" height="40" fill="#fff"/><rect x="40" width="20" height="40" fill="#CE1126"/>';
     /* まん中の わし は こまかいので、形だけ わかるように 簡単にしてある */
