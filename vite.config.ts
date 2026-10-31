@@ -27,7 +27,7 @@ export default defineConfig({
       injectRegister: 'auto',
       manifest: false,
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,webp}'],   // build 資産と えいごの絵を 全部 先読み → 機内モードでも 遊べる
+        globPatterns: ['**/*.{js,css,html,svg,webp}'],   // build 資産と えいご・れきしの絵を 全部 先読み → 機内モードでも 遊べる
         navigateFallback: '/oyako-game/index.html',
         navigateFallbackAllowlist: [/^\/oyako-game\//],
         navigateFallbackDenylist: [/board\.html/],          /* 掲示ページは 別の HTML */

@@ -337,9 +337,11 @@ export class BattleSession {
         this.pools[k] = all.filter((q) => !seen.has(q.name) && seen.add(q.name));
       }
     }
-    if (opts.bsubj === 'mix' || opts.bsubj === 'eigo' || opts.bsubj === 'miss') {
-      preloadArt((opts.bsubj === 'miss' ? this.missPool : (this.pools.eigo || [])).map((q) => q.art));
-    }
+    /* 絵の ある 問題（えいご・れきしの 人物）は 先に 読みこんでおく */
+    const keys = opts.bsubj === 'miss' ? [] : subjKeys(opts);
+    const pre = opts.bsubj === 'miss' ? this.missPool
+      : (keys.includes('eigo') ? this.pools.eigo || [] : []).concat(keys.includes('rekishi') ? this.pools.rekishi || [] : []);
+    preloadArt(pre.map((q) => q.art));
   }
 
   /* 同じ問題が つづけて 出ないように えらぶ。
@@ -515,6 +517,8 @@ export class BattleSession {
       deck.forEach((x) => { const r = KOKUGO_REI[x.name]; if (r) disp![x.name] = r.imi; });
     }
     else { text = askText(key, q); }
+    /* れきしの 人物は 似顔絵を 問題文の 上に 出す（国旗と 同じ 形。こたえ見せの あいだも 出ている） */
+    if (key === 'rekishi' && q.art) art = q.art;
     /* 3秒ごとに 1つずつ 出す ヒント。問題文に つかった ぶんは のぞく */
     const used = key === 'pref' || key === 'rika' || key === 'rekishi' ? 1 : 0;
     const more = noOverlap(q.hints.slice(used).filter((h) => h && h !== text));

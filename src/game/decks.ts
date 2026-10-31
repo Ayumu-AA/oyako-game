@@ -1,6 +1,7 @@
 /* 出題デッキ。モードと学年から その回に出す問題の並びを作る */
 import { PCODE, PREF, FLAG, KOKUGO, RIKA, REKISHI, EIGO, LV1_PREF, LV1_FLAG, HINT2 } from '../data/questions';
 import { KANJI_Q } from '../data/kanji';
+import { REKISHI_IMAGES } from '../data/rekishi_images';
 import { hasArt } from './art';
 import { makePuzzle } from './math10';
 import { orderBySeen, missKeys } from './records';
@@ -34,7 +35,13 @@ export function relayDeck(sub: Subject, lv: DataLv): RelayQ[] {
     /* 英語モードは 絵が用意できている単語だけ出す（IMAGES に足せば自動で仲間入り） */
     if (sub === 'eigo') return hasArt(q[6]);
     return true;
-  }).map((q) => ({ name: q[0], yomi: q[1], tag: q[2], hints: q[3].concat((HINT2_MAP[sub] || {})[q[0]] || []), fact: q[4], art: q[6] ? { t: 'icon' as const, k: q[6] } : null, sub })));
+  }).map((q) => ({ name: q[0], yomi: q[1], tag: q[2], hints: q[3].concat((HINT2_MAP[sub] || {})[q[0]] || []), fact: q[4], art: artOf(sub, q), sub })));
+}
+/** その問題の 絵。えいごは データの 7番目の キー、れきしの 人物は 名前で 似顔絵を さがす */
+function artOf(sub: Subject, q: Row): RelayQ['art'] {
+  if (q[6]) return { t: 'icon', k: q[6] };
+  if (sub === 'rekishi' && REKISHI_IMAGES[q[0]]) return { t: 'icon', k: q[0] };
+  return null;
 }
 
 /** はやおしの 理科デッキ。その学年のぶん＋1つ下の学年（3年は その学年だけ）。
