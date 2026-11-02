@@ -110,13 +110,13 @@ export const LV1_SKIP: BattleSubj[] = ['rika', 'rekishi', 'eigo'];
 export const relayOk = (v: string, g: Level) => dataLv(g) === 2 || !(LV1_SKIP as string[]).includes(v);
 
 /* ===== 学年べつの ジャンル（はやおしバトル） =====
-   1年生　　 かん字の読み・けいさん・国旗
+   1年生　　 かん字の読み・けいさん
    2年生　　 ＋ 都道府県
-   3・4年生　＋ れきし・りか
+   3・4年生　＋ れきし・りか・国旗
    5・6年生　＋ えいご
    （りか・社会は 問題を あつめている さいちゅう。画面では えらべるようにして、
      出す問題は いままでの データを つかう） */
-export const SUBJ_FROM: Partial<Record<BattleSubj, Level>> = { pref: 2, rekishi: 3, rika: 3, eigo: 5 };
+export const SUBJ_FROM: Partial<Record<BattleSubj, Level>> = { pref: 2, rekishi: 3, rika: 3, flag: 3, eigo: 5 };
 export const okSubj = (v: BattleSubj, g: Level) => g >= (SUBJ_FROM[v] || 1);
 /** そのがくねんで ミックスに 出る ジャンル */
 export const mixFor = (g: Level): BattleSubj[] => MIX_ALL.filter((v) => okSubj(v, g));

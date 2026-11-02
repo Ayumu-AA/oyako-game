@@ -157,7 +157,7 @@ export function TitleScreen({ onPlayers, onSettings, onRank }: {
 /* ===== 2．がくねん ===== */
 /** その学年から あたらしく ふえる ジャンル（ボタンの 下に 小さく 出す） */
 const GRADE_NEW: Record<Level, string> = {
-  1: 'かん字・けいさん・国旗', 2: '都道府県も', 3: 'れきし・りかも',
+  1: 'かん字・けいさん・おかいもの', 2: '都道府県も', 3: 'れきし・りか・国旗も',
   4: '', 5: 'えいごも', 6: '',
 };
 const gradeSub = (g: Level) => (g === 1 ? GRADE_NEW[1]

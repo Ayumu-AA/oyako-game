@@ -589,7 +589,7 @@ for (const [w, h, tag] of VPS) {
       const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: true });
       const page = await ctx.newPage();
       await open(page, { 'oyako-mojirate': '1' });   /* もじうめを かならず 出す */
-      await nav(page, players, 1);   /* ていがくねんの 国旗は 名前が 長い（ニュージーランド など） */
+      await nav(page, players, 3);   /* 国旗は 3年から。ていがくねんの 国旗は 名前が 長い（ニュージーランド など） */
       if (players === 1) { await page.click('[data-mode="battle1"]'); await page.click('#btn-entry-practice'); }
       else await page.click('[data-mode="battle"]');
       await page.click('#seg-subject button[data-v="flag"]');

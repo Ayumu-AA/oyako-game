@@ -171,9 +171,9 @@ describe('battle', () => {
     expect(kanjiDeck(2).some((q) => [...q.name].length >= 2)).toBe(true);
     expect(kanjiDeck(6).some((q) => [...q.name].length >= 3)).toBe(true);
   });
-  it('学年べつの ジャンル：1年は かん字・けいさん・国旗、2年から 県、3年から れきし・りか、5年から えいご', () => {
-    expect(mixFor(1)).toEqual(['flag', 'kokugo', 'calc', 'word']);
-    expect(mixFor(2)).toEqual(['pref', 'flag', 'kokugo', 'calc', 'word']);
+  it('学年べつの ジャンル：1年は かん字・けいさん、2年から 県、3年から れきし・りか・国旗、5年から えいご', () => {
+    expect(mixFor(1)).toEqual(['kokugo', 'calc', 'word']);
+    expect(mixFor(2)).toEqual(['pref', 'kokugo', 'calc', 'word']);
     expect(mixFor(3)).toEqual(['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'calc', 'word']);
     expect(mixFor(4)).toEqual(mixFor(3));
     expect(mixFor(5)).toEqual(['pref', 'flag', 'kokugo', 'rika', 'rekishi', 'eigo', 'calc', 'word']);
