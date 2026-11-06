@@ -40,7 +40,7 @@ export function Board() {
         const r = payload.new as { nickname: string; score: number; mode: string; level: number };
         const m = RANK_MODES.find((x) => x.mode === r.mode)?.label || r.mode;
         toastN.current++;
-        setToast({ text: `${r.nickname} さんが ${m} で ${r.score}もん！`, n: toastN.current });
+        setToast({ text: `${r.nickname} さんが ${m} で ${r.score}${r.mode === 'battle1' ? '点' : 'もん'}！`, n: toastN.current });
         void reload();
         /* その表へ 飛ぶ */
         const k = ALL_KEYS.findIndex((x) => x.mode === r.mode && x.lv === r.level);
@@ -84,7 +84,7 @@ export function Board() {
                   <span className="bno">{k + 1}</span>
                   <span className="bname">{r.nickname}</span>
                   <span className="bbadge" style={{ background: rk.c }}>{rk.n}級</span>
-                  <span className="bscore">{r.score}<small>もん</small>{cur.mode === 'battle1' && <em>{r.seconds}秒</em>}</span>
+                  <span className="bscore">{r.score}<small>{cur.mode === 'battle1' ? '点' : 'もん'}</small>{cur.mode === 'battle1' && <em>{r.seconds}秒</em>}</span>
                 </li>
               );
             })}

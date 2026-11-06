@@ -73,8 +73,9 @@ const PODIUM = '<svg viewBox="0 0 120 54" aria-hidden="true">'
   + '</g></svg>';
 
 /* ===== 一覧 ===== */
+/* はやおし（ひとり）の score は 正解数ではなく「とくてん」（App.tsx で ptsChild を 送っている） */
 function fmtRow(mode: Mode, r: { score: number; seconds: number }) {
-  return mode === 'battle1' ? `${r.score}もん ／ ${r.seconds}秒` : `${r.score}もん`;
+  return mode === 'battle1' ? `${r.score}点 ／ ${r.seconds}秒` : `${r.score}もん`;
 }
 export function RankingScreen({ mode0, level0, nick, onBack, onName }: { mode0: Mode; level0: Level; nick: string | null; onBack: () => void; onName: () => void }) {
   const [mode, setMode] = useState<Mode>(mode0);
