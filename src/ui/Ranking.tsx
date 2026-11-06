@@ -106,7 +106,7 @@ export function RankingScreen({ mode0, level0, nick, onBack, onName }: { mode0: 
     <section className="screen on" id="s-rank">
       <div className="howhead">
         <div className="howttl">
-          <p className="eyebrow">ランキング<span className="lvchip ev" id="rank-ev">{ev === 'home' ? 'おうち' : ev}</span></p>
+          <p className="eyebrow">ランキング</p>
           <h2 id="rank-title">{RANK_MODES.find((m) => m.mode === mode)?.label}<Raw as="i" className="crown" html={CROWN} /></h2>
         </div>
         <button type="button" className="rulesbtn" id="btn-rank-name" onClick={onName}>

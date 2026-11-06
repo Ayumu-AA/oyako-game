@@ -1329,12 +1329,6 @@
     content:'';position:absolute;left:0;bottom:0;width:132px;height:3px;border-radius:2px;
     background:linear-gradient(90deg,#5fc8ff,rgba(95,200,255,0));
   }
-  /* 「おうち」は 黄色い まるい ふだ */
-  .wrap.night #rank-ev.ev{
-    background:linear-gradient(180deg,#ffd45e,#f5a623);color:#4a2d00;
-    border:none;font-weight:900;padding:3px 13px;border-radius:999px;
-    box-shadow:0 3px 10px rgba(245,166,35,.4);
-  }
   /* 「がくねん」の 見出しに 帽子の しるし */
   .wrap.night #row-rank-level .picklabel{
     font-size:14px;font-weight:900;color:#cfe6ff;letter-spacing:.06em;
