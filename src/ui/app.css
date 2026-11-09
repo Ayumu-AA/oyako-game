@@ -2007,7 +2007,9 @@
       linear-gradient(90deg, rgba(150,205,255,.07) 1px, transparent 1px);
     background-size:34px 34px;
   }
-  #s-battle .side, #s-battle .mid, #s-battle .bfin{position:relative;z-index:1}
+  #s-battle .side, #s-battle .mid{position:relative;z-index:1}
+  /* 「しゅうりょう！」は 画面ぜんたいに かぶせる。relative に すると ならびの 最後（画面の 下）に おしだされる */
+  #s-battle .bfin{position:absolute;inset:0;z-index:40}
   /* 問題と 選たく肢が のる 白い カード */
   #s-battle .side{
     background:linear-gradient(180deg,#ffffff 0%, #ecf4fb 100%);
