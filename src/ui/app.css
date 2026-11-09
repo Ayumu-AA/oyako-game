@@ -532,6 +532,21 @@
   }
   .rulesbtn:active{background:var(--sea);color:#fff;transform:translateY(2px);box-shadow:none}
   .rulesbtn:active .qm{background:#fff;color:var(--sea)}
+  /* メニュー画面の 右上：ランキング・せってい の まるい ボタン。
+     がくねん・ゲーム・ジャンルの 画面は 見出しの 右に うかせる（高さを ふやさない）。
+     あそびかたの 画面は「ルールを見る」の よこに ならべる */
+  #s-level,#s-games,#s-sub{position:relative}
+  .menutools{position:absolute;top:-4px;right:0;display:flex;gap:6px;z-index:2}
+  .howhead .menutools{position:static}
+  .toolbtn{
+    width:36px;height:36px;flex:none;border-radius:50%;padding:0;cursor:pointer;
+    font:inherit;font-size:17px;line-height:1;display:grid;place-items:center;
+    border:1.5px solid var(--sea);background:var(--surface);color:var(--sea);
+    box-shadow:0 2px 0 rgba(27,73,101,.14);
+  }
+  .toolbtn:active{transform:translateY(2px);box-shadow:none}
+  #btn-tool-set{font-size:21px}   /* ⚙ は 字として 小さく 出るので すこし 大きく */
+  #s-how .howhead{gap:6px}
 
   /* 選たくは タイル状。選んだものが ひと目で わかるように 強く 色を変える */
   .pickrow{display:grid;gap:7px}
@@ -1825,6 +1840,11 @@
     box-shadow:0 4px 12px rgba(0,10,30,.4), inset 0 1px 0 rgba(255,255,255,.25);
   }
   .wrap.night .rulesbtn .qm{background:#2b8ad6;color:#fff}
+  .wrap.night .toolbtn{
+    background:linear-gradient(160deg, rgba(255,255,255,.14), rgba(255,255,255,.04));
+    border-color:rgba(140,205,255,.5);color:#eaf3ff;
+    box-shadow:0 4px 12px rgba(0,10,30,.4), inset 0 1px 0 rgba(255,255,255,.25);
+  }
   /* 中の 字が 読みにくく ならないように、うしろの もよう（PLOW の 文字など）が
      すけない 濃さに する */
   .wrap.night .howlede{

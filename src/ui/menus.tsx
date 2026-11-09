@@ -31,6 +31,18 @@ function BackRow({ id, onBack, onHome }: { id: string; onBack: () => void; onHom
   );
 }
 
+/** メニュー画面の 右上に ずっと 出す 小さな ボタン（ランキング・せってい）。
+    ホームまで もどらなくても 音や 時間を かえたり、表を 見たり できるように。
+    ランキングは ひとりの はやおしの 表しか ないので、2人の ときは せっていだけ */
+export function MenuTools({ onRank, onSettings }: { onRank?: () => void; onSettings: () => void }) {
+  return (
+    <div className="menutools">
+      {onRank && <button type="button" className="toolbtn" id="btn-tool-rank" aria-label="ランキング" onClick={onRank}>👑</button>}
+      <button type="button" className="toolbtn" id="btn-tool-set" aria-label="せってい" onClick={onSettings}>⚙</button>
+    </div>
+  );
+}
+
 /** いま 光らせる ジャンル。ミックスは それ 1つだけ、ほかは えらんだ ぶん ぜんぶ */
 export function pickedSubs(s: Settings): BattleSubj[] {
   if (s.bsubj === 'mix' || s.bsubj === 'miss') return [s.bsubj];
@@ -162,9 +174,10 @@ const GRADE_NEW: Record<Level, string> = {
 };
 const gradeSub = (g: Level) => (g === 1 ? GRADE_NEW[1]
   : 'ジャンル ' + mixFor(g).length + 'つ' + (GRADE_NEW[g] ? '（' + GRADE_NEW[g] + '）' : ''));
-export function LevelScreen({ players, onLevel, onBack, onHome }: { players: 1 | 2; onLevel: (l: Level) => void; onBack: () => void; onHome?: () => void }) {
+export function LevelScreen({ players, onLevel, onBack, onHome, tools }: { players: 1 | 2; onLevel: (l: Level) => void; onBack: () => void; onHome?: () => void; tools?: ReactNode }) {
   return (
     <section className="screen on colortiles" id="s-level">
+      {tools}
       <p className="eyebrow" id="level-eyebrow">{players === 2 ? '2人で あそぶ' : '1人で あそぶ'}</p>
       <h1 className="display">がくねんは？</h1>
       <p className="lede">がくねんで 出る ジャンルと むずかしさが かわります。</p>
@@ -183,8 +196,8 @@ export function LevelScreen({ players, onLevel, onBack, onHome }: { players: 1 |
 }
 
 /* ===== 3．あそぶ ゲーム ===== */
-export function GamesScreen({ players, level, missN, onPick, onBack, onHome }: {
-  players: 1 | 2; level: Level; missN: number; onPick: (t: Tile) => void; onBack: () => void; onHome?: () => void;
+export function GamesScreen({ players, level, missN, onPick, onBack, onHome, tools }: {
+  players: 1 | 2; level: Level; missN: number; onPick: (t: Tile) => void; onBack: () => void; onHome?: () => void; tools?: ReactNode;
 }) {
   /* ていがくねんは りか・れきし・えいごを 出さないので、ジャンルの数も それに あわせる */
   const relayN = (G.relay.modes as string[]).filter((m) => relayOk(m, level)).length;
@@ -199,6 +212,7 @@ export function GamesScreen({ players, level, missN, onPick, onBack, onHome }: {
   const miss: Tile = { k: 'miss1', m: 'miss1', b: 'まちがい直し', s: 'のこり ' + missN + 'もん・ひとりで' };
   return (
     <section className="screen on colortiles" id="s-games">
+      {tools}
       <p className="eyebrow" id="games-eyebrow">{(players === 2 ? '2人で あそぶ' : '1人で あそぶ') + '・' + gradeLabel(level)}</p>
       <h1 className="display">どれで あそぶ？</h1>
       <div className="modes" id="game-modes">
@@ -296,12 +310,13 @@ export function SettingsOverlay({ open, seconds, onSeconds, onClose, onCleared, 
 }
 
 /* ===== グループの中身 ===== */
-export function SubScreen({ group, level, onMode, onBack, onHome }: { group: Group; level: Level; onMode: (m: Mode) => void; onBack: () => void; onHome?: () => void }) {
+export function SubScreen({ group, level, onMode, onBack, onHome, tools }: { group: Group; level: Level; onMode: (m: Mode) => void; onBack: () => void; onHome?: () => void; tools?: ReactNode }) {
   const g = G[group];
   /* ていがくねんには りか・れきし・えいごは 出さない */
   const modes = g.modes.filter((m) => relayOk(m, level));
   return (
     <section className="screen on" id="s-sub">
+      {tools}
       <p className="eyebrow" id="sub-eyebrow">{g.eyebrow}</p>
       <h1 className="display" id="sub-title">{g.title}</h1>
       <Raw as="p" className="lede" id="sub-lede" html={g.lede} />
@@ -381,7 +396,7 @@ function SubjectPick({ level, values, onPick, head }: { level: Level; values: re
   );
 }
 
-export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode: Mode; s: Settings; onChange: (p: Partial<Settings> | ((cur: Settings) => Partial<Settings>)) => void; onStart: () => void; onBack: () => void; onHome?: () => void }) {
+export function HowScreen({ mode, s, onChange, onStart, onBack, onHome, tools }: { mode: Mode; s: Settings; onChange: (p: Partial<Settings> | ((cur: Settings) => Partial<Settings>)) => void; onStart: () => void; onBack: () => void; onHome?: () => void; tools?: ReactNode }) {
   const [rules, setRules] = useState(false);
   /* ひとりの はやおしは「ランキングに のる」か「れんしゅう」かを 先に えらぶ */
   const [entry, setEntry] = useState<'none' | 'rank' | 'practice'>('none');
@@ -417,6 +432,7 @@ export function HowScreen({ mode, s, onChange, onStart, onBack, onHome }: { mode
           <button type="button" className="rulesbtn" id="btn-rules" onClick={() => setRules(true)}>
             <span className="qm" aria-hidden="true">?</span>ルールを見る
           </button>
+          {tools}
         </div>
 
         <Raw as="p" className="howlede" id="how-lede" html={(HOW_LEDE as Record<string, string>)[missOnly ? 'miss' : solo ? 'battle1' : soloCross ? 'cross1' : mode] || (HOW_LEDE as Record<string, string>).pref} />

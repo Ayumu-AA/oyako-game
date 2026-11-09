@@ -12,7 +12,7 @@ import { SOLO_SECONDS, okSubj } from '../game/battle';
 import { NameSheet, RankingScreen } from './Ranking';
 import { SeatSheet } from './Seat';
 import type { Level, Mode } from '../game/types';
-import { TitleScreen, LevelScreen, GamesScreen, SettingsOverlay, SubScreen, HowScreen, CountScreen, type Tile } from './menus';
+import { TitleScreen, LevelScreen, GamesScreen, SettingsOverlay, SubScreen, HowScreen, CountScreen, MenuTools, type Tile } from './menus';
 import { PlayScreen } from './PlayScreen';
 import { ResultScreen } from './ResultScreen';
 import { GeoScreen } from './GeoScreen';
@@ -75,7 +75,11 @@ export default function App() {
     if (seatAsk(ev) && sn !== null) enqueueEntry({ event_code: ev, level: s.level, seat_no: sn, players: s.players, nickname: n });
     const f = nameThen.current; nameThen.current = null; if (f) f();
   };
-  const openRank = (m: Mode) => { setRankMode(rankable(m) ? m : RANK_MODES[0].mode); go('rank'); };
+  /* ランキングの「もどる」は 開いた 画面へ（メニューの とちゅうから 見ても ホームに とばされない） */
+  const rankFrom = useRef<Screen>('title');
+  const openRank = (m: Mode, from: Screen = 'title') => { rankFrom.current = from; setRankMode(rankable(m) ? m : RANK_MODES[0].mode); go('rank'); };
+  /* メニュー画面の 右上の ボタン */
+  const tools = (from: Screen) => <MenuTools onSettings={() => setSetOpen(true)} onRank={s.players === 1 ? () => openRank(mode, from) : undefined} />;
   /* 結果画面の「ランキングを 見る」：名前が 無ければ 先に 決めてもらう */
   const rankFromResult = (m: Mode) => { if (getNick()) openRank(m); else askName(() => openRank(m)); };
 
@@ -180,14 +184,13 @@ export default function App() {
     <>
     {night && <SchoolBg />}
     <div className={'wrap' + (night ? ' night' : '') + (screen === 'rank' ? ' fit' : '')}>
-      {screen === 'title' && <>
-        <TitleScreen onPlayers={(p) => { change({ players: p }); go('level'); }} onSettings={() => setSetOpen(true)} onRank={() => openRank(mode)} />
-        <SettingsOverlay open={setOpen} seconds={s.seconds} onSeconds={(v) => change({ seconds: v })} onClose={() => setSetOpen(false)} onCleared={() => setMissN(0)} nick={nick} onName={() => askName(() => undefined)} />
-      </>}
-      {screen === 'level' && <LevelScreen players={s.players} onLevel={pickLevel} onBack={() => go('title')} />}
-      {screen === 'games' && <GamesScreen players={s.players} level={s.level} missN={missN} onPick={pickGame} onBack={() => go('level')} onHome={() => go('title')} />}
-      {screen === 'sub' && <SubScreen group={group} level={s.level} onMode={(m) => { howGroup.current = group; openHow(m); }} onBack={() => go('games')} onHome={() => go('title')} />}
-      {screen === 'how' && <HowScreen mode={mode} s={s} onChange={change} onStart={() => start()} onBack={backFromHow} onHome={() => go('title')} />}
+      {screen === 'title' && <TitleScreen onPlayers={(p) => { change({ players: p }); go('level'); }} onSettings={() => setSetOpen(true)} onRank={() => openRank(mode)} />}
+      {screen === 'level' && <LevelScreen players={s.players} onLevel={pickLevel} onBack={() => go('title')} tools={tools('level')} />}
+      {screen === 'games' && <GamesScreen players={s.players} level={s.level} missN={missN} onPick={pickGame} onBack={() => go('level')} onHome={() => go('title')} tools={tools('games')} />}
+      {screen === 'sub' && <SubScreen group={group} level={s.level} onMode={(m) => { howGroup.current = group; openHow(m); }} onBack={() => go('games')} onHome={() => go('title')} tools={tools('sub')} />}
+      {screen === 'how' && <HowScreen mode={mode} s={s} onChange={change} onStart={() => start()} onBack={backFromHow} onHome={() => go('title')} tools={tools('how')} />}
+      {/* せっていは ホームと メニューの どの 画面からも ひらく */}
+      <SettingsOverlay open={setOpen} seconds={s.seconds} onSeconds={(v) => change({ seconds: v })} onClose={() => setSetOpen(false)} onCleared={() => setMissN(0)} nick={nick} onName={() => askName(() => undefined)} />
       {screen === 'count' && <CountScreen mode={mode} role={s.role} players={s.players} onDone={afterCount} />}
       {screen === 'play' && <PlayScreen key={round} mode={mode} level={s.level} seconds={s.seconds} role={s.role} onFinish={finishPlay} onRestart={restart} onQuit={quit} onEmpty={() => go('title')} />}
       {screen === 'geo' && <GeoScreen key={round} mode={mode} level={s.level} seconds={s.seconds} onFinish={finishPlay} onRestart={restart} onQuit={quit} />}
@@ -202,7 +205,7 @@ export default function App() {
       {screen === 'numcross' && <NumCrossScreen key={round} level={s.level} onFinish={(r) => { setCr(r); go('cresult'); }} onRestart={restart} onQuit={quit} />}
       {screen === 'result' && pr && <ResultScreen r={pr} onAgain={() => go('how')} onMiss={() => { if (missCount()) openHow('miss'); }} onTitle={() => go('title')} onRank={rankable(pr.mode) ? () => rankFromResult(pr.mode) : undefined} />}
       {screen === 'bresult' && br && <BResultScreen r={br} practice={!!br.practice} onAgain={() => go('how')} onPractice={() => { change({ practice: true }); setRound((r) => r + 1); go('battle'); }} onMiss={() => { if (missCount()) openHow('miss'); }} onTitle={() => go('title')} onRank={() => rankFromResult('battle1')} />}
-      {screen === 'rank' && <RankingScreen mode0={rankMode} level0={s.level} nick={nick} onBack={() => go('title')} onName={() => askName(() => undefined)} />}
+      {screen === 'rank' && <RankingScreen mode0={rankMode} level0={s.level} nick={nick} onBack={() => go(rankFrom.current)} onName={() => askName(() => undefined)} />}
       <NameSheet open={nameOpen} level={s.level} onDone={onNamed} onCancel={() => { setNameOpen(false); nameThen.current = null; }} />
       <SeatSheet open={seatOpen} level={seatLv.current} onDone={onSeat} />
       {screen === 'cresult' && cr && <CResultScreen r={cr} onAgain={() => { setRound((r) => r + 1); go(mode === 'numcross' ? 'numcross' : 'cross'); }} onTitle={() => go('title')} />}
