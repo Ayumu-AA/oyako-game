@@ -1567,3 +1567,26 @@ test('一時停止しても のこり時間は へりつづける（10/26）', a
   await expect(page.locator('#overlay')).toBeHidden();
   expect(errs).toEqual([]);
 });
+
+test('時間ぎれのとき、こたえられなかった問題の こたえが 結果に出る（11/11）', async ({ page }) => {
+  test.setTimeout(180000);   /* 90秒の 時間ぎれを ほんとうに 待つので 長め */
+  const errs = noErrors(page);
+  await open(page);
+  await nav(page, 1, 6);
+  await page.click('[data-mode="battle1"]');
+  await page.click('#btn-entry-practice');
+  await page.click('#seg-subject button[data-v="pref"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  /* だれも こたえずに 時間ぎれ（90秒）を 待つ */
+  await expect(page.locator('#s-bresult')).toBeVisible({ timeout: 120000 });
+  const card = page.locator('#blastq');
+  await expect(card).toBeVisible();
+  await expect(card).toContainText('時間ぎれ');
+  /* こたえが 空でない */
+  const ans = (await page.locator('#blastq-a').innerText()).trim();
+  expect(ans.length, 'こたえが 空: ' + ans).toBeGreaterThan(0);
+  /* へぇ とは 別のカードに なっている */
+  await expect(page.locator('#bhee-name')).toBeVisible();
+  expect(errs).toEqual([]);
+});

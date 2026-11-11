@@ -4,7 +4,7 @@ import { CONFIG, GEO_TIPS, GEO_TIPS_NAME, MATH_TIPS_T } from './texts';
 import { rankOf, rankNext, rankLine, rankMsg } from '../game/rank';
 import { missCount } from '../game/records';
 import { capListHTML, geoNameOf, jpSVG, wSVG, type Marks } from '../game/geo';
-import { Hee, Promo, Raw, useResultLock } from './parts';
+import { Hee, Promo, Raw, TimeUp, useResultLock } from './parts';
 import { isGeo, type PlayResult } from './state';
 
 export function ResultScreen({ r, onAgain, onMiss, onTitle, onRank }: { r: PlayResult; onAgain: () => void; onMiss: () => void; onTitle: () => void; onRank?: () => void }) {
@@ -42,6 +42,8 @@ export function ResultScreen({ r, onAgain, onMiss, onTitle, onRank }: { r: PlayR
         <Raw as="p" className="rm-note" id="rm-note" html={map?.note || ''} />
         <p className="rm-brand" id="rm-brand">{CONFIG.schoolName}</p>
       </div>
+
+      {r.timeUp ? <TimeUp q={r.timeUp} /> : null}
 
       <Hee name={hee.name} text={hee.text} />
 

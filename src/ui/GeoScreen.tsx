@@ -21,6 +21,7 @@ export function GeoScreen({ mode, level, seconds, onFinish, onRestart, onQuit }:
   const [idx, setIdx] = useState(0);
   const [q, setQ] = useState<GeoQ | null>(null);
   const [locked, setLocked] = useState(false);
+  const qRef = useRef<GeoQ | null>(null), lockedRef = useRef(false);   /* finish から いまの問題を 見るため */
   const [pick, setPick] = useState<string | null>(null);   // 押した答え（null = パス）
   const [score, setScore] = useState(0);
   const got = useRef<string[]>([]);
@@ -44,7 +45,10 @@ export function GeoScreen({ mode, level, seconds, onFinish, onRestart, onQuit }:
     stopTimer(); setPaused(false); sndWhistle();
     if (nextTimer.current) clearTimeout(nextTimer.current);
     fxClear({ layer: fxLayer.current, stamp: fxStamp.current }); streakReset();
-    onFinishRef.current({ mode, score: got.current.length, seconds, got: [], geoKind: kind, geoGot: got.current.slice() });
+    /* 時間が来た しゅんかんに 出ていた 県・国。もう こたえた あとなら 出さない */
+    const cq = qRef.current;
+    const tq = cq && !lockedRef.current ? { answer: geoNameOf(kind, cq.ans) } : null;
+    onFinishRef.current({ mode, score: got.current.length, seconds, got: [], geoKind: kind, geoGot: got.current.slice(), timeUp: tq });
   }, [mode, seconds, kind]);
   const tick = useCallback(() => {
     const l = Math.max(0, endAt.current - Date.now());
@@ -145,6 +149,7 @@ export function GeoScreen({ mode, level, seconds, onFinish, onRestart, onQuit }:
   const resume = useCallback(() => { if (!paused) return; setPaused(false); }, [paused]);
   usePauseKeys(paused, pause, resume);
   const pausedRef = useRef(paused); pausedRef.current = paused;
+  qRef.current = q; lockedRef.current = locked;
 
   const scheduleNext = (ms = 1600) => {
     nextTimer.current = window.setTimeout(() => {

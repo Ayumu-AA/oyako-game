@@ -28,7 +28,7 @@ import { rankOf, rankNext, rankLine, rankMsg } from '../game/rank';
 import { missCount } from '../game/records';
 import type { BattleQ, Level, Side } from '../game/types';
 import type { BattleSubj } from '../game/battle';
-import { Hee, PauseButton, PauseOverlay, Promo, Raw, usePauseKeys, useResultLock } from './parts';
+import { Hee, PauseButton, PauseOverlay, Promo, Raw, usePauseKeys, useResultLock, TimeUp } from './parts';
 import type { BattleResult } from './state';
 
 export interface BattleProps {
@@ -158,6 +158,12 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
   const battleFinish = useCallback(() => {
     if (finished.current) return; finished.current = true;
     const s = sess.current!;
+    /* 時間が来た しゅんかんに 出ていた 問題。まだ こたえていない ときだけ 結果画面に 出す。
+       絵が 出る 問題（国旗・えいごの 絵）は 問題文だけ 見せても 分からないので こたえだけ */
+    const tq = !s.done && s.q
+      ? { ask: s.q.art ? undefined : s.q.text, answer: s.q.answer,
+          yomi: (s.q.disp && s.q.disp[s.q.answer]) || (s.q.yomi && s.q.yomi[s.q.answer]) || undefined }
+      : null;
     s.done = true;
     stopTimer(); stopAns(); stopIdle(); setPaused(false); sndWhistle();
     setSide('adult', { waiting: false });
@@ -165,7 +171,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
     later(() => {
       setFin(false);
       const sec = goal ? Math.max(1, Math.round((Date.now() - (t0.current || Date.now())) / 1000)) : seconds;
-      onFinishRef.current({ adult: s.score.adult, child: s.score.child, ptsAdult: s.pts.adult, ptsChild: s.pts.child, bsubj, practice, goal, seconds: sec, players, miss: bsubj === 'miss', last: s.last ? { answer: s.last.answer, fact: s.last.fact || '' } : null });
+      onFinishRef.current({ adult: s.score.adult, child: s.score.child, ptsAdult: s.pts.adult, ptsChild: s.pts.child, bsubj, practice, goal, seconds: sec, players, miss: bsubj === 'miss', last: s.last ? { answer: s.last.answer, fact: s.last.fact || '' } : null, timeUp: tq });
     }, 1400);
   }, [goal, seconds, players, bsubj, stopAns, stopRev, stopIdle]);
 
@@ -562,6 +568,7 @@ export function BResultScreen({ r, practice, onAgain, onPractice, onMiss, onTitl
           <p className="ranknext" id="brank-next" hidden={!nx}>{nx ? 'あと ' + nx.more + 'もんで ' + nx.name : ''}</p>
         </div>
       </div>
+      {r.timeUp ? <TimeUp q={r.timeUp} prefix="b" /> : null}
       {r.last ? <Hee prefix="b" name={r.last.answer} text={r.last.fact + '。'} />
         : <Hee prefix="b" name="はやおしのコツ" text={solo ? "ヒントが ふえる前に こたえると 点が 高い。わかった しゅんかんに 押そう。" : "あせってまちがえると1.5秒お休み。あわてず確実にいくほうが速いことが多い。"} />}
       <Promo prefix="b" />

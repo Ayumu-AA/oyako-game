@@ -24,6 +24,7 @@ export function PlayScreen({ mode, level, seconds, role, onFinish, onRestart, on
   const isMath = mode === 'math';
   const deck = useMemo(() => deckFor(mode, level), [mode, level]);
   const [idx, setIdx] = useState(0);
+  const idxRef = useRef(0); idxRef.current = idx;   /* finish から いまの問題を 見るため */
   const [score, setScore] = useState(0);
   const got = useRef<DeckItem[]>([]);
   const [left, setLeft] = useState(seconds * 1000);
@@ -56,10 +57,14 @@ export function PlayScreen({ mode, level, seconds, role, onFinish, onRestart, on
     fxClear({ layer: fxLayer.current, stamp: fxStamp.current }); streakReset();
     const g = got.current;
     const first = deck[0];
+    /* 時間が来た しゅんかんに 出ていた 問題（まだ 当てていない）。10を作る は 式なので 出さない */
+    const cur = deck.length ? deck[idxRef.current % deck.length] : null;
+    const tq = cur && !isMathQ(cur) ? { answer: cur.name, yomi: cur.yomi || undefined } : null;
     onFinishRef.current({
       mode, score: g.length, seconds,
       got: g.map((x) => isMathQ(x) ? { name: x.nums.join(' '), fact: '', nums: x.nums } : { name: x.name, fact: x.fact, mk: x.mk }),
       firstName: first && !isMathQ(first) ? first.name : undefined, firstFact: first && !isMathQ(first) ? first.fact : undefined,
+      timeUp: tq,
     });
   }, [deck, mode, seconds]);
   const tick = useCallback(() => {

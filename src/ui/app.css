@@ -473,6 +473,18 @@
   .ranknext[hidden]{display:none}
   .ranksash{margin-top:14px;padding-top:14px;border-top:1.5px dashed var(--line)}
   .ranksash .rankpace{margin:8px 0 0}
+  /* 時間ぎれで こたえられなかった 問題（結果画面・へぇ の 上） */
+  .lastq{
+    background:var(--surface);border:2px solid var(--vermilion);border-radius:18px;
+    padding:15px 16px 14px;position:relative;
+  }
+  .lastq .tag{
+    position:absolute;top:-11px;left:14px;background:var(--vermilion);color:#fff;
+    font-size:11px;font-weight:900;border-radius:999px;padding:3px 11px;letter-spacing:.06em;
+  }
+  .lastq .q{font-size:12.5px;color:var(--muted);font-weight:700;margin:2px 0 6px;line-height:1.5}
+  .lastq .a{font-size:27px;line-height:1.15;margin:0;color:var(--sea)}
+  .lastq .yomi{font-size:12.5px;color:var(--muted);font-weight:700;margin:4px 0 0}
   .hee{
     background:var(--sea);color:#fff;border-radius:20px;padding:18px;
   }
@@ -1325,6 +1337,17 @@
   .rankrow .rbadge{font-size:11px;font-weight:700;color:#fff;border-radius:999px;padding:3px 8px;white-space:nowrap}
   .rankrow .rscore{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap;font-size:13.5px}
   .rankrow.me{background:#FFF6DC;border-radius:10px;margin:2px -4px;padding-inline:8px}
+  /* 1位だけ 金の帯に する。番号の かわりに 王冠 */
+  .rankrow.king1{
+    background:linear-gradient(100deg,rgba(201,150,31,.95) 0%,rgba(246,216,122,.95) 50%,rgba(214,166,56,.95) 100%);
+    color:#3B2A08;border-radius:12px;margin:3px -6px;padding:11px 10px;border-bottom:none;
+    box-shadow:0 3px 12px rgba(201,150,31,.45), inset 0 1px 0 rgba(255,255,255,.6);
+  }
+  .rankrow.king1 .rcrown{display:flex;align-items:center;justify-content:center;color:#7a5a00}
+  .rankrow.king1 .rcrown svg{width:24px;height:auto;filter:drop-shadow(0 1px 1px rgba(255,255,255,.7))}
+  .rankrow.king1 .rname{font-size:18px;color:#3B2A08}
+  .rankrow.king1 .rscore{color:#4a3508}
+  .rankrow.king1 .rbadge{box-shadow:0 1px 3px rgba(0,0,0,.25)}
   .rankrow.apart{border-top:2px dashed var(--line);margin-top:6px}
   .ranknote{margin:6px 4px 4px;color:var(--muted);font-size:11.5px;text-align:right}
   /* 表は のこりの 高さを ぜんぶ つかうので、もどる・塾名は 画面の 下に つく。
@@ -1385,6 +1408,13 @@
   .wrap.night .rankrow{border-bottom-color:rgba(255,255,255,.14);color:#eaf3ff}
   .wrap.night .rankrow .rno{color:#9fc4e8}
   .wrap.night .rankrow.me{background:rgba(255,209,102,.22)}
+  /* 1位の 金の帯は くらい背景でも そのまま（自分が 1位でも 帯を 優先する） */
+  .wrap.night .rankrow.king1,.wrap.night .rankrow.king1.me{
+    background:linear-gradient(100deg,rgba(201,150,31,.95) 0%,rgba(246,216,122,.95) 50%,rgba(214,166,56,.95) 100%);
+    color:#3B2A08;
+  }
+  .wrap.night .rankrow.king1 .rname{color:#3B2A08}
+  .wrap.night .rankrow.king1 .rscore{color:#4a3508}
   .wrap.night .ranknote{color:#9fbdd8}
   .ranknote.warn{color:#b06a00;font-weight:800}
   .wrap.night .ranknote.warn{color:#ffcf7a}

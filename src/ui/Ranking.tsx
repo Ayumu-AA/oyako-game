@@ -135,9 +135,11 @@ export function RankingScreen({ mode0, level0, nick, onBack, onName }: { mode0: 
             {rows.map((r, i) => {
               const me = mine && r.nickname === mine.row.nickname && r.score === mine.row.score && r.seconds === mine.row.seconds && i + 1 === mine.rank;
               const rk = RANKS_T[r.rank_i] || RANKS_T[0];
+              /* 1位だけ 金の帯＋王冠。2位から下は いままでどおり 番号 */
+              const king = i === 0;
               return (
-                <li key={i} className={'rankrow' + (me ? ' me' : '') + (i < 3 ? ' top' + (i + 1) : '')}>
-                  <span className="rno">{i + 1}</span>
+                <li key={i} className={'rankrow' + (me ? ' me' : '') + (i < 3 ? ' top' + (i + 1) : '') + (king ? ' king1' : '')}>
+                  {king ? <Raw as="span" className="rcrown" html={CROWN} /> : <span className="rno">{i + 1}</span>}
                   <span className="rname">{r.nickname}</span>
                   <span className="rbadge" style={{ background: rk.c }}>{rk.n}</span>
                   <span className="rscore">{fmtRow(mode, r)}</span>

@@ -2,6 +2,8 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { plowMark } from '../data/logo';
 import { CONFIG } from '../data/texts';
+import { furi } from '../game/furigana';
+import type { TimeUpQ } from './state';
 
 /** SVG文字列などを そのまま入れる */
 export function Raw({ html, as: Tag = 'span', className, id, hidden, style }: { html: string; as?: keyof HTMLElementTagNameMap; className?: string; id?: string; hidden?: boolean; style?: React.CSSProperties }) {
@@ -89,6 +91,21 @@ export function Hee({ name, text, prefix = '' }: { name: string; text: string; p
       <p className="eyebrow">きょうの へぇ</p>
       <p className="hee-name display" id={prefix + 'hee-name'}>{name}</p>
       <p id={prefix + 'hee-text'}>{text}</p>
+    </div>
+  );
+}
+
+/** 時間ぎれで こたえられなかった 問題の こたえ。
+    結果画面で「へぇ」の 上に 出す（へぇ は さいごの“正解”なので 別のカードに 分ける） */
+export function TimeUp({ q, prefix = '' }: { q: TimeUpQ; prefix?: string }) {
+  return (
+    <div className="lastq" id={prefix + 'lastq'}>
+      <span className="tag">時間ぎれ</span>
+      {q.ask
+        ? <Raw as="p" className="q" id={prefix + 'lastq-ask'} html={furi(q.ask)} />
+        : <p className="q">さいごの問題の こたえ</p>}
+      <Raw as="p" className="a display" id={prefix + 'lastq-a'} html={furi(q.answer)} />
+      {q.yomi ? <p className="yomi" id={prefix + 'lastq-yomi'}>{q.yomi}</p> : null}
     </div>
   );
 }

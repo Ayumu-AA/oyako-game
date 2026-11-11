@@ -45,7 +45,10 @@ export interface PlayResult {
   newBest: boolean;
   geoKind?: 'jp' | 'world';
   geoGot?: string[];
+  timeUp?: TimeUpQ | null;   // 時間が来た しゅんかんに 出ていた（まだ こたえていない）問題
 }
+/** 時間ぎれで こたえられなかった 問題。ask は ルビ記法のまま（無い モードもある） */
+export interface TimeUpQ { ask?: string; answer: string; yomi?: string }
 export interface BattleResult {
   adult: number; child: number; goal: number; seconds: number;
   ptsAdult: number; ptsChild: number;   // とくてん（早いほど 高い）
@@ -54,6 +57,7 @@ export interface BattleResult {
   players: 1 | 2;   // 1 = ひとりモード（こども側の 点だけを 見る）
   miss?: boolean;   // まちがい直しで あそんだか
   last: { answer: string; fact: string } | null;
+  timeUp?: TimeUpQ | null;   // 時間が来た しゅんかんに 出ていた（まだ こたえていない）問題
 }
 export interface CrossResult {
   kind: 'cross' | 'numcross';
