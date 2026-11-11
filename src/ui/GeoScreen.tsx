@@ -1,6 +1,6 @@
 /* ちずクイズ（地図で 色のついた所を 4たくで 答える） */
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { capOf, geoDeck, geoFitVB, geoFullVB, geoNameOf, geoQuestion, jpSVG, wSVG, viewClamp, viewChanged, viewTransform, viewZero, type GeoKind, type GeoQ, type VB, type View } from '../game/geo';
+import { capOf, geoDeck, geoFitVB, geoFullVB, geoNameOf, geoNameDisp, geoQuestion, jpSVG, wSVG, viewClamp, viewChanged, viewTransform, viewZero, type GeoKind, type GeoQ, type VB, type View } from '../game/geo';
 import { markHit, markMiss, subjOf } from '../game/records';
 import { dataLv } from '../game/types';
 import type { Level, Mode } from '../game/types';
@@ -47,7 +47,7 @@ export function GeoScreen({ mode, level, seconds, onFinish, onRestart, onQuit }:
     fxClear({ layer: fxLayer.current, stamp: fxStamp.current }); streakReset();
     /* 時間が来た しゅんかんに 出ていた 県・国。もう こたえた あとなら 出さない */
     const cq = qRef.current;
-    const tq = cq && !lockedRef.current ? { answer: geoNameOf(kind, cq.ans) } : null;
+    const tq = cq && !lockedRef.current ? { answer: geoNameDisp(kind, cq.ans) } : null;
     onFinishRef.current({ mode, score: got.current.length, seconds, got: [], geoKind: kind, geoGot: got.current.slice(), timeUp: tq });
   }, [mode, seconds, kind]);
   const tick = useCallback(() => {
@@ -172,7 +172,7 @@ export function GeoScreen({ mode, level, seconds, onFinish, onRestart, onQuit }:
       streakReset(); sndNG(); buzz(60);
     }
     const cap = kind === 'world' ? null : capOf(q.ans);
-    setBar({ cls: ok ? 'ok' : 'ng', text: (ok ? 'せいかい！　' : 'ざんねん。こたえは ') + geoNameOf(kind, q.ans) + (cap ? '（県庁所在地は ' + cap[2] + '）' : '') });
+    setBar({ cls: ok ? 'ok' : 'ng', text: (ok ? 'せいかい！　' : 'ざんねん。こたえは ') + geoNameDisp(kind, q.ans) + (cap ? '（県庁所在地は ' + cap[2] + '）' : '') });
     scheduleNext();
   };
   const pass = () => {
@@ -180,7 +180,7 @@ export function GeoScreen({ mode, level, seconds, onFinish, onRestart, onQuit }:
     setLocked(true); setPick(null); streakReset();
     markMiss(subjOf(mode), geoNameOf(kind, q.ans));
     const cc = kind === 'world' ? null : capOf(q.ans);
-    setBar({ cls: 'ng', text: 'こたえは ' + geoNameOf(kind, q.ans) + (cc ? '（県庁所在地は ' + cc[2] + '）' : '') });
+    setBar({ cls: 'ng', text: 'こたえは ' + geoNameDisp(kind, q.ans) + (cc ? '（県庁所在地は ' + cc[2] + '）' : '') });
     scheduleNext();
   };
 
@@ -207,7 +207,7 @@ export function GeoScreen({ mode, level, seconds, onFinish, onRestart, onQuit }:
 
       <div className="gchoices" id="geo-choices">
         {q && q.opts.map((o) => (
-          <button type="button" key={o} className={'gchoice' + (locked && o === q.ans ? ' right' : '') + (locked && pick === o && o !== q.ans ? ' wrong' : '')} data-k={o} disabled={locked} onClick={() => answer(o)}>{geoNameOf(kind, o)}</button>
+          <button type="button" key={o} className={'gchoice' + (locked && o === q.ans ? ' right' : '') + (locked && pick === o && o !== q.ans ? ' wrong' : '')} data-k={o} disabled={locked} onClick={() => answer(o)}>{geoNameDisp(kind, o)}</button>
         ))}
       </div>
 

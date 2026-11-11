@@ -1,5 +1,6 @@
 /* 地図（えがく・あてる）。SVG は文字列で組み立てる。DOM には さわらない */
 import { JPBOX, JPINSET, JPMAP, JPCAP, WBOX, WLAND, WMAP, JPREG } from '../data/maps';
+import { gradeName } from './furigana';
 import { PREF, FLAG, PCODE, LV1_PREF, LV1_FLAG } from '../data/questions';
 import { shuffle, rng } from './util';
 import type { DataLv } from './types';
@@ -207,6 +208,11 @@ export type GeoKind = 'jp' | 'world';
 export function geoSrc(kind: GeoKind): MapSrc { return kind === 'world' ? W : JP; }
 export function geoAllKeys(kind: GeoKind): string[] { return Object.keys(geoSrc(kind)); }
 export function geoNameOf(kind: GeoKind, k: string): string { return kind === 'world' ? flagName(k) : jpName(k); }
+/** 画面に 出す 名前。学年で 読めない 漢字が あれば ひらがなに する（記録の キーには つかわない） */
+export function geoNameDisp(kind: GeoKind, k: string): string {
+  const row = kind === 'world' ? FLAGS.find((q) => q[3] === k) : PREFS[Number(k) - 1];
+  return row ? gradeName(row[0] as string, row[1] as string) : geoNameOf(kind, k);
+}
 export function geoGroupOf(kind: GeoKind, k: string): string { return kind === 'world' ? flagCont(k) : REG[k]; }
 export function geoFullVB(kind: GeoKind): VB { return kind === 'world' ? worldFullVB() : jpFullVB(); }
 

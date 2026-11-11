@@ -447,7 +447,7 @@ function BattleSide({ side, q, u, players, turn, ans, rev, stage, onChoice, onBu
           /* 左から 少しずつ。高さが 動かないように 全文を 見えない字で 敷いておく */
           <div className="qprog">
             <Raw as="p" className={'qtext ghost' + (q && q.disp ? ' long' : '')} html={q ? furi(q.text) : ''} />
-            <Raw as="p" className={'qtext live' + (q && q.disp ? ' long' : '')} html={q ? furi(cutFuri(q.text, rev)) : ''} />
+            <Raw as="p" className={'qtext live' + (q && q.disp ? ' long' : '')} html={q ? cutFuri(q.text, rev) : ''} />
           </div>
         ) : <Raw as="p" className={'qtext' + (q && q.disp ? ' long' : '')} html={q ? furi(q.text) : ''} />}
       {/* 「〇文字目が『が』の都道府県は？」の ときは、同じ条件の 仲間を 大きく 見せておく

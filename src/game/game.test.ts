@@ -6,7 +6,8 @@ import { evalTokens, makePuzzle, checkMath, type Token } from './math10';
 import { rankOf, rankNext } from './rank';
 import { plain, furi, furiName, FURI_RE } from './furigana';
 import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, ANSWER_MS_SOLO, HINT_STEP_MS, PTS_BY_STAGE, ptsAtStage, MIX_ALL, mixFor, okSubj, wordRows, nearNums, splitYomi, charOptions, mojiGroups, askText, PROG_MAX, EIGO_WORD_RATE, isKata, noOverlap, subjKeys } from './battle';
-import { cutFuri, plainLen } from './furigana';
+import { cutFuri, plainLen, gradeText } from './furigana';
+import { setGrade } from './grade';
 import { relayDeck as deckOf } from './decks';
 import { RIKA_Q } from '../data/rika';
 import { EIGO_IMI } from '../data/eigo_imi';
@@ -17,7 +18,7 @@ import { KOKUGO_REI } from '../data/kokugo_rei';
 import { FLICK } from '../data/cross';
 import { makeNum, ncRank, NC_KEYS, newNum, ncKey, ncAllOk, ncLeft } from './numcross';
 
-beforeEach(() => { setKV(memoryKV()); reloadRecords(); });
+beforeEach(() => { setKV(memoryKV()); reloadRecords(); setGrade(6); });   /* 学年は 毎回 6年に もどす */
 
 describe('records', () => {
   it('まちがい → 当てたら 消える', () => {
@@ -70,14 +71,49 @@ describe('rank', () => {
   });
 });
 
-describe('furigana', () => {
-  it('plain / furi / 重複かっこ', () => {
+describe('学年で 漢字か ひらがなか（11/11）', () => {
+  it('plain は 学年で 変わらない（記録の キーに つかうため）', () => {
     expect(plain('白{しろ}い旗{はた}')).toBe('白い旗');
-    expect(furi('白{しろ}い')).toBe('<ruby>白<rt>しろ</rt></ruby>い');
-    expect(furi('南部鉄器{なんぶてっき}（なんぶてっき）')).toBe('<ruby>南部鉄器<rt>なんぶてっき</rt></ruby>');
-    expect(furi('a<b')).toBe('a&lt;b');
-    expect(furiName('徳川家康', 'とくがわいえやす')).toContain('<rt>とくがわいえやす</rt>');
+  });
+  it('その学年までに ならう 漢字だけなら 漢字、1字でも 未習なら ひらがな', () => {
+    setGrade(1);
+    expect(furi('白{しろ}い')).toBe('白い');            /* 白＝1年 */
+    expect(furi('旗{はた}')).toBe('はた');              /* 旗＝4年 */
+    expect(furi('本州{ほんしゅう}')).toBe('ほんしゅう');  /* 本＝1年 州＝3年 → まるごと かな */
+    setGrade(6);
+    expect(furi('旗{はた}')).toBe('旗');
+    expect(furi('本州{ほんしゅう}')).toBe('本州');
+  });
+  it('ひらがなに するときは 同じ読みの かっこを 消す。漢字のままなら のこす', () => {
+    setGrade(1);
+    expect(furi('南部鉄器{なんぶてっき}（なんぶてっき）')).toBe('なんぶてっき');
+    setGrade(6);
+    expect(furi('南部鉄器{なんぶてっき}（なんぶてっき）')).toBe('南部鉄器（なんぶてっき）');
+  });
+  it('こたえも 同じ きまり。HTML は エスケープする', () => {
+    setGrade(1);
+    expect(furiName('徳川家康', 'とくがわいえやす')).toBe('とくがわいえやす');
+    setGrade(6);
+    expect(furiName('徳川家康', 'とくがわいえやす')).toBe('徳川家康');
     expect(furiName('apple', 'アップル')).toBe('apple');
+    expect(furi('a<b')).toBe('a&lt;b');
+  });
+  it('小学校で ならわない 漢字は ひらがなに せず 漢字＋読みがな（11/11）', () => {
+    /* 「鎌」は 中学いじょう。歴史の 教科書でも 漢字で 書くので 漢字の まま 読みがなを つける */
+    for (const g of [1, 6] as const) {
+      setGrade(g);
+      expect(furi('鎌倉時代{かまくらじだい}')).toBe('<ruby>鎌倉時代<rt>かまくらじだい</rt></ruby>');
+      expect(furiName('豊臣秀吉', 'とよとみひでよし')).toBe('<ruby>豊臣秀吉<rt>とよとみひでよし</rt></ruby>');
+    }
+    /* 小学校で ならう 字だけの ことばは いままでどおり（1年は ひらがな、6年は 漢字） */
+    setGrade(1); expect(furi('本州{ほんしゅう}')).toBe('ほんしゅう');
+    setGrade(6); expect(furi('本州{ほんしゅう}')).toBe('本州');
+    /* 読みがなは 文字数に 入れない */
+    setGrade(1); expect(plainLen('鎌倉時代{かまくらじだい}')).toBe(4);
+  });
+  it('ルビの ついていない 漢字は そのまま（こわれない）', () => {
+    setGrade(1);
+    expect(furi('植物の根')).toBe('植物の根');
   });
 });
 
@@ -529,23 +565,32 @@ describe('もじあて（みんはや式）と 3秒ルール', () => {
 
 describe('問題文を 少しずつ 出す（クイズ番組ふう）', () => {
   const src = '鎌倉時代{かまくらじだい}の 若{わか}い 指導者{しどうしゃ}';
-  it('ふりがなを 数に 入れない 文字数で かぞえる', () => {
-    expect(plainLen(src)).toBe(plain(src).length);
-    expect(plain(src)).toBe('鎌倉時代の 若い 指導者');
+  it('画面に 出る 文字数で かぞえる（学年で 変わる）', () => {
+    /* 「鎌」は 小学校で ならわない ので どの学年でも 漢字＋読みがな。読みがなは 数に 入れない */
+    setGrade(6);
+    expect(gradeText(src)).toBe('鎌倉時代の 若い 指導者');
+    expect(plainLen(src)).toBe('鎌倉時代の 若い 指導者'.length);
+    setGrade(1);
+    /* 1年は 小学校で ならう ことばが ひらがなに なるので 長くなる */
+    expect(gradeText(src)).toBe('鎌倉時代の わかい しどうしゃ');
+    expect(plainLen(src)).toBeGreaterThan('鎌倉時代の 若い 指導者'.length);
   });
-  it('先頭から n文字。ルビは 途中で 割らない', () => {
+  it('先頭から n文字。読みがなつきは 途中で 割らない', () => {
+    setGrade(6);
     expect(cutFuri(src, 0)).toBe('');
-    /* 「鎌倉時代」は 4文字ぶん。1文字でも 入るなら まるごと 出す */
-    expect(plain(cutFuri(src, 2))).toBe('鎌倉時代');
-    expect(cutFuri(src, 2)).toContain('{かまくらじだい}');
-    expect(plain(cutFuri(src, 6))).toBe('鎌倉時代の ');
-    expect(cutFuri(src, 99)).toBe(src);
+    /* 「鎌倉時代」は 1文字でも 入るなら まるごと 出す */
+    expect(cutFuri(src, 2)).toBe('<ruby>鎌倉時代<rt>かまくらじだい</rt></ruby>');
+    expect(cutFuri(src, 6)).toBe('<ruby>鎌倉時代<rt>かまくらじだい</rt></ruby>の ');
+    expect(cutFuri(src, 99)).toBe(furi(src));
     /* だんだん のびる（みじかく なることは ない） */
-    let prev = 0;
-    for (let n = 0; n <= plainLen(src); n++) {
-      const len = plain(cutFuri(src, n)).length;
-      expect(len).toBeGreaterThanOrEqual(prev);
-      prev = len;
+    for (const g of [1, 6] as const) {
+      setGrade(g);
+      let prev = 0;
+      for (let n = 0; n <= plainLen(src); n++) {
+        const len = cutFuri(src, n).length;
+        expect(len).toBeGreaterThanOrEqual(prev);
+        prev = len;
+      }
     }
   });
 });

@@ -1,5 +1,6 @@
 /* 画面の切りかえ。ゲームの中身は 各画面が持つ */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { setGrade } from '../game/grade';
 import { missCount } from '../game/records';
 import { store } from '../lib/storage';
 import { startSync, enqueueScore, enqueueEntry, type ScoreRow } from '../lib/sync';
@@ -53,6 +54,8 @@ export default function App() {
      （ジャンルの えらび直しのように、前の 状態を もとに 決める もの） */
   const change = useCallback((p: Partial<Settings> | ((cur: Settings) => Partial<Settings>)) =>
     setS((x) => ({ ...x, ...(typeof p === 'function' ? p(x) : p) })), []);
+  /* 学年で 漢字か ひらがなかが 変わる。子より 先に ここで 入れておく */
+  setGrade(s.level);
   const go = useCallback((sc: Screen) => { setScreen(sc); window.scrollTo(0, 0); if (sc === 'title' || sc === 'games') setMissN(missCount()); }, []);
   useEffect(() => { window.scrollTo(0, 0); }, [screen]);
   /* サーバーの記録を 取りこむ（取りこめたら まちがい帳の数を 出しなおす） */

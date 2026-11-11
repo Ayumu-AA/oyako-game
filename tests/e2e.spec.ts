@@ -240,16 +240,16 @@ test('はやおしバトル：4たくは 同じ種類の 選たく肢（れき�
   await expect(page.locator('#side-adult .choice')).toHaveCount(4);
   await expect(page.locator('#side-child .choice')).toHaveCount(0);
   await expect(page.locator('#buzz-child')).toBeDisabled();
-  /* ふりがな：漢字は かならず ruby の中 */
-  const bare = await page.evaluate(() => {
+  /* 学年で 漢字か ひらがなか（11/11）：この 画面は 6年生なので、
+     小学校で ならう 漢字は そのまま 出てよい。1年生で 同じ所を 見る テストは 下に 別で 置いた */
+  const kanji = await page.evaluate(() => {
     let n = 0;
     document.querySelectorAll('#s-battle .qtext, #s-battle .choice').forEach((el) => {
-      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-      let t; while ((t = walker.nextNode())) { if (/[一-鿿]/.test(t.textContent || '') && !(t.parentElement && t.parentElement.closest('ruby'))) n++; }
+      if (/[一-鿿]/.test(el.textContent || '')) n++;
     });
     return n;
   });
-  expect(bare).toBe(0);
+  expect(kanji, '6年生なのに 漢字が 1つも 出ていない').toBeGreaterThan(0);
   /* おとなが こたえる（合っていれば つぎの問題、まちがいなら 回ってくる）。
      どちらでも こどもは 赤いボタンを 押せて、こどもは ハンデで 2たく */
   const first = await page.evaluate(() => (document.querySelector('#side-adult .choice') as HTMLElement).dataset.a!);
@@ -1588,5 +1588,36 @@ test('時間ぎれのとき、こたえられなかった問題の こたえが 
   expect(ans.length, 'こたえが 空: ' + ans).toBeGreaterThan(0);
   /* へぇ とは 別のカードに なっている */
   await expect(page.locator('#bhee-name')).toBeVisible();
+  expect(errs).toEqual([]);
+});
+
+
+test('1年生の 画面には ならっていない 漢字を 出さない（11/11）', async ({ page }) => {
+  const errs = noErrors(page);
+  await open(page);
+  await nav(page, 1, 1);
+  await page.click('[data-mode="battle1"]');
+  await page.click('#btn-entry-practice');
+  await page.click('#btn-start');   /* ジャンルは ミックスの まま（1年生は えらべる ものが 少ない） */
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  /* 選たく肢は 問題文が 出そろってから。CPU が 混むと 時間が かかるので 長めに 待つ */
+  await expect(page.locator('#side-child .choice').first()).toBeVisible({ timeout: 25000 });
+  /* 1年生で ならう 漢字（80字）。これ以外の 漢字が 問題文・選たく肢に 出ていたら だめ */
+  const G1 = '一右雨円王音下火花貝学気九休玉金空月犬見五口校左三山子四糸字耳七車手十出女小上森人水正生青夕石赤千川先早草足村大男竹中虫町天田土二日入年白八百文木本名目立力林六';
+  /* ただし 小学校で ならわない 漢字（鎌倉・江戸など）は 漢字＋読みがなで 出してよい。
+     読みがな（ruby）の 外に ある 漢字だけを 見る */
+  const bad = await page.evaluate((ok) => {
+    const out: string[] = [];
+    document.querySelectorAll('#s-battle .qtext, #s-battle .choice, #s-battle .hintlines').forEach((el) => {
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      let t: Node | null;
+      while ((t = walker.nextNode())) {
+        if (t.parentElement && t.parentElement.closest('ruby')) continue;
+        for (const c of t.textContent || '') if (/[一-鿿]/.test(c) && !ok.includes(c)) out.push(c);
+      }
+    });
+    return [...new Set(out)];
+  }, G1);
+  expect(bad, '読みがなの ない ならっていない 漢字が 出ている: ' + bad.join('')).toEqual([]);
   expect(errs).toEqual([]);
 });
