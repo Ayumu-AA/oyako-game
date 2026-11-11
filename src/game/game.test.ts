@@ -634,7 +634,7 @@ describe('問題文に「何を 答えるか」を 入れる（10/20）', () => 
     }
     expect(seen).toBeGreaterThan(0);
   });
-  it('りかは「これは なに？」で おわる', () => {
+  it('りかは 問いかけ（「？」）で おわる', () => {
     const s = new BattleSession({ level: 4, bsubj: 'rika', handi: 1, goal: 0 });
     let seen = 0;
     for (let i = 0; i < 40; i++) {
@@ -644,7 +644,9 @@ describe('問題文に「何を 答えるか」を 入れる（10/20）', () => 
          問題文つきは ヒントが「ヒント：「〇〇」の もんだい」の 1つだけ。それで 見分ける */
       if ((q.hints || []).some((h) => h.startsWith('ヒント：'))) continue;
       const t = plain(q.text);
-      expect(t, t).toMatch(/。これは なに？$/); seen++;
+      /* 問題文は data/ask.ts に べつに 書いてある（ヒントを つなげただけの 文には しない） */
+      expect(t, t).toMatch(/？$/);
+      expect(t, t).not.toMatch(/。これは なに？$/); seen++;
     }
     expect(seen).toBeGreaterThan(0);
   });

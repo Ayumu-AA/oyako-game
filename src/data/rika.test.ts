@@ -124,14 +124,13 @@ describe('学年ごとの デッキ', () => {
    1人用は 問題文が 出そろってから 9秒で、3秒ごとに 3点→2点→1点。
    満点を とるには 最初の 3秒。小学校中学年が 4つを 見くらべながら 読む速さを
    ひかえめに 5字/秒と みて、
-     ・選たく肢 1つ   … 10字以内（4つで 40字 ＝ 約8秒）
+     ・選たく肢 1つ   … 9字以内（ボタンの 1行に おさまる。10字だと 折り返す ことが ある）
      ・4つの 最長と最短の差 … 4字以内（長さで こたえが 分からないように）
-     ・問題文         … 25字以内（1文字 0.07秒で 出るので 約1.8秒）
-   いまの 原稿は この基準を こえるものが のこっている。
-   直すたびに ここの 数を へらしていく（増やさない ための 上限）。 */
-const LIMIT = { opt: 10, gap: 4, q: 25 } as const;
-/** いま 基準を こえている 数。直したら この数を 下げる（上げてはいけない） */
-const OVER = { opt: 113, gap: 113, q: 103 } as const;
+     ・問題文         … 25字以内（画面で 2行に おさまる）
+   2026-11 に 400問 ぜんぶを この基準に おさめた。これからも こえないように する。 */
+const LIMIT = { opt: 9, gap: 4, q: 25 } as const;
+/** 基準を こえてよい 数（ぜんぶ おさめたので 0） */
+const OVER = { opt: 0, gap: 0, q: 0 } as const;
 
 describe('選たく肢の 字数（読める 長さに おさめる）', () => {
   const all = GRADES.flatMap((g) => RIKA_Q[g]);
@@ -151,13 +150,17 @@ describe('選たく肢の 字数（読める 長さに おさめる）', () => {
       if (Math.max(...f.map(len)) > LIMIT.opt) over.opt++;
       if (Math.max(...f.map(len)) - Math.min(...f.map(len)) > LIMIT.gap) over.gap++;
     }
-    expect(over.opt, '選たく肢が 10字を こえる問題が ふえた').toBeLessThanOrEqual(OVER.opt);
+    expect(over.opt, '選たく肢が 9字を こえる問題が ふえた').toBeLessThanOrEqual(OVER.opt);
     expect(over.gap, '4つの 長さの差が 4字を こえる問題が ふえた').toBeLessThanOrEqual(OVER.gap);
     expect(over.q, '問題文が 25字を こえる問題が ふえた').toBeLessThanOrEqual(OVER.q);
     /* 直したのに OVER を 下げ忘れていないか（10問以上 余裕が できたら 下げる） */
     expect(OVER.opt - over.opt, 'OVER.opt を 今の数に 下げてください').toBeLessThan(10);
     expect(OVER.gap - over.gap, 'OVER.gap を 今の数に 下げてください').toBeLessThan(10);
     expect(OVER.q - over.q, 'OVER.q を 今の数に 下げてください').toBeLessThan(10);
+  });
+
+  it('出さない 予備の まちがいも ふくめ、6つ ぜんぶ 9字いない', () => {
+    for (const [, q, ans, wrong] of all) for (const c of [ans, ...wrong]) expect(len(c), q + ' → ' + c).toBeLessThanOrEqual(LIMIT.opt);
   });
 
   it('どんなに 長くても 読めない ほどでは ない（安全弁）', () => {

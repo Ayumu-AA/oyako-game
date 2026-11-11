@@ -4,6 +4,7 @@ import { KOKUGO_REI } from '../data/kokugo_rei';
 import { WORD_Q } from '../data/word';
 import { RIKA_Q } from '../data/rika';
 import { EIGO_IMI } from '../data/eigo_imi';
+import { ASK } from '../data/ask';
 import { preloadArt } from './art';
 import { markSeen, seenAt, markHit, markMiss } from './records';
 import { shuffle, pickN, randInt, rng } from './util';
@@ -274,7 +275,12 @@ export const MISS_NS = [5, 10, 20, 0] as const;
 
 /* ヒントの 1つ目を そのまま 問題文に すると「りんご」とだけ 出て、
    初めて 遊ぶ子には 何を 答えるのか 分からない。ジャンルに あわせて 問いかけの形に する */
+/** data/ask.ts に 書いた 問題文（無ければ undefined） */
+export const ownAsk = (key: string, q: RelayQ): string | undefined =>
+  (key === 'rika' || key === 'rekishi') ? ASK[key][q.name] : undefined;
 export function askText(key: string, q: RelayQ): string {
+  const own = ownAsk(key, q);
+  if (own) return own;
   const h = (q.hints && q.hints[0]) || '';
   if (!h) return '';
   if (key === 'pref') return '「' + h + '」で 有名{ゆうめい}なのは どこ？';
@@ -519,9 +525,11 @@ export class BattleSession {
     else { text = askText(key, q); }
     /* れきしの 人物は 似顔絵を 問題文の 上に 出す（国旗と 同じ 形。こたえ見せの あいだも 出ている） */
     if (key === 'rekishi' && q.art) art = q.art;
-    /* 3秒ごとに 1つずつ 出す ヒント。問題文に つかった ぶんは のぞく */
-    const used = key === 'pref' || key === 'rika' || key === 'rekishi' ? 1 : 0;
-    const more = noOverlap(q.hints.slice(used).filter((h) => h && h !== text));
+    /* 3秒ごとに 1つずつ 出す ヒント。問題文に つかった ぶんは のぞく。
+       data/ask.ts の 問題文を つかうときは ヒントは ぜんぶ つかえるが、問題文と かさなる ものは のぞく */
+    const used = !ownAsk(key, q) && (key === 'pref' || key === 'rika' || key === 'rekishi') ? 1 : 0;
+    const cand = q.hints.slice(used).filter((h) => h && h !== text);
+    const more = text ? noOverlap([text].concat(cand)).slice(1) : noOverlap(cand);
     /* かん字の読みは ヒントの 順番が 決まっている（いみ → よみの 文字数）ので 抽選しない */
     const hints = q.tag === KANJI_TAG ? more.slice(0, HINT_MAX - 1)
       : pickN(more, Math.max(0, HINT_MAX - 1)).slice(0, HINT_MAX - 1);
