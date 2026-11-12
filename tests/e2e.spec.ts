@@ -958,11 +958,21 @@ test('ひとりで まちがえたら こたえを 数秒 見せてから つぎ
   await page.click('#seg-subject button[data-v="rekishi"]');
   await page.click('#btn-start');
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
-  /* れきしの 文章題は 20文字を こえるので 1文字ずつでは なく 全文が 出る。
+  /* 問題文は 1文字ずつ 出ることも 全文で 出ることも あるが、
      どちらの 出しかたでも 1つ目の .qtext に 全文が ある */
-  const q1 = await page.locator('#side-child .qtext').first().textContent();
-  /* 何も しないと 時間ぎれ → こたえが 出る */
-  await expect(page.locator('#side-child .bans')).toBeVisible({ timeout: 12000 });
+  /* 練習には 1問ごとの 持ち時間が ない（11/12〜）ので、時間ぎれでは なく じっさいに まちがえる。
+     画面からは こたえが わからないので 1つ目の 選たく肢を おし、たまたま 正解だったら
+     （つぎの 問題に すすむ）また 1つ目を おす。まちがえれば こたえが 出る */
+  let q1: string | null = null;
+  for (let n = 0; n < 8; n++) {
+    await expect(page.locator('#side-child .choice').first()).toBeVisible({ timeout: 8000 });
+    q1 = await page.locator('#side-child .qtext').first().textContent();
+    await page.locator('#side-child .choice').first().click();
+    const shown = await page.locator('#side-child .bans').waitFor({ state: 'visible', timeout: 1500 }).then(() => true, () => false);
+    if (shown) break;
+    await expect(page.locator('#side-child .qtext').first()).not.toHaveText(q1!, { timeout: 4000 });
+  }
+  await expect(page.locator('#side-child .bans')).toBeVisible();
   await expect(page.locator('#side-child .bans')).toContainText('こたえは');
   /* こたえを 見せている あいだは「おてつき」の 色に しない（読めるように） */
   await expect(page.locator('#side-child')).not.toHaveClass(/locked/);
