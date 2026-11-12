@@ -1503,9 +1503,32 @@ test('一時停止しても もちじかんと ヒントの だんかいは も�
   await page.click('#btn-resume');
   /* 点は 1点の まま（3点に もどらない） */
   await expect(page.locator('#pts-child')).toHaveText('1点');
-  /* もちじかんも 満タンに もどらない */
+  /* もちじかんも 満タンに もどらない（ランキングは 再開で さいてい 3秒＝9秒の 1/3 だけは のこす） */
   const after = await left();
-  expect(after, 'もちじかんが 満タンに もどっている: ' + before + ' → ' + after).toBeLessThanOrEqual(before + 2);
+  expect(after, 'もちじかんが 満タンに もどっている: ' + before + ' → ' + after).toBeLessThanOrEqual(Math.max(before + 2, 100 / 3 + 0.5));
+  expect(errs).toEqual([]);
+});
+
+test('ランキング：一時停止しても ヒントと 点の 下がりかたは 進む（止めて 考えても 得しない）', async ({ page }) => {
+  const errs = noErrors(page);
+  await open(page);
+  await nav(page, 1, 6);
+  await page.click('[data-mode="battle1"]');
+  await page.click('#btn-entry-rank');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  /* 文が 出そろって もちじかんが 走りだした ところ（まだ 3点）で 止める */
+  await expect(page.locator('#anst-child')).toBeVisible({ timeout: 8000 });
+  await expect(page.locator('#pts-child')).toHaveText('3点');
+  await page.click('#btn-bpause');
+  await expect(page.locator('#overlay')).toBeVisible();
+  /* 止めている あいだに 6秒（ヒント 2つぶん）たつ */
+  await page.waitForTimeout(6800);
+  await page.click('#btn-resume');
+  /* 再開したら もう 1点。時間ぎれには なっておらず、まだ こたえられる */
+  await expect(page.locator('#pts-child')).toHaveText('1点');
+  await expect(page.locator('#side-child .bans')).toHaveCount(0);
+  await expect(page.locator('#anst-child')).toBeVisible();
   expect(errs).toEqual([]);
 });
 

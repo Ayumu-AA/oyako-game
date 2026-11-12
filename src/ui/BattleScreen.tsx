@@ -6,6 +6,7 @@ const REVEAL_MS = 70;   /* 問題文を 1文字ずつ 出す はやさ（クイ�
 /* まちがえた（または 時間ぎれ）の あと、こたえを 見せておく 時間。
    つぎの問題に 行く前に かならず 答えが 目に 入るように する */
 const ANS_SHOW_MS = 2000;
+const RESUME_MIN_MS = 3000;   /* ランキングで 一時停止から もどったとき、こたえる もちじかんは さいてい これだけ */
 const NEXT_WAIT_MS = 1500;   /* 2人で 相手に 回るときは こたえを 見せないので みじかく */
 /* 2人用で だれも 赤いボタンを 押さないまま 止まってしまう ことが あるので、
    問題文が 出そろってから この時間で 打ち切って つぎの問題に 行く */
@@ -50,6 +51,9 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
      （帳の 問題を ぜんぶ 出したら おわり）。ひとりの 練習は 全体の 90秒だけ 残して、1問ごとは なし */
   const isMiss = bsubj === 'miss';
   const noAnsLimit = solo && (!!practice || isMiss);
+  /* ランキングに のる 回（ひとり・練習でも まちがい直しでもない）。
+     一時停止しても 問題文と ヒント（＝点の 下がりかた）は 止めない。止めて 考えても 点が 得に ならないように */
+  const rankRun = solo && !practice && !isMiss;
   const sess = useRef<BattleSession | null>(null);
   const [q, setQ] = useState<BattleQ | null>(null);
   const [ui, setUi] = useState<Record<Side, SideUI>>({ adult: sideZero(), child: sideZero() });
@@ -321,8 +325,10 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
   timeUpRef.current = (side: Side) => { if (!finished.current && !pausedRef.current) battleWrong(side); };
   /* 文が 出そろったら、ひとりモードは そこから 5秒 */
   revDoneRef.current = () => {
-    if (finished.current || pausedRef.current) return;
+    if (finished.current) return;
     const s2 = sess.current; if (!s2 || !s2.q || s2.done) return;
+    /* ランキングは 止めている あいだに 文が 出そろっても ヒントは 進める。もちじかんは 再開してから */
+    if (pausedRef.current) { if (rankRun) { startStage(); ansDeferred.current = true; } return; }
     startStage();                       /* ヒントと ポイントの だんかいは 2人でも 動かす */
     if (players === 1) { if (!noAnsLimit) startAns('child'); }
     else if (!s2.owner) startIdle();    /* 2人用：だれも 押さなければ 10秒で つぎの問題へ */
@@ -350,6 +356,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
   const pausedAns = useRef(-1);       /* こたえる もちじかんの のこり（-1＝走っていなかった） */
   const pausedStage = useRef(0);      /* ヒントの だんかい */
   const pausedWait = useRef(HINT_STEP_MS);   /* つぎの だんかいまでの のこり */
+  const ansDeferred = useRef(false);   /* ランキング：止めている あいだに 文が 出そろった（もちじかんは 再開から） */
   const pause = useCallback(() => {
     /* まちがい直しは 全体の 時計が ないので、おわったか どうかで 見る */
     if (paused || finished.current || (!isMiss && !timer.current)) return;
@@ -360,13 +367,27 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
       ? Math.max(0, HINT_STEP_MS - (Date.now() - stageAt.current)) : HINT_STEP_MS;
     /* 一時停止しても もちじかんは 止めない（10/26）。こたえは かくす ままなので
        見ながら 待つことは できず、時計だけが 進む ＝ 止めて 考える 時間かせぎが できない */
+    ansDeferred.current = false;
+    /* ランキングは 問題文と ヒントも 進めたまま（止めて 考えても 3点の ままに ならない）。
+       こたえる もちじかんだけ 止める：止めている あいだに 時間ぎれに されると かわいそう */
+    if (rankRun) { stopAns(); stopBattleBgm(); return; }
     stopAns(); stopRev(); stopStage(); stopIdle(); stopBattleBgm();
-  }, [paused, isMiss, stopAns, stopRev, stopStage, stopIdle]);
+  }, [paused, isMiss, rankRun, stopAns, stopRev, stopStage, stopIdle]);
   const resume = useCallback(() => {
     if (!paused) return;
     setPaused(false);
     if (bsubj !== 'miss') startBattleBgm();
     const s = sess.current;
+    if (rankRun) {
+      /* 文と ヒントは 止めずに 進んでいるので、もちじかんだけ 再開する。
+         のこりが 少なすぎると 押す前に 切れるので、さいていでも RESUME_MIN_MS は のこす */
+      if (s && s.q && !s.done) {
+        if (pausedAns.current >= 0) startAns('child', Math.max(RESUME_MIN_MS, pausedAns.current));
+        else if (ansDeferred.current) startAns('child');
+      }
+      ansDeferred.current = false;
+      return;
+    }
     if (s && s.q && !s.done) {
       /* 止めた ところから つづける（もちじかんも ヒントの だんかいも そのまま） */
       if (pausedAns.current >= 0) {
@@ -382,7 +403,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
         startStage(pausedStage.current, pausedWait.current);
       }
     }
-  }, [paused, startTimer, players, startAns, runRev, startStage, bsubj]);
+  }, [paused, startTimer, players, startAns, runRev, startStage, bsubj, rankRun]);
   usePauseKeys(paused, pause, resume);
 
   const ratio = left / (capSec * 1000);
