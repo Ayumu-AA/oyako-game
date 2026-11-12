@@ -97,7 +97,8 @@ export function noOverlap(hints: string[]): string[] {
     理由をきく問題は こたえだけ 文が 長くなりがちで、そのままだと
    「いちばん長いのを えらべば 当たる」に なってしまう */
 export function rikaPool(answer: string, wrong: string[]): string[] {
-  const d = (v: string) => Math.abs([...v].length - [...answer].length);
+  /* ふりがな記法「漢字{よみ}」は 画面に 出ないので、長さを くらべる ときは はずす */
+  const d = (v: string) => Math.abs([...plain(v)].length - [...plain(answer)].length);
   return shuffle(wrong.slice()).sort((a, b) => d(a) - d(b));
 }
 /** もじうめを 出す わりあい。テストのときだけ 端末の つまみで 固定できる */

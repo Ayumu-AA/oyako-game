@@ -37,7 +37,7 @@ describe('理科の問題（学年べつ・いただいた100問×4学年）', (
        こたえとの 長さの差が 小さくなることを 見る */
     let better = 0, same = 0;
     for (const g of GRADES) for (const [, , ans, wrong] of RIKA_Q[g]) {
-      const d = (v: string) => Math.abs([...v].length - [...ans].length);
+      const d = (v: string) => Math.abs([...plain(v)].length - [...plain(ans)].length);
       const sorted = rikaPool(ans, wrong).slice(0, 3);
       const picked = Math.max(...sorted.map(d));
       const worst = Math.max(...[...wrong].sort((a, b) => d(b) - d(a)).slice(0, 3).map(d));
@@ -137,10 +137,11 @@ describe('選たく肢の 字数（読める 長さに おさめる）', () => {
   /* rikaPool は 同じ近さの ときに ばらばらに するので、かぞえる ときは
      ばらつかない やり方（近い順・同じなら 元の順）で そろえる */
   const four = (ans: string, wrong: string[]) => {
-    const d = (v: string) => Math.abs([...v].length - [...ans].length);
+    const d = (v: string) => Math.abs([...plain(v)].length - [...plain(ans)].length);
     return [ans, ...wrong.map((w, i) => [w, i] as const).sort((a, b) => d(a[0]) - d(b[0]) || a[1] - b[1]).slice(0, 3).map((x) => x[0])];
   };
-  const len = (v: string) => [...v].length;
+  /* ふりがな記法「漢字{よみ}」は 画面に 出ないので、数える ときは はずす */
+  const len = (v: string) => [...plain(v)].length;
 
   it('基準を こえている 問題は これ以上 ふえない', () => {
     const over = { opt: 0, gap: 0, q: 0 };
