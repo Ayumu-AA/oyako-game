@@ -3,7 +3,7 @@
    gradeText() は 学年に あわせて 漢字か ひらがなかを えらぶ（src/game/grade.ts）。
    画面に 出すものは すべて gradeText() を 通る。 */
 import { esc } from './util';
-import { readable, showAs } from './grade';
+import { showAs } from './grade';
 
 export const FURI_RE = /([一-鿿々〆ヶ]+)\{([ぁ-ゟー]+)\}/g;
 
