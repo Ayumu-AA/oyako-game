@@ -838,18 +838,18 @@ test('長い 文章題は 一気に 出る／みじかい 文は 1文字ずつ�
   expect(long, '長い問題が 1問も 出なかった').toBeGreaterThan(0);
   expect(errs).toEqual([]);
 });
-test('はやおし（ひとり）：どの ジャンルでも ヒント3つぶん（9秒）で 区切られる', async ({ page }) => {
+test('はやおし（ひとり）：ランキングでは ヒント3つぶん（9秒）で 区切られる', async ({ page }) => {
   const errs = noErrors(page);
   await open(page);
   await nav(page, 1);
   await page.click('[data-mode="battle1"]');
-  await page.click('#btn-entry-practice');
-  await page.click('#seg-subject button[data-v="kokugo"]');
+  await page.click('#btn-entry-rank');
   await page.click('#btn-start');
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
-  /* 文が 出そろうまでは 時間は 動かず、出そろってから 9秒（ヒント3つぶん） */
+  /* 文が 出そろうまでは 時間は 動かず、出そろってから 9秒（ヒント3つぶん）。ミックスなので どの ジャンルでも */
   await expect(page.locator('#anst-child')).toBeVisible({ timeout: 8000 });
-  const first = await page.locator('#side-child .qprog .ghost').textContent();
+  const qText = () => page.locator('#side-child .qtext:not(.live)').first().textContent();
+  const first = await qText();
   /* 3.5秒では まだ 切られない（2人の 3秒より 長い）*/
   const t0 = Date.now();
   await page.waitForTimeout(3500);
@@ -857,12 +857,13 @@ test('はやおし（ひとり）：どの ジャンルでも ヒント3つぶ�
   /* 何も しないと 時間ぎれ。こたえを 数秒 見せてから つぎの問題へ */
   await expect(page.locator('#side-child .bans')).toBeVisible({ timeout: 9000 });
   expect(Date.now() - t0).toBeGreaterThan(3000);
-  await expect(page.locator('#side-child .qprog .ghost')).not.toHaveText(first!, { timeout: 6000 });
+  await expect.poll(qText, { timeout: 6000 }).not.toBe(first);
   expect(errs).toEqual([]);
 });
 
-test('はやおし（ひとり）：けいさんにも もちじかんが つく', async ({ page }) => {
+test('はやおし（ひとり）：練習では 1問ごとの もちじかんが ない（全体の 90秒は のこる）', async ({ page }) => {
   const errs = noErrors(page);
+  await page.clock.install(); await page.clock.resume();
   await open(page);
   await nav(page, 1);
   await page.click('[data-mode="battle1"]');
@@ -870,14 +871,40 @@ test('はやおし（ひとり）：けいさんにも もちじかんが つく
   await page.click('#seg-subject button[data-v="calc"]');
   await page.click('#btn-start');
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
-  /* けいさんは 文を 少しずつ 出さないので、出た その時から もちじかんが 走る */
-  await expect(page.locator('#anst-child')).toBeVisible({ timeout: 4000 });
+  await expect(page.locator('#side-child .qtext.num')).toBeVisible({ timeout: 4000 });
   const first = await page.locator('#side-child .qtext.num').textContent();
-  await page.waitForTimeout(3500);
-  await expect(page.locator('#side-child')).not.toHaveClass(/locked/);
-  /* 何も 押さないと 時間ぎれ。こたえを 見せてから つぎの問題へ */
-  await expect(page.locator('#side-child .bans')).toBeVisible({ timeout: 9000 });
-  await expect(page.locator('#side-child .qtext.num')).not.toHaveText(first!, { timeout: 6000 });
+  /* 20秒 たっても 時間ぎれに ならず、同じ問題の まま */
+  await page.clock.fastForward(20000);
+  await expect(page.locator('#anst-child')).toBeHidden();
+  await expect(page.locator('#side-child .bans')).toHaveCount(0);
+  await expect(page.locator('#side-child .qtext.num')).toHaveText(first!);
+  /* 全体の 時計は 動いていて、90秒で おわる */
+  await expect(page.locator('#btimer')).toBeVisible();
+  await page.clock.fastForward(75000);
+  await expect(page.locator('#s-bresult')).toBeVisible({ timeout: 8000 });
+  expect(errs).toEqual([]);
+});
+
+test('まちがい直し：1問ごとの もちじかんも 全体の 時間も ない', async ({ page }) => {
+  const errs = noErrors(page);
+  await page.clock.install(); await page.clock.resume();
+  await open(page, { 'oyako-miss': JSON.stringify({ 'pref:北海道': { n: 1, t: 1 }, 'flag:日本': { n: 1, t: 2 } }) });
+  await nav(page, 1, 6);
+  await page.click('[data-tile="miss1"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  await page.waitForSelector('#s-battle .choice', { timeout: 15000 });
+  await expect(page.locator('#btimer')).toBeHidden();
+  /* 2分 たっても おわらず、時間ぎれにも ならない */
+  await page.clock.fastForward(120000);
+  await expect(page.locator('#s-battle')).toBeVisible();
+  await expect(page.locator('#anst-child')).toBeHidden();
+  await expect(page.locator('#side-child .bans')).toHaveCount(0);
+  /* 一時停止は できて、のこりの 数が 出る */
+  await page.click('#btn-bpause');
+  await expect(page.locator('#overlay')).toBeVisible();
+  await expect(page.locator('#overlay')).toContainText('のこり');
+  await expect(page.locator('#overlay')).toContainText('もん');
   expect(errs).toEqual([]);
 });
 
@@ -1460,8 +1487,7 @@ test('一時停止しても もちじかんと ヒントの だんかいは も�
   await open(page);
   await nav(page, 1, 6);
   await page.click('[data-mode="battle1"]');
-  await page.click('#btn-entry-practice');
-  await page.click('#seg-subject button[data-v="pref"]');
+  await page.click('#btn-entry-rank');   /* もちじかんが あるのは ランキングだけ（練習は なし） */
   await page.click('#btn-start');
   await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
   /* ヒントが 2つ 出て 1点に なるまで 待つ */

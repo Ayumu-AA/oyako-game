@@ -46,6 +46,10 @@ type Turn = { owner: Side | null; tried: Record<Side, boolean>; reveal: boolean 
 
 export function BattleScreen({ level, seconds, bsubj, handi, goal, players, practice, missN, subs, onFinish, onRestart, onQuit }: BattleProps) {
   const solo = players === 1;
+  /* まちがい直しは 早さを きそう ものでは ないので、1問ごとの もちじかんも 全体の 時間も なし
+     （帳の 問題を ぜんぶ 出したら おわり）。ひとりの 練習は 全体の 90秒だけ 残して、1問ごとは なし */
+  const isMiss = bsubj === 'miss';
+  const noAnsLimit = solo && (!!practice || isMiss);
   const sess = useRef<BattleSession | null>(null);
   const [q, setQ] = useState<BattleQ | null>(null);
   const [ui, setUi] = useState<Record<Side, SideUI>>({ adult: sideZero(), child: sideZero() });
@@ -170,10 +174,10 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
     setFin(true);
     later(() => {
       setFin(false);
-      const sec = goal ? Math.max(1, Math.round((Date.now() - (t0.current || Date.now())) / 1000)) : seconds;
+      const sec = goal || isMiss ? Math.max(1, Math.round((Date.now() - (t0.current || Date.now())) / 1000)) : seconds;
       onFinishRef.current({ adult: s.score.adult, child: s.score.child, ptsAdult: s.pts.adult, ptsChild: s.pts.child, bsubj, practice, goal, seconds: sec, players, miss: bsubj === 'miss', last: s.last ? { answer: s.last.answer, fact: s.last.fact || '' } : null, timeUp: tq });
     }, 1400);
-  }, [goal, seconds, players, bsubj, stopAns, stopRev, stopIdle]);
+  }, [goal, seconds, players, bsubj, isMiss, stopAns, stopRev, stopIdle]);
 
   const battleFinishRef = useRef(battleFinish); battleFinishRef.current = battleFinish;
 
@@ -213,7 +217,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
     drawScore(s);
     nextBattle();
     t0.current = Date.now();
-    startTimer(capSec * 1000);
+    if (!isMiss) startTimer(capSec * 1000);
     /* 早押しの あいだだけ せかす 音楽。まちがい直しは 早さを きそう ものでは ないので 鳴らさない */
     if (bsubj !== 'miss') startBattleBgm();
     const tm = timers.current;
@@ -282,7 +286,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
     setSide(side, { input: s.input[side] });
     if (res === 'ok') battleCorrect(side);
     else if (res === 'ng') battleWrong(side);
-    else startAns(side);
+    else if (!noAnsLimit) startAns(side);
   };
 
   /* テンキーは pointerdown で受ける。click だと 端末によって タッチ1回で 2回 発火することがある */
@@ -320,7 +324,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
     if (finished.current || pausedRef.current) return;
     const s2 = sess.current; if (!s2 || !s2.q || s2.done) return;
     startStage();                       /* ヒントと ポイントの だんかいは 2人でも 動かす */
-    if (players === 1) startAns('child');
+    if (players === 1) { if (!noAnsLimit) startAns('child'); }
     else if (!s2.owner) startIdle();    /* 2人用：だれも 押さなければ 10秒で つぎの問題へ */
   };
   /* 2人とも 押さないまま 時間が きた。こたえを 見せてから つぎへ */
@@ -347,7 +351,8 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
   const pausedStage = useRef(0);      /* ヒントの だんかい */
   const pausedWait = useRef(HINT_STEP_MS);   /* つぎの だんかいまでの のこり */
   const pause = useCallback(() => {
-    if (paused || !timer.current) return;
+    /* まちがい直しは 全体の 時計が ないので、おわったか どうかで 見る */
+    if (paused || finished.current || (!isMiss && !timer.current)) return;
     setPaused(true);
     pausedAns.current = ansTimer.current ? Math.max(0, ansEnd.current - Date.now()) : -1;
     pausedStage.current = stageRef.current;
@@ -356,7 +361,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
     /* 一時停止しても もちじかんは 止めない（10/26）。こたえは かくす ままなので
        見ながら 待つことは できず、時計だけが 進む ＝ 止めて 考える 時間かせぎが できない */
     stopAns(); stopRev(); stopStage(); stopIdle(); stopBattleBgm();
-  }, [paused, stopAns, stopRev, stopStage, stopIdle]);
+  }, [paused, isMiss, stopAns, stopRev, stopStage, stopIdle]);
   const resume = useCallback(() => {
     if (!paused) return;
     setPaused(false);
@@ -382,7 +387,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
 
   const ratio = left / (capSec * 1000);
   const s = sess.current;
-  const info = 'のこり ' + Math.ceil(left / 1000) + '秒'
+  const info = (isMiss && s ? 'のこり ' + Math.max(0, s.missPool.length - s.missSeen.size) + 'もん' : 'のこり ' + Math.ceil(left / 1000) + '秒')
     + (s ? (solo ? ' ／ ' + s.pts.child + '点' : ' ／ おとな ' + s.score.adult + ' − こども ' + s.score.child) : '');
 
   return (
@@ -392,7 +397,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
       {!solo && <BattleSide side="child" q={q} u={ui.child} players={players} turn={turn} rev={rev} stage={stage} ans={ansSide === 'child' ? ansLeft : 0} onChoice={onChoice} onBuzz={onBuzz} onChar={onChar} />}
       <div className="mid">
         {!solo && <span className="mscore flip"><span id="sc-child">{score.child}</span><small>こども</small></span>}
-        <div className="mtimer"><div id="btimer" className={left <= 10000 ? 'warn' : ''} style={{ width: (ratio * 100).toFixed(1) + '%' }}></div></div>
+        <div className="mtimer" hidden={isMiss}><div id="btimer" className={left <= 10000 ? 'warn' : ''} style={{ width: (ratio * 100).toFixed(1) + '%' }}></div></div>
         <span className="mscore"><span id={solo ? 'sc-solo' : 'sc-adult'}>{solo ? score.child : score.adult}</span><small>{solo ? 'せいかい' : 'おとな'}</small></span>
         <span className="mpts" id="b-pts">{solo ? pts.child : pts.adult + pts.child}<small>点</small></span>
         <PauseButton id="btn-bpause" onClick={pause} />
