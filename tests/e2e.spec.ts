@@ -1680,3 +1680,24 @@ test('1年生の 画面には ならっていない 漢字を 出さない（11/
   expect(bad, '読みがなの ない ならっていない 漢字が 出ている: ' + bad.join('')).toEqual([]);
   expect(errs).toEqual([]);
 });
+
+test('かん字の読み：まちがえたとき こたえに 読みが のこる（11/13）', async ({ page }) => {
+  const errs = noErrors(page);
+  await open(page);
+  await nav(page, 1, 3);
+  await page.click('[data-mode="battle1"]');
+  await page.click('#btn-entry-practice');
+  await page.click('#seg-subject button[data-v="kokugo"]');
+  await page.click('#btn-start');
+  await expect(page.locator('#s-battle')).toBeVisible({ timeout: 8000 });
+  await expect(page.locator('#side-child .choice').first()).toBeVisible({ timeout: 25000 });
+  /* 問題は「「〇〇」は なんと 読む？」。選たく肢は よみ なので、わざと ちがうものを 押す */
+  const opts = await page.locator('#side-child .choice').allInnerTexts();
+  await page.locator('#side-child .choice').nth(opts.length - 1).click();
+  const bans = page.locator('#side-child .bans');
+  await expect(bans).toBeVisible({ timeout: 9000 });
+  const t = (await bans.innerText()).replace(/\s/g, '');
+  /* 「こたえは 雨（あめ）」のように、かっこの 中に ひらがなの 読みが 入っている */
+  expect(t, 'こたえに 読みが のこっていない: ' + t).toMatch(/（[ぁ-ゟー]+）/);
+  expect(errs).toEqual([]);
+});

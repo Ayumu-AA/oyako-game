@@ -173,7 +173,7 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
        絵が 出る 問題（国旗・えいごの 絵）は 問題文だけ 見せても 分からないので こたえだけ */
     const tq = !s.done && s.q
       ? { ask: s.q.art ? undefined : s.q.text, answer: s.q.answer,
-          yomi: (s.q.disp && s.q.disp[s.q.answer]) || (s.q.yomi && s.q.yomi[s.q.answer]) || undefined }
+          yomi: s.q.ansNote || (s.q.yomi && s.q.yomi[s.q.answer]) || undefined }
       : null;
     s.done = true;
     stopTimer(); stopAns(); stopIdle(); setPaused(false); sndWhistle();
@@ -456,12 +456,11 @@ function BattleSide({ side, q, u, players, turn, ans, rev, stage, onChoice, onBu
     : turn.owner ? 'あいてが こたえ中…'
       : turn.tried[side] ? 'あいての ばん…'
         : 'はやおし！';
-  /* えいごの 逆向き（英単語 → 日本語）は こたえが 英単語。furiName は 漢字の ときしか
-     ふりがなを つけないので、そのままだと「こたえは curry」とだけ 出て、
-     まちがえた子に 日本語が のこらない。いみを そえて「curry（カレー）」に する */
-  const ansImi = q && q.sub === 'eigo' && q.disp ? q.disp[q.answer] : undefined;
+  /* こたえの うしろに かっこで そえる もの（かん字の読み＝よみ、えいごの 逆向き＝日本語）。
+     学年べつの 表記では 読める 漢字に ふりがなが つかないので、これが ないと
+    「こたえは 雨」だけに なって、何を 答えさせたかったのかが のこらない */
   const ansHTML = !q ? ''
-    : ansImi ? furi(q.answer) + '（' + furi(ansImi) + '）'
+    : q.ansNote ? furi(q.answer) + '（' + furi(q.ansNote) + '）'
       : q.yomi && q.yomi[q.answer] ? furiName(q.answer, q.yomi[q.answer]) : furi(q.answer);
   /* もじあて：いま 何個目の ? を うめるところか と、そこの 選たく肢 */
   const mi = q && q.chars ? u.input.length : 0;

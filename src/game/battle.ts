@@ -510,6 +510,7 @@ export class BattleSession {
   buildQ(key: Subject, q: RelayQ, deck: RelayQ[]): BattleQ {
     markSeen(key, q.name);
     let text: string, art = null, disp: Record<string, string> | undefined;
+    let ansNote: string | undefined;   /* こたえに そえる 読み・いみ */
     /* えいごの 逆向き（英単語 → 日本語）。こたえは 英単語の ままに して、
        ボタンの 表示だけ 日本語に する（まちがい帳の 記録が 英単語で つながる）。
        イラストは 出さない（出すと こたえが わかってしまう） */
@@ -517,6 +518,7 @@ export class BattleSession {
     if (key === 'flag') { text = 'この国旗{こっき}はどこ？'; art = q.art; }
     else if (eigoWord) {
       text = '「' + q.name + '」は 日本語{にほんご}で？';
+      ansNote = EIGO_IMI[q.name];
       disp = {};
       deck.forEach((x) => { const m = EIGO_IMI[x.name]; if (m) disp![x.name] = m; });
     }
@@ -524,6 +526,7 @@ export class BattleSession {
     else if (key === 'kokugo' && q.tag === KANJI_TAG) {
       /* かん字の読み：問題は ことば、選たく肢は よみ。記録は ことばで つける */
       text = '「' + q.name + '」は なんと 読{よ}む？';
+      ansNote = q.yomi;        /* ← これが 出題の ねらい。かならず 見せる */
       disp = {};
       deck.forEach((x) => { if (x.tag === KANJI_TAG) disp![x.name] = x.yomi; });
     }
@@ -556,7 +559,7 @@ export class BattleSession {
     /* 逆向きは こたえを 見せるとき「apple（りんご）」のように 出したいので、
        ふりがなの かわりに 日本語の いみを 入れておく */
     kind.forEach((x) => { ymap[x.name] = eigoWord ? (EIGO_IMI[x.name] || x.yomi) : x.yomi; });
-    return { art, text, num: false, answer: q.name, pool, fact: q.fact, yomi: ymap, sub: key, disp, hints };
+    return { art, text, num: false, answer: q.name, pool, fact: q.fact, yomi: ymap, sub: key, disp, ansNote, hints };
   }
 
   /** つぎの問題へ。両側の選たく肢も ここで決める */

@@ -960,3 +960,24 @@ describe('都道府県の 1つ目を 直した（10/24）', () => {
     expect(dup, 'かぶり: ' + dup.join(', ')).toEqual([]);
   });
 });
+
+describe('こたえには かならず 読みを そえる（11/13）', () => {
+  it('かん字の読みは「漢字（よみ）」で 見せる', () => {
+    for (const g of [1, 3, 6] as Level[]) {
+      setGrade(g);
+      const s = new BattleSession({ level: g, bsubj: 'kokugo', handi: 1, goal: 0 });
+      for (let i = 0; i < 12; i++) {
+        const { q } = s.next();
+        /* 出題は「「雨」は なんと 読む？」。こたえの よみが のこらないと 勉強に ならない */
+        expect(q.ansNote, plain(q.text)).toBeTruthy();
+        expect(q.ansNote, plain(q.text)).toMatch(/^[ぁ-ゟー]+$/);
+        s.correct('child');
+      }
+    }
+  });
+  it('ほかの ジャンルには そえない（こたえ そのものが 読めるので）', () => {
+    setGrade(6);
+    const s = new BattleSession({ level: 6, bsubj: 'pref', handi: 1, goal: 0 });
+    for (let i = 0; i < 6; i++) { const { q } = s.next(); expect(q.ansNote).toBeUndefined(); s.correct('child'); }
+  });
+});
