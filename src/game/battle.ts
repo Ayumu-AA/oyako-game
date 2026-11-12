@@ -317,6 +317,8 @@ export class BattleSession {
   opts: BattleOpts;
   /** まちがい直しのときだけ 使う。学年をまたいで まちがえた問題を あつめたもの */
   missPool: RelayQ[] = [];
+  /** 「〇文字目が『■』」の 組を 作るための 47県（学年に かかわらず ぜんぶ） */
+  prefAll: RelayQ[] | null = null;
   /** まちがい直しで もう 出した問題（合っていても まちがえても 1回ずつ） */
   missSeen = new Set<string>();
 
@@ -451,18 +453,26 @@ export class BattleSession {
     if (key === 'pref') {
       /* 「〇文字目が『が』の都道府県は？」。同じ条件の 県が 3つなら 2つは 見せておくので、
          こたえは かならず 1つに 決まる（同じ文字数の 別の県を 入れて まちがいに ならない） */
+      /* 組は 47県 ぜんぶで 作る。低学年の デッキ（29県）だけで 作ると、
+         「2文字目が お」で 青森・大阪しか 見せず、大分も 正解なのに 出ない、と なる。
+         こたえは 今の デッキから だけ えらぶ（低学年に 知らない県を こたえさせない） */
+      const full = this.prefAll || (this.prefAll = relayDeck('pref', 2));
+      const inDeck = new Set(deck.map((x) => x.name));
       /* 本体が みじかいと 「？」が ひとつも のこらない ことが あるので、
-         ? を 1つ以上 作れる グループだけを つかう */
-      const gs = mojiGroups(deck, key).filter((g0) => {
-        const a0 = deck.find((x) => x.name === g0.names[0]);
+         ? を 1つ以上 作れる こたえだけを つかう */
+      const canAns = (g0: MojiGroup, nm: string): boolean => {
+        if (!inDeck.has(nm)) return false;
+        const a0 = full.find((x) => x.name === nm);
         if (!a0) return false;
         const c0 = [...splitYomi(key, a0.name, a0.yomi).body];
         return c0.some((c, i) => i !== g0.pos && SMALL_KANA.indexOf(c) < 0);
-      });
+      };
+      const gs = mojiGroups(full, key).filter((g0) => g0.names.some((nm) => canAns(g0, nm)));
       if (gs.length) {
         const g = gs[Math.floor(rng() * gs.length)];
-        const names = shuffle(g.names.slice());
-        const ansName = names[0];
+        const cands = g.names.filter((nm) => canAns(g, nm));
+        const ansName = cands[Math.floor(rng() * cands.length)];
+        const names = [ansName].concat(shuffle(g.names.filter((nm) => nm !== ansName)));
         const a = deck.find((x) => x.name === ansName)!;
         const sp = splitYomi(key, a.name, a.yomi);
         const chars = [...sp.body];
@@ -471,7 +481,7 @@ export class BattleSession {
         if (!holes.length) return this.buildQ(key, q, deck);   /* 念のため（ふつうの問題に もどす） */
         /* 見せておく 仲間。よみは まるごと（ルビが 名前と ずれないように） */
         const shown = names.slice(1).map((nm) => {
-          const x = deck.find((y) => y.name === nm)!;
+          const x = full.find((y) => y.name === nm)!;
           return { name: x.name, yomi: x.yomi, tail: splitYomi(key, x.name, x.yomi).tail };
         });
         markSeen(key, a.name);

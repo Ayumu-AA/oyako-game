@@ -632,6 +632,29 @@ describe('もじあて：〇文字目が「か」の都道府県は？', () => {
     }
     expect(seen).toBeGreaterThan(3);
   });
+  it('低学年でも 47県で 見て こたえは 1つ（2文字目が お → 大分も 見せる）。こたえは 低学年の 県だけ', () => {
+    setKV(memoryKV()); reloadRecords();
+    const all47 = deckOf('pref', 2);
+    const low = new Set(deckOf('pref', 1).map((x) => x.name));
+    expect(low.size).toBeLessThan(47);
+    const s = new BattleSession({ level: 1, bsubj: 'moji', handi: 1, goal: 0 });
+    let seen = 0, outside = 0;
+    for (let i = 0; i < 200 && seen < 40; i++) {
+      const { q } = s.next();
+      if (q.sub !== 'pref' || !q.shown) { s.next(); continue; }
+      seen++;
+      expect(low.has(q.answer), q.answer).toBe(true);
+      const m = /^(\d+)文字目\{[^}]*\}が「(.)」/.exec(q.text)!;
+      const pos = Number(m[1]) - 1, ch = m[2];
+      const hit = all47.filter((x) => splitYomi('pref', x.name, x.yomi).body[pos] === ch).map((x) => x.name);
+      expect(hit.sort(), q.text).toEqual([q.answer, ...q.shown.map((x) => x.name)].sort());
+      if (q.shown.some((x) => !low.has(x.name))) outside++;
+      for (let k = 0; k < q.holes!.length; k++) s.char('child', q.chars![q.holes![k]]);
+      s.next();
+    }
+    expect(seen).toBeGreaterThan(10);
+    expect(outside, '29県 以外も 見本に 出る').toBeGreaterThan(0);
+  });
 });
 
 describe('都道府県の ヒント', () => {
