@@ -8,6 +8,9 @@ const REVEAL_MS = 70;   /* 問題文を 1文字ずつ 出す はやさ（クイ�
 const ANS_SHOW_MS = 2000;
 const RESUME_MIN_MS = 3000;   /* ランキングで 一時停止から もどったとき、こたえる もちじかんは さいてい これだけ */
 const NEXT_WAIT_MS = 1500;   /* 2人で 相手に 回るときは こたえを 見せないので みじかく */
+/* 2人で だれかが 正解したときも、つぎへ 行く前に こたえを 2人に 見せる（取られた ほうも 答えが わかるように）。
+   正解は テンポよく 進めたいので、まちがいの ときより すこし みじかく */
+const RIGHT_SHOW_MS = 1500;
 /* 2人用で だれも 赤いボタンを 押さないまま 止まってしまう ことが あるので、
    問題文が 出そろってから この時間で 打ち切って つぎの問題に 行く */
 const IDLE_MS = 10000;
@@ -242,8 +245,12 @@ export function BattleScreen({ level, seconds, bsubj, handi, goal, players, prac
     const reached = s.correct(side, ptsAtStage(stageRef.current));
     drawScore(s);
     setSide(side, { flash: true });
-    if (reached) { stopTimer(); later(battleFinish, 420); return; }   /* 〇もん先取モードは とどいた時点で おわり */
-    later(() => { if (!finished.current) nextBattle(); }, 420);
+    /* 2人の ときは「こたえは 〇〇」を 両方の 画面に 出してから つぎへ */
+    const show = players === 2;
+    if (show) syncTurn(s, true);
+    const wait = show ? RIGHT_SHOW_MS : 420;
+    if (reached) { stopTimer(); later(battleFinish, wait); return; }   /* 〇もん先取モードは とどいた時点で おわり */
+    later(() => { if (!finished.current) nextBattle(); }, wait);
   };
   const battleWrong = (side: Side) => {
     const s = sess.current!;
