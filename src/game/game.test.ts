@@ -8,6 +8,7 @@ import { plain, furi, furiName, FURI_RE } from './furigana';
 import { calcQuestion, BattleSession, battlePool, pickOpts, SOLO_OPTS, ANSWER_MS, ANSWER_MS_SOLO, HINT_STEP_MS, PTS_BY_STAGE, ptsAtStage, MIX_ALL, mixFor, okSubj, wordRows, nearNums, splitYomi, charOptions, mojiGroups, askText, PROG_MAX, EIGO_WORD_RATE, isKata, noOverlap, subjKeys } from './battle';
 import { cutFuri, plainLen, gradeText } from './furigana';
 import { setGrade } from './grade';
+import type { Level } from './types';
 import { relayDeck as deckOf } from './decks';
 import { RIKA_Q } from '../data/rika';
 import { EIGO_IMI } from '../data/eigo_imi';
